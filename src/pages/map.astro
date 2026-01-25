@@ -1,0 +1,222 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import { getCollection, getEntry } from 'astro:content';
+
+const nodes = await getCollection('nodes');
+const activeNodes = nodes.filter((n) => n.data.active);
+const mapEntry = await getEntry('global', 'map');
+const mapPage = mapEntry?.data?.type === 'map' ? mapEntry.data : undefined;
+
+// Group nodes by type for stats
+const nodesByType = {
+  relay: activeNodes.filter((n) => n.data.type === 'relay'),
+  router: activeNodes.filter((n) => n.data.type === 'router'),
+  solar: activeNodes.filter((n) => n.data.type === 'solar'),
+  client: activeNodes.filter((n) => n.data.type === 'client'),
+};
+
+const stats = (mapPage?.stats ?? []) as { key: string; label: string; colorClass?: string }[];
+const legendItems = (mapPage?.legend.items ?? []) as { label: string; description: string; colorClass: string }[];
+const coverageLocations = (mapPage?.coverage.locations ?? []) as { label: string; status: 'complete' | 'progress' | 'planned' }[];
+const externalMaps = (mapPage?.externalMaps.links ?? []) as { label: string; href: string; external?: boolean }[];
+
+const getCoverageIcon = (status: 'complete' | 'progress' | 'planned') => {
+  if (status === 'complete') return 'check';
+  if (status === 'progress') return 'progress';
+  return 'planned';
+};
+
+const getStatValue = (key: string) => {
+  if (key === 'total') return activeNodes.length;
+  if (key === 'relay') return nodesByType.relay.length;
+  if (key === 'router') return nodesByType.router.length;
+  if (key === 'solar') return nodesByType.solar.length;
+  if (key === 'client') return nodesByType.client.length;
+  return 0;
+};
+
+---
+
+<Layout title={mapPage?.pageTitle ?? 'Network Map'} description={mapPage?.pageDescription}>
+  <Hero title={mapPage?.hero.title ?? ''} subtitle={mapPage?.hero.subtitle ?? ''} size={mapPage?.hero.size ?? 'small'} />
+
+  <!-- Stats Bar -->
+  <section class="bg-white border-b border-neutral-200">
+    <div class="container-wide" style="padding-top: 1rem; padding-bottom: 1rem;">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+        {stats.map((stat) => (
+          <div>
+            <div class={`text-2xl font-bold ${stat.colorClass ?? 'text-primary-600'}`}>
+              {getStatValue(stat.key)}
+            </div>
+            <div class="text-sm text-neutral-500">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container-wide">
+      <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Map -->
+        <div class="lg:col-span-2">
+          <div class="card overflow-hidden">
+            <div class="map-container bg-neutral-100 flex items-center justify-center">
+              {activeNodes.length > 0 ? (
+                <!-- Placeholder for actual map integration -->
+                <div class="text-center p-8">
+                  <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <h3 class="text-lg font-semibold text-neutral-700 mb-2">{mapPage?.map.heading}</h3>
+                  <p class="text-neutral-500 mb-4">{mapPage?.map.body}</p>
+                  <a 
+                    href={mapPage?.map.cta.href}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="btn-primary"
+                  >
+                    {mapPage?.map.cta.label}
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              ) : (
+                <div class="text-center p-8">
+                  <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <h3 class="text-lg font-semibold text-neutral-700 mb-2">{mapPage?.empty.heading}</h3>
+                  <p class="text-neutral-500">{mapPage?.empty.body}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+          <!-- Legend -->
+          <div class="card card-body">
+            <h3 class="font-semibold mb-4">{mapPage?.legend.heading}</h3>
+            <ul class="space-y-3">
+              {legendItems.map((item) => (
+                <li class="flex items-center gap-3">
+                  <span class={`w-3 h-3 rounded-full ${item.colorClass}`}></span>
+                  <span class="text-sm">
+                    <strong>{item.label}</strong> - {item.description}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <!-- Add Your Node -->
+          <div class="card card-body bg-primary-50 border-primary-200">
+            <h3 class="font-semibold mb-2">{mapPage?.addNode.heading}</h3>
+            <p class="text-sm text-neutral-600 mb-4">{mapPage?.addNode.body}</p>
+            <a 
+              href={mapPage?.addNode.cta.href}
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="btn-primary btn-sm w-full"
+            >
+              {mapPage?.addNode.cta.label}
+            </a>
+          </div>
+
+          <!-- Coverage Info -->
+          <div class="card card-body">
+            <h3 class="font-semibold mb-2">{mapPage?.coverage.heading}</h3>
+            <p class="text-sm text-neutral-600 mb-4">{mapPage?.coverage.body}</p>
+            <ul class="text-sm text-neutral-600 space-y-1">
+              {coverageLocations.map((location) => (
+                <li class="flex items-center gap-2">
+                  {getCoverageIcon(location.status) === 'check' && (
+                    <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {getCoverageIcon(location.status) === 'progress' && (
+                    <svg class="w-4 h-4 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                  {getCoverageIcon(location.status) === 'planned' && (
+                    <svg class="w-4 h-4 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                  {location.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <!-- External Links -->
+          <div class="card card-body">
+            <h3 class="font-semibold mb-3">{mapPage?.externalMaps.heading}</h3>
+            <div class="space-y-2">
+              {externalMaps.map((link) => (
+                <a 
+                  href={link.href}
+                  target={link.external ? '_blank' : undefined}
+                  rel={link.external ? 'noopener noreferrer' : undefined}
+                  class="flex items-center justify-between text-sm hover:text-primary-600 transition-colors"
+                >
+                  {link.label}
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node List (if nodes exist) -->
+      {activeNodes.length > 0 && (
+        <div class="mt-12">
+          <h3 class="text-xl font-semibold mb-6">{mapPage?.registeredNodes.heading}</h3>
+          <div class="card overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-neutral-50 border-b border-neutral-200">
+                  <tr>
+                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage?.registeredNodes.table.name}</th>
+                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage?.registeredNodes.table.type}</th>
+                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage?.registeredNodes.table.elevation}</th>
+                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage?.registeredNodes.table.lastSeen}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-neutral-100">
+                  {activeNodes.map((node) => (
+                    <tr class="hover:bg-neutral-50">
+                      <td class="px-4 py-3 font-medium">{node.data.name}</td>
+                      <td class="px-4 py-3">
+                        <span class={`badge-${node.data.type}`}>{node.data.type}</span>
+                      </td>
+                      <td class="px-4 py-3 text-neutral-600">
+                        {node.data.elevation ? `${node.data.elevation} ft` : '-'}
+                      </td>
+                      <td class="px-4 py-3 text-neutral-500">
+                        {node.data.lastSeen 
+                          ? node.data.lastSeen.toLocaleDateString() 
+                          : 'Unknown'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+</Layout>

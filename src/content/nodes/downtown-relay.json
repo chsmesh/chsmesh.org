@@ -1,0 +1,13 @@
+{
+  "name": "Example Relay",
+  "description": "High-elevation relay node covering downtown Charleston",
+  "coordinates": {
+    "lat": 32.7876,
+    "lng": -79.9403
+  },
+  "type": "relay",
+  "elevation": 180,
+  "active": true,
+  "owner": "CHS Mesh",
+  "lastSeen": "2026-01-15"
+}

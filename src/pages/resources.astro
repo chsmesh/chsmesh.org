@@ -1,0 +1,152 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import ResourceCard from '../components/ResourceCard.astro';
+import { getCollection, getEntry } from 'astro:content';
+import { getTaxonomyData } from '../utils/taxonomy';
+
+const allResources = await getCollection('resources');
+const resourcesEntry = await getEntry('global', 'resources');
+const resourcesPage = resourcesEntry?.data?.type === 'resources' ? resourcesEntry.data : undefined;
+const taxonomy = await getTaxonomyData();
+const resourceCategoryTaxonomy = taxonomy?.resourceCategories ?? [];
+
+// Group resources by category
+const categories = resourceCategoryTaxonomy.reduce<Record<string, { label: string; description?: string; icon?: string; resources: typeof allResources }>>(
+  (acc, cat) => {
+    acc[cat.key] = {
+      label: cat.label,
+      description: cat.description,
+      icon: cat.icon,
+      resources: [] as typeof allResources,
+    };
+    return acc;
+  },
+  {}
+);
+
+// Sort resources into categories
+allResources.forEach((resource) => {
+  const key = resource.data.category;
+  if (!categories[key]) {
+    categories[key] = {
+      label: key,
+      description: undefined,
+      icon: undefined,
+      resources: [] as typeof allResources,
+    };
+  }
+  categories[key].resources.push(resource);
+});
+
+// Sort resources within each category
+Object.values(categories).forEach((cat) => {
+  cat.resources.sort((a, b) => {
+    // Featured first, then by order
+    if (a.data.featured && !b.data.featured) return -1;
+    if (!a.data.featured && b.data.featured) return 1;
+    return a.data.order - b.data.order;
+  });
+});
+
+const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.resources.length > 0);
+---
+
+<Layout title={resourcesPage?.pageTitle ?? 'Resources'} description={resourcesPage?.pageDescription}>
+  <Hero title={resourcesPage?.hero.title ?? ''} subtitle={resourcesPage?.hero.subtitle ?? ''} size={resourcesPage?.hero.size ?? 'small'} />
+
+  <section class="section">
+    <div class="container-wide">
+      {activeTabs.length === 0 ? (
+        <div class="card card-body text-center py-12">
+          <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <h3 class="text-xl font-semibold mb-2">{resourcesPage?.empty.heading}</h3>
+          <p class="text-neutral-600 mb-4">{resourcesPage?.empty.body}</p>
+          <a href={resourcesPage?.empty.cta.href} class="btn-primary">{resourcesPage?.empty.cta.label}</a>
+        </div>
+      ) : (
+        <>
+          {/* Quick Buy Section */}
+          <div class="alert-info mb-12 p-4">
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-secondary-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h4 class="font-medium text-secondary-800 mb-1">{resourcesPage?.quickStart.heading}</h4>
+                <p class="text-sm text-secondary-700">{resourcesPage?.quickStart.body}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Navigation */}
+          <nav class="flex flex-wrap gap-2 mb-12 justify-center">
+            {activeTabs.map(([key, cat]) => (
+              <a href={`#${key}`} class="btn-ghost text-sm">
+                {cat.label}
+                <span class="ml-1 text-xs bg-neutral-200 px-1.5 py-0.5 rounded-full">
+                  {cat.resources.length}
+                </span>
+              </a>
+            ))}
+          </nav>
+
+          {/* Category Sections */}
+          {activeTabs.map(([key, cat]) => (
+            <section id={key} class="mb-16 scroll-mt-24">
+              <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                  {cat.icon === 'device' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                  {cat.icon === 'plug' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  )}
+                  {cat.icon === 'app' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                    </svg>
+                  )}
+                  {cat.icon === 'chip' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  )}
+                  {cat.icon === 'users' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <h2 class="text-2xl font-semibold">{cat.label}</h2>
+                  <p class="text-neutral-500">{cat.description}</p>
+                </div>
+              </div>
+              <div class="card-grid">
+                {cat.resources.map((resource) => (
+                  <ResourceCard resource={resource} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </>
+      )}
+    </div>
+  </section>
+
+  <!-- Disclaimer -->
+  <section class="section-sm bg-neutral-100 border-t border-neutral-200">
+    <div class="container-narrow text-center text-sm text-neutral-500">
+      <p>
+        <strong>Disclaimer:</strong> {resourcesPage?.disclaimer.body}
+      </p>
+    </div>
+  </section>
+</Layout>

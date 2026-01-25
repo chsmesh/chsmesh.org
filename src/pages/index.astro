@@ -1,0 +1,192 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import MeetupCard from '../components/MeetupCard.astro';
+import GuideCard from '../components/GuideCard.astro';
+import { getCollection, getEntry } from 'astro:content';
+import { createLabelMap, getTaxonomyData } from '../utils/taxonomy';
+
+// Get content collections
+const allMeetups = await getCollection('meetups');
+const allGuides = await getCollection('guides');
+const homeEntry = await getEntry('global', 'home');
+const home = homeEntry?.data?.type === 'home' ? homeEntry.data : undefined;
+const taxonomy = await getTaxonomyData();
+const guideCategoryLabels = createLabelMap(taxonomy?.guideCategories);
+const guideDifficultyLabels = createLabelMap(taxonomy?.guideDifficulties);
+const meetupStatusLabels = createLabelMap(taxonomy?.meetupStatuses);
+const meetupBadgeLabels = createLabelMap(taxonomy?.meetupBadges);
+
+// Sort and filter
+const now = new Date();
+const upcomingMeetups = allMeetups
+  .filter((m) => m.data.date >= now)
+  .sort((a, b) => a.data.date.getTime() - b.data.date.getTime())
+  .slice(0, 3);
+
+const featuredGuides = allGuides
+  .filter((g) => g.data.category === 'getting-started')
+  .sort((a, b) => a.data.order - b.data.order)
+  .slice(0, 3);
+
+const stats = (home?.stats ?? []) as { value: string; label: string }[];
+const features = (home?.features ?? []) as { title: string; description: string; icon: string }[];
+const heroCtas = (home?.hero.ctas ?? []) as { label: string; href: string; variant?: string }[];
+const ctaSectionCtas = (home?.cta.ctas ?? []) as { label: string; href: string; variant?: string }[];
+
+const getCtaClass = (variant?: string, size: 'sm' | 'lg' = 'lg') => {
+  if (variant === 'outline') return size === 'sm' ? 'btn-outline btn-sm' : 'btn-outline btn-lg';
+  if (variant === 'ghost') return size === 'sm' ? 'btn-ghost btn-sm' : 'btn-ghost btn-lg';
+  if (variant === 'secondary') {
+    return size === 'sm'
+      ? 'btn btn-sm bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+      : 'btn btn-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm';
+  }
+  return size === 'sm' ? 'btn-primary btn-sm' : 'btn-primary btn-lg';
+};
+---
+
+<Layout title={home?.pageTitle ?? 'Home'} description={home?.pageDescription}>
+  <!-- Hero Section -->
+  <Hero title={home?.hero.title ?? ''} subtitle={home?.hero.subtitle ?? ''} size={home?.hero.size ?? 'large'}>
+    <div class="flex flex-wrap gap-4 mt-8">
+      {heroCtas.map((cta: (typeof heroCtas)[number]) => (
+        <a href={cta.href} class={getCtaClass(cta.variant, 'lg')}>
+          {cta.label}
+          {cta.variant === 'primary' && (
+            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          )}
+        </a>
+      ))}
+    </div>
+  </Hero>
+
+  <!-- Stats Section -->
+  <section class="bg-white border-b border-neutral-200">
+    <div class="container-wide py-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {stats.map((stat: (typeof stats)[number]) => (
+          <div class="stat-card">
+            <div class="stat-value">{stat.value}</div>
+            <div class="stat-label">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- What is Meshtastic Section -->
+  <section class="section bg-neutral-50">
+    <div class="container-wide">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <h2 class="mb-4">{home?.intro.heading}</h2>
+        <p class="text-lg text-neutral-600">{home?.intro.body}</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {features.map((feature: (typeof features)[number]) => (
+          <div class="card card-body text-center">
+            <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+              {feature.icon === 'radio' && (
+                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                </svg>
+              )}
+              {feature.icon === 'users' && (
+                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+              {feature.icon === 'code' && (
+                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              )}
+              {feature.icon === 'dollar' && (
+                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </div>
+            <h3 class="text-lg font-semibold mb-2">{feature.title}</h3>
+            <p class="text-neutral-600 text-sm">{feature.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Upcoming Meetups Section -->
+  {upcomingMeetups.length > 0 && (
+    <section class="section">
+      <div class="container-wide">
+        <div class="flex items-center justify-between mb-8">
+          <h2>{home?.meetupsSection.heading}</h2>
+          <a href={home?.meetupsSection.cta.href} class={getCtaClass(home?.meetupsSection.cta.variant, 'sm')}>
+            {home?.meetupsSection.cta.label}
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+        <div class="card-grid">
+          {upcomingMeetups.map((meetup, index) => (
+            <MeetupCard
+              meetup={meetup}
+              featured={index === 0}
+              taxonomy={{
+                statusLabels: meetupStatusLabels,
+                badgeLabels: meetupBadgeLabels,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Getting Started Guides Section -->
+  {featuredGuides.length > 0 && (
+    <section class="section bg-neutral-50">
+      <div class="container-wide">
+        <div class="flex items-center justify-between mb-8">
+          <h2>{home?.guidesSection.heading}</h2>
+          <a href={home?.guidesSection.cta.href} class={getCtaClass(home?.guidesSection.cta.variant, 'sm')}>
+            {home?.guidesSection.cta.label}
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+        <div class="card-grid">
+          {featuredGuides.map((guide) => (
+            <GuideCard
+              guide={guide}
+              taxonomy={{
+                categoryLabels: guideCategoryLabels,
+                difficultyLabels: guideDifficultyLabels,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- CTA Section -->
+  <section class="hero py-16">
+    <div class="container-wide text-center">
+      <h2 class="text-white mb-4">{home?.cta.heading}</h2>
+      <p class="text-primary-100 text-lg mb-8 max-w-2xl mx-auto">{home?.cta.body}</p>
+      <div class="flex flex-wrap justify-center gap-4">
+        {ctaSectionCtas.map((cta: (typeof ctaSectionCtas)[number]) => (
+          <a href={cta.href} class={getCtaClass(cta.variant, 'lg')}>
+            {cta.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>

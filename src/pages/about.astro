@@ -1,0 +1,133 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import { getEntry } from 'astro:content';
+
+const aboutEntry = await getEntry('global', 'about');
+const about = aboutEntry?.data?.type === 'about' ? aboutEntry.data : undefined;
+const getInvolvedCards = (about?.getInvolved.cards ?? []) as {
+  title: string;
+  description: string;
+  icon?: string;
+  cta: { label: string; href: string; variant?: string };
+}[];
+const communityRoles = (about?.community.roles ?? []) as { name: string; description: string }[];
+const faqs = (about?.faqs ?? []) as { question: string; answer: string }[];
+
+const getCtaClass = (variant?: string) => {
+  if (variant === 'outline') return 'btn-outline btn-sm';
+  if (variant === 'ghost') return 'btn-ghost btn-sm';
+  if (variant === 'secondary') return 'btn btn-sm bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm';
+  return 'btn-primary btn-sm';
+};
+
+---
+
+<Layout title={about?.pageTitle ?? 'About'} description={about?.pageDescription}>
+  <Hero title={about?.hero.title ?? ''} subtitle={about?.hero.subtitle ?? ''} size={about?.hero.size ?? 'small'} />
+
+  <section class="section">
+    <div class="container-narrow">
+      <!-- Mission -->
+      <div class="prose max-w-none mb-16">
+        <h2>{about?.mission.heading}</h2>
+        <p class="text-lg">{about?.mission.intro}</p>
+        <p>{about?.mission.leadIn}</p>
+        <ul>
+          {(about?.mission.bullets ?? []).map((bullet) => (
+            <li>
+              <strong>{bullet.title}</strong> - {bullet.description}
+            </li>
+          ))}
+        </ul>
+        <p>{about?.mission.outro}</p>
+      </div>
+
+      <!-- How to Get Involved -->
+      <div class="mb-16">
+        <h2 class="text-2xl font-semibold mb-6">{about?.getInvolved.heading}</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          {getInvolvedCards.map((card) => (
+            <div class="card card-body text-center">
+              <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                {card.icon === 'chat' && (
+                  <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                )}
+                {card.icon === 'calendar' && (
+                  <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )}
+                {card.icon === 'radio' && (
+                  <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                  </svg>
+                )}
+              </div>
+              <h3 class="text-lg font-semibold mb-2">{card.title}</h3>
+              <p class="text-sm text-neutral-600 mb-4">{card.description}</p>
+              <a href={card.cta.href} target={card.cta.href.startsWith('http') ? '_blank' : undefined} rel={card.cta.href.startsWith('http') ? 'noopener noreferrer' : undefined} class={getCtaClass(card.cta.variant)}>
+                {card.cta.label}
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Team -->
+      <div class="mb-16">
+        <h2 class="text-2xl font-semibold mb-6">{about?.community.heading}</h2>
+        <p class="text-neutral-600 mb-6">{about?.community.intro}</p>
+        <div class="grid md:grid-cols-3 gap-4">
+          {communityRoles.map((role) => (
+            <div class="card card-body">
+              <h3 class="font-semibold mb-1">{role.name}</h3>
+              <p class="text-sm text-neutral-600">{role.description}</p>
+            </div>
+          ))}
+        </div>
+        <p class="text-center mt-6 text-neutral-500">
+          {about?.community.ctaText}{' '}
+          <a href={about?.community.ctaHref} class="text-primary-600 hover:underline">{about?.community.ctaLabel}</a>
+        </p>
+      </div>
+
+      <!-- FAQ -->
+      <div>
+        <h2 class="text-2xl font-semibold mb-6">Frequently Asked Questions</h2>
+        <div class="space-y-4">
+          {faqs.map((faq) => (
+            <details class="card group">
+              <summary class="card-body cursor-pointer flex items-center justify-between font-medium hover:text-primary-600 transition-colors">
+                {faq.question}
+                <svg class="w-5 h-5 text-neutral-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
+              <div class="px-6 pb-6 text-neutral-600">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact CTA -->
+  <section class="section-sm bg-primary-50 border-t border-primary-100">
+    <div class="container-narrow text-center">
+      <h3 class="text-xl font-semibold mb-2">{about?.contactCta.heading}</h3>
+      <p class="text-neutral-600 mb-4">{about?.contactCta.body}</p>
+      <div class="flex justify-center gap-4">
+        {(about?.contactCta.ctas ?? []).map((cta) => (
+          <a href={cta.href} target={cta.href.startsWith('http') ? '_blank' : undefined} rel={cta.href.startsWith('http') ? 'noopener noreferrer' : undefined} class={getCtaClass(cta.variant).replace('btn-sm', '')}>
+            {cta.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>

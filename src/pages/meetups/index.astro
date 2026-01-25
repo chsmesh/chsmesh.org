@@ -1,0 +1,96 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Hero from '../../components/Hero.astro';
+import MeetupCard from '../../components/MeetupCard.astro';
+import { getCollection, getEntry } from 'astro:content';
+import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
+
+const allMeetups = await getCollection('meetups');
+const meetupsEntry = await getEntry('global', 'meetups');
+const meetupsPage = meetupsEntry?.data?.type === 'meetups' ? meetupsEntry.data : undefined;
+const taxonomy = await getTaxonomyData();
+const meetupStatusLabels = createLabelMap(taxonomy?.meetupStatuses);
+const meetupBadgeLabels = createLabelMap(taxonomy?.meetupBadges);
+const now = new Date();
+
+// Separate upcoming and past meetups
+const upcomingMeetups = allMeetups
+  .filter((m) => m.data.date >= now)
+  .sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
+
+const pastMeetups = allMeetups
+  .filter((m) => m.data.date < now)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+---
+
+<Layout title={meetupsPage?.pageTitle ?? 'Meetups'} description={meetupsPage?.pageDescription}>
+  <Hero title={meetupsPage?.hero.title ?? ''} subtitle={meetupsPage?.hero.subtitle ?? ''} size={meetupsPage?.hero.size ?? 'small'} />
+
+  <section class="section">
+    <div class="container-wide">
+      <!-- Upcoming Meetups -->
+      {upcomingMeetups.length > 0 ? (
+        <div class="mb-16">
+          <h2 class="mb-8">{meetupsPage?.upcomingHeading}</h2>
+          <div class="card-grid">
+            {upcomingMeetups.map((meetup, index) => (
+              <MeetupCard
+                meetup={meetup}
+                featured={index === 0}
+                taxonomy={{
+                  statusLabels: meetupStatusLabels,
+                  badgeLabels: meetupBadgeLabels,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div class="mb-16">
+          <div class="card card-body text-center py-12">
+            <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 class="text-xl font-semibold mb-2">{meetupsPage?.empty.heading}</h3>
+            <p class="text-neutral-600 mb-4">{meetupsPage?.empty.body}</p>
+            <a href={meetupsPage?.empty.cta.href} target="_blank" rel="noopener noreferrer" class="btn-primary">
+              {meetupsPage?.empty.cta.label}
+              <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      )}
+
+      <!-- Past Meetups -->
+      {pastMeetups.length > 0 && (
+        <div>
+          <h2 class="mb-8 text-neutral-500">{meetupsPage?.pastHeading}</h2>
+          <div class="card-grid">
+            {pastMeetups.map((meetup) => (
+              <MeetupCard
+                meetup={meetup}
+                taxonomy={{
+                  statusLabels: meetupStatusLabels,
+                  badgeLabels: meetupBadgeLabels,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- Host a Meetup CTA -->
+  <section class="section-sm bg-primary-50 border-t border-primary-100">
+    <div class="container-wide text-center">
+      <h3 class="text-xl font-semibold mb-2">{meetupsPage?.host.heading}</h3>
+      <p class="text-neutral-600 mb-4">{meetupsPage?.host.body}</p>
+      <a href={meetupsPage?.host.cta.href} class="btn-outline">
+        {meetupsPage?.host.cta.label}
+      </a>
+    </div>
+  </section>
+</Layout>

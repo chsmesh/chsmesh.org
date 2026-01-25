@@ -1,0 +1,152 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Hero from '../../components/Hero.astro';
+import GuideCard from '../../components/GuideCard.astro';
+import { getCollection, getEntry } from 'astro:content';
+import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
+
+const allGuides = await getCollection('guides');
+const guidesEntry = await getEntry('global', 'guides');
+const guidesPage = guidesEntry?.data?.type === 'guides' ? guidesEntry.data : undefined;
+const taxonomy = await getTaxonomyData();
+const guideCategoryTaxonomy = taxonomy?.guideCategories ?? [];
+const guideDifficultyLabels = createLabelMap(taxonomy?.guideDifficulties);
+const guideCategoryLabels = createLabelMap(guideCategoryTaxonomy);
+
+// Group guides by category
+const categories = guideCategoryTaxonomy.reduce<Record<string, { label: string; description?: string; icon?: string; guides: typeof allGuides }>>(
+  (acc, cat) => {
+    acc[cat.key] = {
+      label: cat.label,
+      description: cat.description,
+      icon: cat.icon,
+      guides: [] as typeof allGuides,
+    };
+    return acc;
+  },
+  {}
+);
+
+// Sort guides into categories
+allGuides.forEach((guide) => {
+  const key = guide.data.category;
+  if (!categories[key]) {
+    categories[key] = {
+      label: guideCategoryLabels[key] ?? key,
+      description: undefined,
+      icon: undefined,
+      guides: [] as typeof allGuides,
+    };
+  }
+  categories[key].guides.push(guide);
+});
+
+// Sort guides within each category by order
+Object.values(categories).forEach((cat) => {
+  cat.guides.sort((a, b) => a.data.order - b.data.order);
+});
+
+// Filter tabs to only show categories with guides
+const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.guides.length > 0);
+---
+
+<Layout title={guidesPage?.pageTitle ?? 'Guides'} description={guidesPage?.pageDescription}>
+  <Hero title={guidesPage?.hero.title ?? ''} subtitle={guidesPage?.hero.subtitle ?? ''} size={guidesPage?.hero.size ?? 'small'} />
+
+  <section class="section">
+    <div class="container-wide">
+      {activeTabs.length === 0 ? (
+        <div class="card card-body text-center py-12">
+          <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <h3 class="text-xl font-semibold mb-2">{guidesPage?.empty.heading}</h3>
+          <p class="text-neutral-600 mb-4">{guidesPage?.empty.body}</p>
+          <a href={guidesPage?.empty.cta.href} class="btn-primary">{guidesPage?.empty.cta.label}</a>
+        </div>
+      ) : (
+        <>
+          {/* Category Navigation */}
+          <nav class="flex flex-wrap gap-2 mb-12 justify-center">
+            {activeTabs.map(([key, cat]) => (
+              <a
+                href={`#${key}`}
+                class="btn-ghost text-sm"
+              >
+                {cat.label}
+                <span class="ml-1 text-xs bg-neutral-200 px-1.5 py-0.5 rounded-full">
+                  {cat.guides.length}
+                </span>
+              </a>
+            ))}
+          </nav>
+
+          {/* Category Sections */}
+          {activeTabs.map(([key, cat]) => (
+            <section id={key} class="mb-16 scroll-mt-24">
+              <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                  {cat.icon === 'rocket' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  )}
+                  {cat.icon === 'chip' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                    </svg>
+                  )}
+                  {cat.icon === 'code' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  )}
+                  {cat.icon === 'globe' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                  )}
+                  {cat.icon === 'wrench' && (
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <h2 class="text-2xl font-semibold">{cat.label}</h2>
+                  <p class="text-neutral-500">{cat.description}</p>
+                </div>
+              </div>
+              <div class="card-grid">
+                {cat.guides.map((guide) => (
+                  <GuideCard
+                    guide={guide}
+                    taxonomy={{
+                      categoryLabels: guideCategoryLabels,
+                      difficultyLabels: guideDifficultyLabels,
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </>
+      )}
+    </div>
+  </section>
+
+  <!-- Contribute CTA -->
+  <section class="section-sm bg-primary-50 border-t border-primary-100">
+    <div class="container-wide text-center">
+      <h3 class="text-xl font-semibold mb-2">{guidesPage?.contribute.heading}</h3>
+      <p class="text-neutral-600 mb-4">{guidesPage?.contribute.body}</p>
+      <a href={guidesPage?.contribute.cta.href} target="_blank" rel="noopener noreferrer" class="btn-outline">
+        {guidesPage?.contribute.cta.label}
+        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+    </div>
+  </section>
+</Layout>

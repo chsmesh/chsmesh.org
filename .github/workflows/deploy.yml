@@ -1,0 +1,25 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Trigger Komodo Deployment
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Komodo Webhook
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            "${{ secrets.KOMODO_WEBHOOK_URL }}" \
+            -d '{"ref":"${{ github.ref }}","sha":"${{ github.sha }}"}'
+        
+      - name: Log Deployment
+        run: |
+          echo "Deployment triggered for commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Repository: ${{ github.repository }}"

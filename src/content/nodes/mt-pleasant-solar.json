@@ -1,0 +1,13 @@
+{
+  "name": "Mt Pleasant Example Solar",
+  "description": "Solar-powered node in Mount Pleasant providing east-side coverage",
+  "coordinates": {
+    "lat": 32.8468,
+    "lng": -79.8626
+  },
+  "type": "solar",
+  "elevation": 45,
+  "active": true,
+  "owner": "Community Member",
+  "lastSeen": "2026-01-14"
+}

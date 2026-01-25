@@ -1,0 +1,13 @@
+{
+  "name": "James Island Example Router",
+  "description": "Always-on router extending coverage to James Island",
+  "coordinates": {
+    "lat": 32.7349,
+    "lng": -79.9489
+  },
+  "type": "router",
+  "elevation": 30,
+  "active": true,
+  "owner": "Community Member",
+  "lastSeen": "2026-01-15"
+}

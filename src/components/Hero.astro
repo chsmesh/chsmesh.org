@@ -1,0 +1,26 @@
+---
+interface Props {
+  title: string;
+  subtitle?: string;
+  showPattern?: boolean;
+  size?: 'default' | 'large' | 'small';
+}
+
+const { title, subtitle, showPattern = true, size = 'default' } = Astro.props;
+
+const sizeClasses = {
+  small: 'py-8 md:py-12',
+  default: 'py-12 md:py-16',
+  large: 'py-16 md:py-20',
+};
+---
+
+<section class:list={['hero relative', sizeClasses[size], showPattern && 'hero-pattern']}>
+  <div class="container-wide relative z-10">
+    <div class="max-w-3xl">
+      <h1 class="text-white mb-4">{title}</h1>
+      {subtitle && <p class="text-xl md:text-2xl text-neutral-900">{subtitle}</p>}
+      <slot />
+    </div>
+  </div>
+</section>

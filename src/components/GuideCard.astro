@@ -1,0 +1,70 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  guide: CollectionEntry<'guides'>;
+  taxonomy?: {
+    categoryLabels?: Record<string, string>;
+    difficultyLabels?: Record<string, string>;
+  };
+}
+
+const { guide, taxonomy } = Astro.props;
+const { title, description, difficulty, category, readingTime, prerequisites } = guide.data;
+
+const difficultyColors = {
+  beginner: 'badge-beginner',
+  intermediate: 'badge-intermediate',
+  advanced: 'badge-advanced',
+};
+
+const categoryLabels = {
+  'getting-started': 'Getting Started',
+  hardware: 'Hardware',
+  software: 'Software',
+  network: 'Network',
+  troubleshooting: 'Troubleshooting',
+};
+
+const difficultyLabel = taxonomy?.difficultyLabels?.[difficulty] ?? difficulty;
+const categoryLabel = taxonomy?.categoryLabels?.[category] ?? categoryLabels[category] ?? category;
+---
+
+<article class="card hover:border-primary-300 transition-colors">
+  <div class="card-body">
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      <span class={difficultyColors[difficulty]}>{difficultyLabel}</span>
+      <span class="badge-neutral">{categoryLabel}</span>
+      {readingTime && (
+        <span class="text-xs text-neutral-500 flex items-center gap-1">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {readingTime} min read
+        </span>
+      )}
+    </div>
+
+    <h3 class="text-xl font-semibold mb-2">
+      <a href={`/guides/${guide.id}`} class="hover:text-primary-600 transition-colors text-neutral-900">
+        {title}
+      </a>
+    </h3>
+
+    <p class="text-neutral-600 line-clamp-2 mb-4">{description}</p>
+
+    {prerequisites.length > 0 && (
+      <div class="text-sm text-neutral-500 mb-4">
+        <span class="font-medium">Prerequisites:</span>
+        <span>{prerequisites.join(', ')}</span>
+      </div>
+    )}
+
+    <a href={`/guides/${guide.id}`} class="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm">
+      Read Guide
+      <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+    </a>
+  </div>
+</article>
