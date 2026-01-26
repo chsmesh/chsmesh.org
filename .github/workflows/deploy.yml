@@ -11,15 +11,22 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Trigger Komodo Webhook
+      - name: Trigger Komodo Pull Webhook
         run: |
           curl -X POST \
             -H "Content-Type: application/json" \
-            "${{ secrets.KOMODO_WEBHOOK_URL }}" \
+            "${{ secrets.KOMODO_PULL_WEBHOOK_URL }}" \
+            -d '{"ref":"${{ github.ref }}","sha":"${{ github.sha }}"}'
+        
+      - name: Trigger Komodo Build Webhook
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            "${{ secrets.KOMODO_BUILD_WEBHOOK_URL }}" \
             -d '{"ref":"${{ github.ref }}","sha":"${{ github.sha }}"}'
         
       - name: Log Deployment
         run: |
-          echo "Deployment triggered for commit: ${{ github.sha }}"
+          echo "Pull and build triggered for commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref }}"
           echo "Repository: ${{ github.repository }}"
