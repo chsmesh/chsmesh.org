@@ -126,13 +126,13 @@ const getStatValue = (key: string) => {
 
           <!-- Add Your Node Button -->
           <div class="card card-body bg-primary-50 border-primary-200">
-            <h3 class="font-semibold mb-2">Add Your Node</h3>
-            <p class="text-sm text-neutral-600 mb-4">Share your node location with the community</p>
+            <h3 class="font-semibold mb-2">{mapPage?.addNode.heading}</h3>
+            <p class="text-sm text-neutral-600 mb-4">{mapPage?.addNode.body}</p>
             <button
               data-modal-open="node-modal"
               class="btn-primary btn-sm w-full"
             >
-              Submit Your Node
+              {mapPage?.addNode.cta.label}
             </button>
           </div>
 
