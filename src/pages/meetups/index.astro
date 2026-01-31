@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Hero from '../../components/Hero.astro';
 import MeetupCard from '../../components/MeetupCard.astro';
+import MeetupSubmissionForm from '../../components/MeetupSubmissionForm.astro';
 import { getCollection, getEntry } from 'astro:content';
 import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
 
@@ -83,14 +84,10 @@ const pastMeetups = allMeetups
     </div>
   </section>
 
-  <!-- Host a Meetup CTA -->
+  <!-- Submit Meetup Form -->
   <section class="section-sm bg-primary-50 border-t border-primary-100">
-    <div class="container-wide text-center">
-      <h3 class="text-xl font-semibold mb-2">{meetupsPage?.host.heading}</h3>
-      <p class="text-neutral-600 mb-4">{meetupsPage?.host.body}</p>
-      <a href={meetupsPage?.host.cta.href} class="btn-outline">
-        {meetupsPage?.host.cta.label}
-      </a>
+    <div class="container-wide max-w-2xl mx-auto">
+      <MeetupSubmissionForm />
     </div>
   </section>
 </Layout>

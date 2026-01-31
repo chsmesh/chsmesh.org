@@ -1,0 +1,292 @@
+---
+// Guide submission form component
+// Submits to n8n webhook for automated PR creation
+---
+
+<div class="card card-body">
+  <h3 class="text-xl font-semibold mb-2">Submit a Guide</h3>
+  <p class="text-sm text-neutral-600 mb-6">
+    Share your Meshtastic knowledge with the community. Your guide will be reviewed and added via GitHub PR.
+  </p>
+
+  <form id="guide-form" class="space-y-4">
+    <!-- Title -->
+    <div>
+      <label for="guide-title" class="block text-sm font-medium text-neutral-700 mb-1">
+        Guide Title <span class="text-red-500">*</span>
+      </label>
+      <input
+        type="text"
+        id="guide-title"
+        name="title"
+        required
+        placeholder="e.g., Setting Up Solar Power for Your Node"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      />
+    </div>
+
+    <!-- Description -->
+    <div>
+      <label for="guide-description" class="block text-sm font-medium text-neutral-700 mb-1">
+        Description <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="guide-description"
+        name="description"
+        required
+        rows="2"
+        placeholder="Brief summary of what the guide covers"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      ></textarea>
+    </div>
+
+    <!-- Content -->
+    <div>
+      <label for="guide-content" class="block text-sm font-medium text-neutral-700 mb-1">
+        Guide Content <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="guide-content"
+        name="content"
+        required
+        rows="12"
+        placeholder="Write your guide in Markdown format. Use ## for headings, - for lists, **bold**, *italic*, etc."
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+      ></textarea>
+      <p class="text-xs text-neutral-500 mt-1">Use Markdown formatting (headers, lists, code blocks, etc.)</p>
+    </div>
+
+    <!-- Category -->
+    <div>
+      <label for="guide-category" class="block text-sm font-medium text-neutral-700 mb-1">
+        Category <span class="text-red-500">*</span>
+      </label>
+      <select
+        id="guide-category"
+        name="category"
+        required
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      >
+        <option value="">Select a category...</option>
+        <option value="getting-started">Getting Started</option>
+        <option value="hardware">Hardware</option>
+        <option value="software">Software</option>
+        <option value="network">Network</option>
+        <option value="troubleshooting">Troubleshooting</option>
+      </select>
+    </div>
+
+    <!-- Difficulty -->
+    <div>
+      <label for="guide-difficulty" class="block text-sm font-medium text-neutral-700 mb-1">
+        Difficulty Level <span class="text-red-500">*</span>
+      </label>
+      <select
+        id="guide-difficulty"
+        name="difficulty"
+        required
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      >
+        <option value="">Select difficulty...</option>
+        <option value="beginner">Beginner - No prior experience needed</option>
+        <option value="intermediate">Intermediate - Some experience required</option>
+        <option value="advanced">Advanced - Technical knowledge required</option>
+      </select>
+    </div>
+
+    <!-- Author -->
+    <div>
+      <label for="guide-author" class="block text-sm font-medium text-neutral-700 mb-1">
+        Author Name
+      </label>
+      <input
+        type="text"
+        id="guide-author"
+        name="author"
+        placeholder="Your name or callsign (optional)"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      />
+    </div>
+
+    <!-- Prerequisites -->
+    <div>
+      <label for="guide-prerequisites" class="block text-sm font-medium text-neutral-700 mb-1">
+        Prerequisites
+      </label>
+      <input
+        type="text"
+        id="guide-prerequisites"
+        name="prerequisites"
+        placeholder="e.g., Basic soldering skills, Flashed device (comma-separated)"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      />
+      <p class="text-xs text-neutral-500 mt-1">Comma-separated list of prerequisites (optional)</p>
+    </div>
+
+    <!-- Submitter Email -->
+    <div>
+      <label for="guide-submitterEmail" class="block text-sm font-medium text-neutral-700 mb-1">
+        Email <span class="text-red-500">*</span>
+      </label>
+      <input
+        type="email"
+        id="guide-submitterEmail"
+        name="submitterEmail"
+        required
+        placeholder="your.email@example.com"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      />
+      <p class="text-xs text-neutral-500 mt-1">For PR notifications (not published on site)</p>
+    </div>
+
+    <!-- Error Message -->
+    <div id="guide-error-message" class="hidden p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"></div>
+
+    <!-- Success Message -->
+    <div id="guide-success-message" class="hidden p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-700"></div>
+
+    <!-- Submit Button -->
+    <button
+      type="submit"
+      id="guide-submit-button"
+      class="btn-primary w-full"
+    >
+      <span id="guide-submit-text">Submit Guide</span>
+      <span id="guide-submit-loading" class="hidden">
+        <svg class="animate-spin h-5 w-5 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Submitting...
+      </span>
+    </button>
+
+    <p class="text-xs text-neutral-500 text-center">
+      By submitting, you agree that your guide will be publicly available under the site's license.
+    </p>
+  </form>
+</div>
+
+<script>
+  import { z } from 'zod';
+
+  const WEBHOOK_URL = import.meta.env.PUBLIC_N8N_GUIDES_WEBHOOK_URL;
+
+  // Guide schema matching content/config.ts
+  const guideSchema = z.object({
+    title: z.string().min(1, 'Title is required'),
+    description: z.string().min(1, 'Description is required'),
+    content: z.string().min(50, 'Content must be at least 50 characters'),
+    difficulty: z.enum(['beginner', 'intermediate', 'advanced'], {
+      errorMap: () => ({ message: 'Please select a difficulty level' }),
+    }),
+    category: z.enum(['getting-started', 'hardware', 'software', 'network', 'troubleshooting'], {
+      errorMap: () => ({ message: 'Please select a category' }),
+    }),
+    author: z.string().optional(),
+    prerequisites: z.array(z.string()).optional(),
+    submitterEmail: z.string().email('Valid email is required'),
+  });
+
+  const form = document.getElementById('guide-form') as HTMLFormElement;
+  const submitButton = document.getElementById('guide-submit-button') as HTMLButtonElement;
+  const submitText = document.getElementById('guide-submit-text') as HTMLSpanElement;
+  const submitLoading = document.getElementById('guide-submit-loading') as HTMLSpanElement;
+  const errorMessage = document.getElementById('guide-error-message') as HTMLDivElement;
+  const successMessage = document.getElementById('guide-success-message') as HTMLDivElement;
+
+  function showError(message: string) {
+    errorMessage.textContent = message;
+    errorMessage.classList.remove('hidden');
+    successMessage.classList.add('hidden');
+  }
+
+  function showSuccess(message: string) {
+    successMessage.textContent = message;
+    successMessage.classList.remove('hidden');
+    errorMessage.classList.add('hidden');
+  }
+
+  function setLoading(isLoading: boolean) {
+    submitButton.disabled = isLoading;
+    if (isLoading) {
+      submitText.classList.add('hidden');
+      submitLoading.classList.remove('hidden');
+    } else {
+      submitText.classList.remove('hidden');
+      submitLoading.classList.add('hidden');
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!WEBHOOK_URL || WEBHOOK_URL === 'https://your-n8n-instance.com/webhook/submit-guide') {
+      showError('Form submission is not configured. Please set PUBLIC_N8N_GUIDES_WEBHOOK_URL in .env file.');
+      return;
+    }
+
+    errorMessage.classList.add('hidden');
+    successMessage.classList.add('hidden');
+
+    const formData = new FormData(form);
+    const prereqString = formData.get('prerequisites') as string;
+    const prerequisites = prereqString
+      ? prereqString.split(',').map(p => p.trim()).filter(p => p.length > 0)
+      : undefined;
+
+    const data = {
+      title: formData.get('title') as string,
+      description: formData.get('description') as string,
+      content: formData.get('content') as string,
+      category: formData.get('category') as string,
+      difficulty: formData.get('difficulty') as string,
+      author: formData.get('author') as string || undefined,
+      prerequisites,
+      submitterEmail: formData.get('submitterEmail') as string,
+    };
+
+    try {
+      guideSchema.parse(data);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        showError(firstError.message);
+      } else {
+        showError('Validation failed. Please check your inputs.');
+      }
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        ...data,
+        order: 999, // Default order, can be adjusted during review
+        submittedAt: new Date().toISOString(),
+      };
+
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      showSuccess('✓ Guide submitted successfully! A GitHub PR will be created for review. You\'ll receive updates at your email address.');
+      form.reset();
+      successMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (error) {
+      console.error('Submission error:', error);
+      showError('Failed to submit guide. Please try again or contact us on Discord.');
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
