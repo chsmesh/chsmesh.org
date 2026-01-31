@@ -5,7 +5,7 @@ import type { FormConfig } from './SubmissionForm.astro';
 export const nodeFormConfig: FormConfig = {
   id: 'node-form',
   title: 'Submit Your Node',
-  description: 'Add your Meshtastic node to the community map. Your submission will be reviewed and added via GitHub PR.',
+  description: 'Add your Meshtastic node to the community map.',
   webhookEnvVar: 'PUBLIC_N8N_WEBHOOK_URL',
   webhookPlaceholder: 'https://your-n8n-instance.com/webhook/submit-node',
   fields: [
@@ -118,7 +118,7 @@ export const nodeFormConfig: FormConfig = {
     submitterEmail: data.submitterEmail,
     submittedAt: new Date().toISOString(),
   }),
-  successMessage: '✓ Node submitted successfully! A GitHub PR will be created for review. You\'ll receive updates at your email address.',
+  successMessage: '✓ Node submitted successfully!',
   disclaimerText: 'By submitting, you agree that your node information will be publicly displayed on this website.',
 };
 
@@ -126,7 +126,7 @@ export const nodeFormConfig: FormConfig = {
 export const guideFormConfig: FormConfig = {
   id: 'guide-form',
   title: 'Submit a Guide',
-  description: 'Share your Meshtastic knowledge with the community. Your guide will be reviewed and added via GitHub PR.',
+  description: 'Share your Meshtastic knowledge with the community.',
   webhookEnvVar: 'PUBLIC_N8N_GUIDES_WEBHOOK_URL',
   webhookPlaceholder: 'https://your-n8n-instance.com/webhook/submit-guide',
   fields: [
@@ -231,7 +231,7 @@ export const guideFormConfig: FormConfig = {
     order: 999,
     submittedAt: new Date().toISOString(),
   }),
-  successMessage: '✓ Guide submitted successfully! A GitHub PR will be created for review. You\'ll receive updates at your email address.',
+  successMessage: '✓ Guide submitted successfully!',
   disclaimerText: 'By submitting, you agree that your guide will be publicly available under the site\'s license.',
 };
 
@@ -239,7 +239,7 @@ export const guideFormConfig: FormConfig = {
 export const meetupFormConfig: FormConfig = {
   id: 'meetup-form',
   title: 'Submit a Meetup',
-  description: 'Host or propose a community meetup. Your event will be reviewed and added via GitHub PR.',
+  description: 'Host or propose a community meetup.',
   webhookEnvVar: 'PUBLIC_N8N_MEETUPS_WEBHOOK_URL',
   webhookPlaceholder: 'https://your-n8n-instance.com/webhook/submit-meetup',
   fields: [
@@ -393,7 +393,7 @@ export const meetupFormConfig: FormConfig = {
       submittedAt: new Date().toISOString(),
     };
   },
-  successMessage: '✓ Meetup submitted successfully! A GitHub PR will be created for review. You\'ll receive updates at your email address.',
+  successMessage: '✓ Meetup submitted successfully!',
   disclaimerText: 'By submitting, you agree that your meetup information will be publicly displayed on this website.',
 };
 
@@ -401,7 +401,7 @@ export const meetupFormConfig: FormConfig = {
 export const resourceFormConfig: FormConfig = {
   id: 'resource-form',
   title: 'Submit a Resource',
-  description: 'Recommend a device, accessory, app, or community resource. Your submission will be reviewed and added via GitHub PR.',
+  description: 'Recommend a device, accessory, app, or community resource.',
   webhookEnvVar: 'PUBLIC_N8N_RESOURCES_WEBHOOK_URL',
   webhookPlaceholder: 'https://your-n8n-instance.com/webhook/submit-resource',
   fields: [
@@ -573,6 +573,6 @@ export const resourceFormConfig: FormConfig = {
       submittedAt: new Date().toISOString(),
     };
   },
-  successMessage: '✓ Resource submitted successfully! A GitHub PR will be created for review. You\'ll receive updates at your email address.',
+  successMessage: '✓ Resource submitted successfully!',
   disclaimerText: 'By submitting, you agree that your resource recommendation will be publicly displayed on this website.',
 };
