@@ -1,0 +1,437 @@
+---
+import { z } from 'zod';
+
+interface Props {
+  config: FormConfig;
+}
+
+export interface FormField {
+  name: string;
+  label: string;
+  type: 'text' | 'email' | 'textarea' | 'number' | 'select' | 'datetime-local' | 'url' | 'dynamic-array';
+  required?: boolean;
+  placeholder?: string;
+  helpText?: string;
+  rows?: number;
+  min?: number;
+  max?: number;
+  step?: number | string;
+  options?: { value: string; label: string }[];
+  gridCol?: 1 | 2; // For half-width fields in grid
+  className?: string;
+  subFields?: FormField[]; // For dynamic-array fields
+}
+
+export interface FormConfig {
+  id: string;
+  title: string;
+  description: string;
+  webhookEnvVar: string;
+  webhookPlaceholder: string;
+  fields: FormField[];
+  schema: z.ZodSchema;
+  transformData?: (formData: FormData) => any;
+  buildPayload?: (data: any) => any;
+  successMessage: string;
+  disclaimerText: string;
+}
+
+const { config } = Astro.props;
+const webhookUrl = import.meta.env[config.webhookEnvVar];
+---
+
+<div class="card card-body">
+  <h3 class="text-xl font-semibold mb-2">{config.title}</h3>
+  <p class="text-sm text-neutral-600 mb-6">{config.description}</p>
+
+  <form id={config.id} class="space-y-4">
+    <div class="space-y-4">
+      {config.fields.map((field) => {
+        const isGridField = field.gridCol === 2;
+        const isDynamicArray = field.type === 'dynamic-array';
+        return isGridField || isDynamicArray ? null : (
+          <div class={field.className}>
+            <label for={`${config.id}-${field.name}`} class="block text-sm font-medium text-neutral-700 mb-1">
+              {field.label}
+              {field.required && <span class="text-red-500">*</span>}
+            </label>
+            
+            {field.type === 'textarea' ? (
+              <textarea
+                id={`${config.id}-${field.name}`}
+                name={field.name}
+                required={field.required}
+                rows={field.rows || 3}
+                placeholder={field.placeholder}
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              ></textarea>
+            ) : field.type === 'select' ? (
+              <select
+                id={`${config.id}-${field.name}`}
+                name={field.name}
+                required={field.required}
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                {field.placeholder && <option value="">{field.placeholder}</option>}
+                {field.options?.map(opt => (
+                  <option value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            ) : field.type === 'number' ? (
+              <input
+                type="number"
+                id={`${config.id}-${field.name}`}
+                name={field.name}
+                required={field.required}
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                placeholder={field.placeholder}
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            ) : field.type !== 'dynamic-array' ? (
+              <input
+                type={field.type as 'text' | 'email' | 'datetime-local' | 'url'}
+                id={`${config.id}-${field.name}`}
+                name={field.name}
+                required={field.required}
+                placeholder={field.placeholder}
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            ) : null}
+            
+            {field.helpText && (
+              <p class="text-xs text-neutral-500 mt-1">{field.helpText}</p>
+            )}
+          </div>
+        );
+      })}
+
+      <!-- Handle dynamic array fields -->
+      {config.fields.filter(f => f.type === 'dynamic-array').map((field) => (
+        <div class="border border-neutral-300 rounded-md p-4 bg-neutral-50">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-medium text-neutral-700">
+              {field.label}
+              {field.required && <span class="text-red-500">*</span>}
+            </h4>
+          </div>
+          
+          {field.helpText && (
+            <p class="text-xs text-neutral-600 mb-4">{field.helpText}</p>
+          )}
+          
+          <div data-array-field={field.name} class="space-y-3">
+            <!-- Dynamic items will be added here -->
+          </div>
+          
+          <button
+            type="button"
+            data-add-item={field.name}
+            class="mt-3 px-3 py-2 text-sm bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200 transition-colors"
+          >
+            + Add {field.label.replace(/s$/, '')}
+          </button>
+        </div>
+      ))}
+
+      <!-- Handle grid fields (2-column layout) -->
+      {config.fields.some(f => f.gridCol === 2) && (
+        <div class="grid grid-cols-2 gap-4">
+          {config.fields.filter(f => f.gridCol === 2 && f.type !== 'dynamic-array').map((field) => (
+            <div>
+              <label for={`${config.id}-${field.name}`} class="block text-sm font-medium text-neutral-700 mb-1">
+                {field.label}
+                {field.required && <span class="text-red-500">*</span>}
+              </label>
+              
+              {field.type === 'number' ? (
+                <input
+                  type="number"
+                  id={`${config.id}-${field.name}`}
+                  name={field.name}
+                  required={field.required}
+                  min={field.min}
+                  max={field.max}
+                  step={field.step}
+                  placeholder={field.placeholder}
+                  class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              ) : (
+                <input
+                  type={field.type as 'text' | 'url' | 'datetime-local' | 'email'}
+                  id={`${config.id}-${field.name}`}
+                  name={field.name}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              )}
+              
+              {field.helpText && (
+                <p class="text-xs text-neutral-500 mt-1">{field.helpText}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    <!-- Error Message -->
+    <div id={`${config.id}-error`} class="hidden p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"></div>
+
+    <!-- Success Message -->
+    <div id={`${config.id}-success`} class="hidden p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-700"></div>
+
+    <!-- Submit Button -->
+    <button type="submit" id={`${config.id}-submit`} class="btn-primary w-full">
+      <span id={`${config.id}-text`}>Submit</span>
+      <span id={`${config.id}-loading`} class="hidden">
+        <svg class="animate-spin h-5 w-5 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Submitting...
+      </span>
+    </button>
+
+    <p class="text-xs text-neutral-500 text-center">{config.disclaimerText}</p>
+  </form>
+</div>
+
+<script type="module" define:vars={{ config, webhookUrl }}>
+  const WEBHOOK_URL = webhookUrl;
+
+  function initForm() {
+    const form = document.getElementById(config.id);
+    if (!(form instanceof HTMLFormElement)) {
+      console.warn(`Submission form not found: ${config.id}`);
+      return;
+    }
+
+    const submitButton = document.getElementById(`${config.id}-submit`);
+    const submitText = document.getElementById(`${config.id}-text`);
+    const submitLoading = document.getElementById(`${config.id}-loading`);
+    const errorMessage = document.getElementById(`${config.id}-error`);
+    const successMessage = document.getElementById(`${config.id}-success`);
+
+    if (!submitButton || !submitText || !submitLoading || !errorMessage || !successMessage) {
+      console.warn(`Submission form elements missing for: ${config.id}`);
+      return;
+    }
+
+    // Store dynamic array data
+    const dynamicArrays = {};
+    const dynamicArrayFields = config.fields.filter(f => f.type === 'dynamic-array');
+    dynamicArrayFields.forEach(field => {
+      dynamicArrays[field.name] = [];
+    });
+
+    function renderDynamicArrayItem(fieldName, index, subFields, data = {}) {
+      const container = form.querySelector(`[data-array-field="${fieldName}"]`);
+      if (!container) return;
+
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'bg-white p-3 rounded border border-neutral-200 space-y-3';
+      itemDiv.dataset.itemIndex = index;
+
+      // Render subfields
+      let itemHTML = '';
+      subFields.forEach(subField => {
+        const fieldId = `${config.id}-${fieldName}-${index}-${subField.name}`;
+        const value = data[subField.name] || '';
+        
+        itemHTML += `<div>
+          <label for="${fieldId}" class="block text-xs font-medium text-neutral-700 mb-1">
+            ${subField.label}
+            ${subField.required ? '<span class="text-red-500">*</span>' : ''}
+          </label>`;
+
+        if (subField.type === 'select') {
+          itemHTML += `<select id="${fieldId}" class="w-full px-2 py-1 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500">
+            ${subField.options?.map(opt => `<option value="${opt.value}" ${value === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('')}
+          </select>`;
+        } else {
+          itemHTML += `<input type="${subField.type}" id="${fieldId}" value="${value}" placeholder="${subField.placeholder || ''}" class="w-full px-2 py-1 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" />`;
+        }
+        itemHTML += '</div>';
+      });
+
+      itemHTML += `<button type="button" class="mt-2 text-xs text-red-600 hover:text-red-700 font-medium" data-remove-item="${fieldName}" data-index="${index}">Remove</button>`;
+      
+      itemDiv.innerHTML = itemHTML;
+
+      // Add remove handler
+      const removeButton = itemDiv.querySelector(`[data-remove-item]`);
+      if (removeButton instanceof HTMLElement) {
+        removeButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          dynamicArrays[fieldName].splice(index, 1);
+          renderDynamicArrayItems(fieldName, subFields);
+        });
+      }
+
+      return itemDiv;
+    }
+
+    function renderDynamicArrayItems(fieldName, subFields) {
+      const container = form.querySelector(`[data-array-field="${fieldName}"]`);
+      if (!container) return;
+
+      container.innerHTML = '';
+      dynamicArrays[fieldName].forEach((item, index) => {
+        container.appendChild(renderDynamicArrayItem(fieldName, index, subFields, item));
+      });
+    }
+
+    // Setup add buttons for dynamic arrays
+    dynamicArrayFields.forEach(field => {
+      const addBtn = form.querySelector(`[data-add-item="${field.name}"]`);
+      if (addBtn instanceof HTMLElement) {
+        addBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          dynamicArrays[field.name].push({});
+          renderDynamicArrayItems(field.name, field.subFields);
+        });
+      }
+    });
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.remove('hidden');
+      successMessage.classList.add('hidden');
+    }
+
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.classList.remove('hidden');
+      errorMessage.classList.add('hidden');
+    }
+
+    function setLoading(isLoading) {
+      submitButton.disabled = isLoading;
+      if (isLoading) {
+        submitText.classList.add('hidden');
+        submitLoading.classList.remove('hidden');
+      } else {
+        submitText.classList.remove('hidden');
+        submitLoading.classList.add('hidden');
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!WEBHOOK_URL || WEBHOOK_URL === config.webhookPlaceholder) {
+        showError(`Form submission is not configured. Please set ${config.webhookEnvVar} in .env file.`);
+        return;
+      }
+
+      errorMessage.classList.add('hidden');
+      successMessage.classList.add('hidden');
+
+      // Get form data
+      const formData = new FormData(form);
+      
+      // Collect dynamic array data
+      dynamicArrayFields.forEach(field => {
+        const items = [];
+        dynamicArrays[field.name].forEach((_, index) => {
+          const item = {};
+          field.subFields.forEach(subField => {
+            const fieldId = `${config.id}-${field.name}-${index}-${subField.name}`;
+            const inputElement = document.getElementById(fieldId);
+            if (inputElement instanceof HTMLInputElement || inputElement instanceof HTMLSelectElement) {
+              item[subField.name] = inputElement.value;
+            }
+          });
+          items.push(item);
+        });
+        if (items.length > 0) {
+          dynamicArrays[field.name] = items;
+        }
+      });
+
+      // Add dynamic arrays to formData-like structure
+      const data = {};
+      for (const [key, value] of formData.entries()) {
+        data[key] = value;
+      }
+      
+      // Merge dynamic arrays
+      dynamicArrayFields.forEach(field => {
+        data[field.name] = dynamicArrays[field.name];
+      });
+
+      // Transform data using config function
+      let transformedData;
+      try {
+        if (config.transformData) {
+          transformedData = config.transformData(formData);
+          // Merge dynamic array data into transformed data
+          dynamicArrayFields.forEach(field => {
+            transformedData[field.name] = dynamicArrays[field.name];
+          });
+        } else {
+          transformedData = data;
+        }
+      } catch (error) {
+        showError('Error processing form data: ' + error.message);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        // Build payload using config function
+        const payload = config.buildPayload ? config.buildPayload(transformedData) : {
+          ...transformedData,
+          submittedAt: new Date().toISOString(),
+        };
+
+        const response = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        showSuccess(config.successMessage);
+        form.reset();
+        
+        // Reset dynamic arrays
+        dynamicArrayFields.forEach(field => {
+          dynamicArrays[field.name] = [];
+          renderDynamicArrayItems(field.name, field.subFields);
+        });
+        
+        // Close modal if form is inside one
+        const modal = form.closest('.modal');
+        if (modal) {
+          setTimeout(() => {
+            modal.classList.add('hidden');
+            document.body.classList.remove('modal-open');
+          }, 2000); // Close after 2 seconds so user sees success message
+        } else {
+          successMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } catch (error) {
+        console.error('Submission error:', error);
+        showError('Failed to submit. Please try again or contact us on Discord.');
+      } finally {
+        setLoading(false);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initForm);
+  } else {
+    initForm();
+  }
+</script>

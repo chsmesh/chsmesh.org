@@ -1,6 +1,6 @@
 # Content Submission Forms - n8n Integration Guide
 
-This guide covers the integration of submission forms for **Nodes**, **Guides**, and **Meetups** with n8n webhooks.
+This guide covers the integration of submission forms for **Nodes**, **Guides**, **Meetups**, and **Resources** with n8n webhooks.
 
 ## Setup Instructions
 
@@ -16,6 +16,7 @@ Edit `.env` and set your n8n webhook URLs:
 PUBLIC_N8N_WEBHOOK_URL=https://your-n8n-instance.com/webhook/submit-node
 PUBLIC_N8N_GUIDES_WEBHOOK_URL=https://your-n8n-instance.com/webhook/submit-guide
 PUBLIC_N8N_MEETUPS_WEBHOOK_URL=https://your-n8n-instance.com/webhook/submit-meetup
+PUBLIC_N8N_RESOURCES_WEBHOOK_URL=https://your-n8n-instance.com/webhook/submit-resource
 ```
 
 ### 2. n8n Webhook Configuration
@@ -332,6 +333,124 @@ featured: false
 
 ---
 
+## Resource Submissions
+
+Location: `/resources` page bottom section
+
+### Example Payload
+
+```json
+{
+  "title": "Heltec V3 LoRa Board",
+  "description": "Feature-rich ESP32-based board with built-in display, GPS, and excellent battery life",
+  "content": "## Overview\n\nThe Heltec V3 is a popular choice for Meshtastic nodes...\n\n## Specifications\n\n- ESP32-S3 processor\n- 0.96\" OLED display\n- Built-in GPS\n- LoRa 868/915MHz\n- USB-C charging\n\n## Setup Notes\n\nFlashing is straightforward using the web flasher...",
+  "category": "devices",
+  "priceRange": "$25-35",
+  "links": [
+    {
+      "label": "Buy on AliExpress",
+      "url": "https://www.aliexpress.com/item/...",
+      "type": "purchase"
+    },
+    {
+      "label": "Official Documentation",
+      "url": "https://heltec.org/project/...",
+      "type": "docs"
+    }
+  ],
+  "pros": [
+    "Built-in display",
+    "Integrated GPS",
+    "Long battery life",
+    "Easy to flash"
+  ],
+  "cons": [
+    "Display can be hard to read in sunlight",
+    "GPS antenna placement matters"
+  ],
+  "image": "https://example.com/heltec-v3.jpg",
+  "order": 999,
+  "featured": false,
+  "submitterEmail": "tech@example.com",
+  "submittedAt": "2026-01-31T12:00:00.000Z"
+}
+```
+
+### Field Descriptions
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | string | Yes | Resource name |
+| `description` | string | Yes | Brief overview (appears in card) |
+| `content` | string | No | Detailed info in Markdown format |
+| `category` | enum | Yes | `devices`, `accessories`, `software`, `firmware`, `community` |
+| `priceRange` | string | No | Approximate price (e.g., "$25-35", "Free") |
+| `links` | array | No | Array of `{label, url, type?}` objects |
+| `pros` | array | No | List of advantages |
+| `cons` | array | No | List of disadvantages |
+| `image` | string | No | URL to product image |
+| `order` | number | Yes | Sort order (auto-set to 999, adjust during review) |
+| `featured` | boolean | Yes | Always `false` (auto-set) |
+| `submitterEmail` | string | Yes | Email for PR notifications (not published) |
+| `submittedAt` | string | Yes | ISO timestamp (auto-set) |
+
+### n8n Workflow Steps
+
+1. Receive webhook POST
+2. Validate required fields
+3. Generate filename: `src/content/resources/{slug-from-title}.md`
+4. Create frontmatter YAML + markdown content
+5. Create GitHub branch: `add-resource-{slug}`
+6. Commit markdown file to branch
+7. Create PR with title: "Add resource: {title}"
+
+### File Format to Commit
+
+```markdown
+---
+title: Heltec V3 LoRa Board
+description: Feature-rich ESP32-based board with built-in display, GPS, and excellent battery life
+category: devices
+priceRange: $25-35
+links:
+  - label: Buy on AliExpress
+    url: https://www.aliexpress.com/item/...
+    type: purchase
+  - label: Official Documentation
+    url: https://heltec.org/project/...
+    type: docs
+pros:
+  - Built-in display
+  - Integrated GPS
+  - Long battery life
+  - Easy to flash
+cons:
+  - Display can be hard to read in sunlight
+  - GPS antenna placement matters
+image: https://example.com/heltec-v3.jpg
+order: 999
+featured: false
+---
+
+## Overview
+
+The Heltec V3 is a popular choice for Meshtastic nodes...
+
+## Specifications
+
+- ESP32-S3 processor
+- 0.96" OLED display
+- Built-in GPS
+- LoRa 868/915MHz
+- USB-C charging
+
+## Setup Notes
+
+Flashing is straightforward using the web flasher...
+```
+
+---
+
 ## Maintenance
 
 When a PR is merged:
@@ -339,3 +458,4 @@ When a PR is merged:
 2. **Nodes**: Appear in registered nodes table, stats bar updates
 3. **Guides**: Appear in appropriate category section
 4. **Meetups**: Listed as upcoming (if date is future) or past
+5. **Resources**: Grouped by category, sorted by featured then order

@@ -1,0 +1,182 @@
+---
+// Modal component for displaying content in an overlay
+interface Props {
+  id: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+}
+
+const { id, size = 'lg' } = Astro.props;
+
+const sizeClasses = {
+  sm: 'max-w-md',
+  md: 'max-w-2xl',
+  lg: 'max-w-4xl',
+  xl: 'max-w-6xl',
+  full: 'max-w-full mx-4',
+};
+---
+
+<div id={id} class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-backdrop" data-modal-close={id}></div>
+  <div class={`modal-content ${sizeClasses[size]}`}>
+    <div class="modal-body">
+      <div class="modal-frame">
+        <button
+          type="button"
+          class="modal-close modal-close-float"
+          data-modal-close={id}
+          aria-label="Close modal"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <slot />
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal.hidden {
+    display: none;
+  }
+
+  .modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+  }
+
+  .modal-content {
+    position: relative;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    z-index: 10;
+  }
+
+  .modal-body {
+    padding: 0;
+    overflow: visible;
+    flex: 1;
+    max-height: 90vh;
+    display: flex;
+    justify-content: center;
+  }
+
+  .modal-frame {
+    position: relative;
+    width: 100%;
+  }
+
+  .modal-body :global(.card) {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.375rem;
+    color: #6b7280;
+    transition: all 0.15s ease-in-out;
+    flex-shrink: 0;
+  }
+
+  .modal-close-float {
+    position: absolute;
+    top: -0.75rem;
+    right: -0.75rem;
+    z-index: 20;
+    background: white;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .modal-close:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+  }
+
+  /* Prevent body scroll when modal is open */
+  :global(body.modal-open) {
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  // Modal management
+  function initModals() {
+    // Open modal
+    document.querySelectorAll('[data-modal-open]').forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        const modalId = trigger.getAttribute('data-modal-open');
+        const modal = modalId ? document.getElementById(modalId) : null;
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.classList.add('modal-open');
+          // Focus first input if exists
+          const firstInput = modal.querySelector('input, textarea, select');
+          if (firstInput instanceof HTMLElement) {
+            setTimeout(() => firstInput.focus(), 100);
+          }
+        }
+      });
+    });
+
+    // Close modal
+    document.querySelectorAll('[data-modal-close]').forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        const modalId = trigger.getAttribute('data-modal-close');
+        const modal = modalId ? document.getElementById(modalId) : null;
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.classList.remove('modal-open');
+        }
+      });
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const openModal = document.querySelector('.modal:not(.hidden)');
+        if (openModal) {
+          openModal.classList.add('hidden');
+          document.body.classList.remove('modal-open');
+        }
+      }
+    });
+  }
+
+  // Initialize on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initModals);
+  } else {
+    initModals();
+  }
+</script>

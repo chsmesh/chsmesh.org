@@ -1,5 +1,8 @@
 ---
 import { getEntry } from 'astro:content';
+import Modal from '../components/Modal.astro';
+import SubmissionForm from '../components/SubmissionForm.astro';
+import { nodeFormConfig, guideFormConfig, meetupFormConfig, resourceFormConfig } from '../components/formConfigs';
 import '../styles/global.css';
 
 interface Props {
@@ -177,6 +180,23 @@ const fullTitle = title === 'Home' ? 'CHS Mesh - Charleston Meshtastic Community
         </div>
       </div>
     </footer>
+
+    <!-- Submission Modals -->
+    <Modal id="node-modal" size="lg">
+      <SubmissionForm config={nodeFormConfig} />
+    </Modal>
+
+    <Modal id="guide-modal" size="xl">
+      <SubmissionForm config={guideFormConfig} />
+    </Modal>
+
+    <Modal id="meetup-modal" size="xl">
+      <SubmissionForm config={meetupFormConfig} />
+    </Modal>
+
+    <Modal id="resource-modal" size="xl">
+      <SubmissionForm config={resourceFormConfig} />
+    </Modal>
 
     <!-- Mobile menu toggle script -->
     <script>

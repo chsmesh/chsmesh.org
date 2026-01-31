@@ -2,7 +2,6 @@
 import Layout from '../../layouts/Layout.astro';
 import Hero from '../../components/Hero.astro';
 import GuideCard from '../../components/GuideCard.astro';
-import GuideSubmissionForm from '../../components/GuideSubmissionForm.astro';
 import { getCollection, getEntry } from 'astro:content';
 import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
 
@@ -52,7 +51,16 @@ const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.guides.le
 ---
 
 <Layout title={guidesPage?.pageTitle ?? 'Guides'} description={guidesPage?.pageDescription}>
-  <Hero title={guidesPage?.hero.title ?? ''} subtitle={guidesPage?.hero.subtitle ?? ''} size={guidesPage?.hero.size ?? 'small'} />
+  <Hero title={guidesPage?.hero.title ?? ''} subtitle={guidesPage?.hero.subtitle ?? ''} size={guidesPage?.hero.size ?? 'small'}>
+    <div class="mt-6">
+      <button data-modal-open="guide-modal" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Submit a Guide
+      </button>
+    </div>
+  </Hero>
 
   <section class="section">
     <div class="container-wide">
@@ -134,13 +142,6 @@ const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.guides.le
           ))}
         </>
       )}
-    </div>
-  </section>
-
-  <!-- Submit Guide Form -->
-  <section class="section-sm bg-primary-50 border-t border-primary-100">
-    <div class="container-wide max-w-2xl mx-auto">
-      <GuideSubmissionForm />
     </div>
   </section>
 </Layout>
