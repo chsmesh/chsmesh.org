@@ -367,7 +367,8 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
       // Build data object from form
       const data = {};
       for (const [key, value] of formData.entries()) {
-        // Skip empty values for optional fields
+        // Skip empty values for optional fields only.
+        // Required fields are kept even if empty to allow HTML5 validation.
         if (value === '') {
           const field = config.fields.find(f => f.name === key);
           if (!field || !field.required) {
