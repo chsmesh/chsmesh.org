@@ -1,0 +1,318 @@
+---
+// Node submission form component
+// Submits to n8n webhook for automated PR creation
+---
+
+<div class="card card-body">
+  <h3 class="text-xl font-semibold mb-2">Submit Your Node</h3>
+  <p class="text-sm text-neutral-600 mb-6">
+    Add your Meshtastic node to the community map. Your submission will be reviewed and added via GitHub PR.
+  </p>
+
+  <form id="node-form" class="space-y-4">
+    <!-- Name -->
+    <div>
+      <label for="name" class="block text-sm font-medium text-neutral-700 mb-1">
+        Node Name <span class="text-red-500">*</span>
+      </label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        required
+        placeholder="e.g., West Ashley Relay"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      />
+      <p class="text-xs text-neutral-500 mt-1">A descriptive name for your node</p>
+    </div>
+
+    <!-- Description -->
+    <div>
+      <label for="description" class="block text-sm font-medium text-neutral-700 mb-1">
+        Description
+      </label>
+      <textarea
+        id="description"
+        name="description"
+        rows="3"
+        placeholder="e.g., Solar-powered relay on residential rooftop providing west-side coverage"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      ></textarea>
+      <p class="text-xs text-neutral-500 mt-1">Optional details about your node setup</p>
+    </div>
+
+    <!-- Coordinates -->
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="lat" class="block text-sm font-medium text-neutral-700 mb-1">
+          Latitude <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          id="lat"
+          name="lat"
+          required
+          step="0.0001"
+          min="-90"
+          max="90"
+          placeholder="32.7765"
+          class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        />
+      </div>
+      <div>
+        <label for="lng" class="block text-sm font-medium text-neutral-700 mb-1">
+          Longitude <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          id="lng"
+          name="lng"
+          required
+          step="0.0001"
+          min="-180"
+          max="180"
+          placeholder="-80.0298"
+          class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        />
+      </div>
+    </div>
+
+    <!-- Type -->
+    <div>
+      <label for="type" class="block text-sm font-medium text-neutral-700 mb-1">
+        Node Type <span class="text-red-500">*</span>
+      </label>
+      <select
+        id="type"
+        name="type"
+        required
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      >
+        <option value="client">Client (default mobile/portable)</option>
+        <option value="router">Router (fixed location, routing traffic)</option>
+        <option value="relay">Relay (extends network range)</option>
+        <option value="solar">Solar (solar-powered fixed node)</option>
+      </select>
+    </div>
+
+    <!-- Elevation -->
+    <div>
+      <label for="elevation" class="block text-sm font-medium text-neutral-700 mb-1">
+        Elevation (feet)
+      </label>
+      <input
+        type="number"
+        id="elevation"
+        name="elevation"
+        min="0"
+        step="1"
+        placeholder="35"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      />
+      <p class="text-xs text-neutral-500 mt-1">Height above ground level (optional)</p>
+    </div>
+
+    <!-- Owner -->
+    <div>
+      <label for="owner" class="block text-sm font-medium text-neutral-700 mb-1">
+        Owner Name
+      </label>
+      <input
+        type="text"
+        id="owner"
+        name="owner"
+        placeholder="e.g., CharlieM"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      />
+      <p class="text-xs text-neutral-500 mt-1">Your name or callsign (optional)</p>
+    </div>
+
+    <!-- Submitter Email -->
+    <div>
+      <label for="submitterEmail" class="block text-sm font-medium text-neutral-700 mb-1">
+        Email <span class="text-red-500">*</span>
+      </label>
+      <input
+        type="email"
+        id="submitterEmail"
+        name="submitterEmail"
+        required
+        placeholder="your.email@example.com"
+        class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      />
+      <p class="text-xs text-neutral-500 mt-1">For PR notifications (not published on site)</p>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error-message" class="hidden p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"></div>
+
+    <!-- Success Message -->
+    <div id="success-message" class="hidden p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-700"></div>
+
+    <!-- Submit Button -->
+    <button
+      type="submit"
+      id="submit-button"
+      class="btn-primary w-full"
+    >
+      <span id="submit-text">Submit Node</span>
+      <span id="submit-loading" class="hidden">
+        <svg class="animate-spin h-5 w-5 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Submitting...
+      </span>
+    </button>
+
+    <p class="text-xs text-neutral-500 text-center">
+      By submitting, you agree that your node information will be publicly displayed on this website.
+    </p>
+  </form>
+</div>
+
+<script>
+  // Import Zod for validation
+  import { z } from 'zod';
+
+  // Get webhook URL from environment
+  const WEBHOOK_URL = import.meta.env.PUBLIC_N8N_WEBHOOK_URL;
+
+  // Node schema matching content/config.ts
+  const nodeSchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+    description: z.string().optional(),
+    coordinates: z.object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    }),
+    type: z.enum(['relay', 'router', 'client', 'solar']),
+    elevation: z.number().min(0).optional(),
+    owner: z.string().optional(),
+    submitterEmail: z.string().email('Valid email is required'),
+  });
+
+  const form = document.getElementById('node-form') as HTMLFormElement;
+  const submitButton = document.getElementById('submit-button') as HTMLButtonElement;
+  const submitText = document.getElementById('submit-text') as HTMLSpanElement;
+  const submitLoading = document.getElementById('submit-loading') as HTMLSpanElement;
+  const errorMessage = document.getElementById('error-message') as HTMLDivElement;
+  const successMessage = document.getElementById('success-message') as HTMLDivElement;
+
+  function showError(message: string) {
+    errorMessage.textContent = message;
+    errorMessage.classList.remove('hidden');
+    successMessage.classList.add('hidden');
+  }
+
+  function showSuccess(message: string) {
+    successMessage.textContent = message;
+    successMessage.classList.remove('hidden');
+    errorMessage.classList.add('hidden');
+  }
+
+  function setLoading(isLoading: boolean) {
+    submitButton.disabled = isLoading;
+    if (isLoading) {
+      submitText.classList.add('hidden');
+      submitLoading.classList.remove('hidden');
+    } else {
+      submitText.classList.remove('hidden');
+      submitLoading.classList.add('hidden');
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Check if webhook URL is configured
+    if (!WEBHOOK_URL || WEBHOOK_URL === 'https://your-n8n-instance.com/webhook/submit-node') {
+      showError('Form submission is not configured. Please set PUBLIC_N8N_WEBHOOK_URL in .env file.');
+      return;
+    }
+
+    // Hide previous messages
+    errorMessage.classList.add('hidden');
+    successMessage.classList.add('hidden');
+
+    // Get form data
+    const formData = new FormData(form);
+    const data = {
+      name: formData.get('name') as string,
+      description: formData.get('description') as string || undefined,
+      coordinates: {
+        lat: parseFloat(formData.get('lat') as string),
+        lng: parseFloat(formData.get('lng') as string),
+      },
+      type: formData.get('type') as string,
+      elevation: formData.get('elevation') ? parseInt(formData.get('elevation') as string) : undefined,
+      owner: formData.get('owner') as string || undefined,
+      submitterEmail: formData.get('submitterEmail') as string,
+    };
+
+    // Validate data
+    try {
+      nodeSchema.parse(data);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        showError(firstError.message);
+      } else {
+        showError('Validation failed. Please check your inputs.');
+      }
+      return;
+    }
+
+    // Submit to n8n webhook
+    setLoading(true);
+
+    try {
+      const payload = {
+        ...data,
+        active: true,
+        lastSeen: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+        submittedAt: new Date().toISOString(),
+      };
+
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Success!
+      showSuccess('✓ Node submitted successfully! A GitHub PR will be created for review. You\'ll receive updates at your email address.');
+      form.reset();
+      
+      // Scroll to success message
+      successMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (error) {
+      console.error('Submission error:', error);
+      showError('Failed to submit node. Please try again or contact us on Discord.');
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+
+<style>
+  /* Add custom focus styles */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+
+  /* Ensure consistent input styling */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+  }
+</style>

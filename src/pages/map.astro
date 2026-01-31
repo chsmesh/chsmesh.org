@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
+import NodeSubmissionForm from '../components/NodeSubmissionForm.astro';
 import { getCollection, getEntry } from 'astro:content';
 
 const nodes = await getCollection('nodes');
@@ -115,19 +116,8 @@ const getStatValue = (key: string) => {
             </ul>
           </div>
 
-          <!-- Add Your Node -->
-          <div class="card card-body bg-primary-50 border-primary-200">
-            <h3 class="font-semibold mb-2">{mapPage?.addNode.heading}</h3>
-            <p class="text-sm text-neutral-600 mb-4">{mapPage?.addNode.body}</p>
-            <a 
-              href={mapPage?.addNode.cta.href}
-              target="_blank" 
-              rel="noopener noreferrer"
-              class="btn-primary btn-sm w-full"
-            >
-              {mapPage?.addNode.cta.label}
-            </a>
-          </div>
+          <!-- Add Your Node Form -->
+          <NodeSubmissionForm />
 
           <!-- Coverage Info -->
           <div class="card card-body">
