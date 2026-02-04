@@ -33,7 +33,7 @@ export interface PayloadRule {
   add?: Record<string, any>; // Static fields to add to payload
   addDynamic?: { field: string; value: 'currentDate' | 'currentDateTime' }[]; // Dynamic fields computed at submission time
   nest?: { sourceFields: string[]; targetField: string }[]; // Fields to nest into objects
-  filterArrayFields?: string[]; // Array fields to filter out empty/invalid entries (e.g., links without label and url)
+  filterArrayFields?: string[]; // Array fields to filter out empty/invalid entries (currently supports link objects with label/url)
 }
 
 export interface FormConfig {
@@ -462,10 +462,11 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
                 payload[fieldName] = payload[fieldName].filter(item => {
                   // For objects, check if they have required properties with non-empty values
                   if (typeof item === 'object' && item !== null) {
-                    // For links, require both label and url
+                    // For links, require both label and url to be non-empty strings
                     if ('label' in item && 'url' in item) {
-                      return item.label && item.label.trim() !== '' && 
-                             item.url && item.url.trim() !== '';
+                      const hasLabel = typeof item.label === 'string' && item.label.trim() !== '';
+                      const hasUrl = typeof item.url === 'string' && item.url.trim() !== '';
+                      return hasLabel && hasUrl;
                     }
                     // For other objects, keep if they have at least one non-empty property
                     return Object.values(item).some(v => v !== '' && v !== null && v !== undefined);
