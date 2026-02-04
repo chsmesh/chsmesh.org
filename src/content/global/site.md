@@ -4,7 +4,7 @@ title: CHS Mesh
 description: Charleston's Meshtastic community - building an open, decentralized mesh network across the Lowcountry
 social:
   - platform: Discord
-    url: "https://discord.gg/Jucxwk5r"
+    url: "https://discord.gg/8Btn3fck2U"
     label: Join Discord
   - platform: GitHub
     url: https://github.com/chsmesh

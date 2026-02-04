@@ -29,7 +29,7 @@ getInvolved:
       icon: chat
       cta:
         label: Join Discord
-        href: https://discord.gg/Jucxwk5r
+        href: https://discord.gg/8Btn3fck2U
         variant: primary
     - title: Attend a Meetup
       description: Meet other members in person, get help with your setup, and learn from experienced operators.
@@ -58,7 +58,7 @@ community:
       description: Contributors who write guides and documentation
   ctaText: Interested in helping out?
   ctaLabel: Join our Discord and introduce yourself!
-  ctaHref: https://discord.gg/Jucxwk5r
+  ctaHref: https://discord.gg/8Btn3fck2U
 faqs:
   - question: What is Meshtastic?
     answer: >-
@@ -83,7 +83,7 @@ contactCta:
   body: We're happy to help! Reach out on Discord or email us directly.
   ctas:
     - label: Join Discord
-      href: https://discord.gg/Jucxwk5r
+      href: https://discord.gg/8Btn3fck2U
       variant: primary
     - label: Email Us
       href: mailto:info@chsmesh.org

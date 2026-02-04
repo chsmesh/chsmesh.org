@@ -13,7 +13,7 @@ empty:
   body: We're planning our next event. Check back soon or join our Discord to stay updated!
   cta:
     label: Join Discord
-    href: https://discord.gg/Jucxwk5r
+    href: https://discord.gg/8Btn3fck2U
     variant: primary
 host:
   heading: Want to Host a Meetup?
