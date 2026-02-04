@@ -39,8 +39,8 @@ const getCtaClass = (variant?: string, size: 'sm' | 'lg' = 'lg') => {
   if (variant === 'ghost') return size === 'sm' ? 'btn-ghost btn-sm' : 'btn-ghost btn-lg';
   if (variant === 'secondary') {
     return size === 'sm'
-      ? 'btn btn-sm bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
-      : 'btn btn-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm';
+      ? 'btn btn-sm bg-primary-100 text-primary-700 hover:bg-primary-200'
+      : 'btn btn-lg bg-primary-100 text-primary-700 hover:bg-primary-200';
   }
   return size === 'sm' ? 'btn-primary btn-sm' : 'btn-primary btn-lg';
 };
