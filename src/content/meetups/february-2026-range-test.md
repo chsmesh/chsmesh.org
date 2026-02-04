@@ -4,7 +4,7 @@ date: 2026-12-22T09:00:00
 endDate: 2026-12-22T14:00:00
 location: "Multiple Locations"
 description: "Community-wide range test event! We'll position nodes across the Lowcountry to test coverage and document performance."
-rsvpLink: "https://discord.gg/Jucxwk5r"
+rsvpLink: "https://discord.gg/8Btn3fck2U"
 ---
 
 ## Event Overview

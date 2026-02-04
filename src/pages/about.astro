@@ -2,10 +2,20 @@
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import { getEntry } from 'astro:content';
+import { resolveLink } from '../utils/siteLinks';
 
 const aboutEntry = await getEntry('global', 'about');
 const about = aboutEntry?.data?.type === 'about' ? aboutEntry.data : undefined;
-const getInvolvedCards = (about?.getInvolved.cards ?? []) as {
+const siteEntry = await getEntry('global', 'site');
+const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
+const resolveHref = (href: string) => resolveLink(href, site?.links, site?.social);
+const getInvolvedCards = (about?.getInvolved.cards ?? []).map((card) => ({
+  ...card,
+  cta: {
+    ...card.cta,
+    href: resolveHref(card.cta.href),
+  },
+})) as {
   title: string;
   description: string;
   icon?: string;
@@ -13,6 +23,11 @@ const getInvolvedCards = (about?.getInvolved.cards ?? []) as {
 }[];
 const communityRoles = (about?.community.roles ?? []) as { name: string; description: string }[];
 const faqs = (about?.faqs ?? []) as { question: string; answer: string }[];
+const communityCtaHref = resolveHref(about?.community.ctaHref ?? '');
+const contactCtas = (about?.contactCta.ctas ?? []).map((cta) => ({
+  ...cta,
+  href: resolveHref(cta.href),
+})) as { label: string; href: string; variant?: string }[];
 
 const getCtaClass = (variant?: string) => {
   if (variant === 'outline') return 'btn-outline btn-sm';
@@ -90,7 +105,7 @@ const getCtaClass = (variant?: string) => {
         </div>
         <p class="text-center mt-6 text-neutral-500">
           {about?.community.ctaText}{' '}
-          <a href={about?.community.ctaHref} class="text-primary-600 hover:underline">{about?.community.ctaLabel}</a>
+          <a href={communityCtaHref} class="text-primary-600 hover:underline">{about?.community.ctaLabel}</a>
         </p>
       </div>
 
@@ -122,7 +137,7 @@ const getCtaClass = (variant?: string) => {
       <h3 class="text-xl font-semibold mb-2">{about?.contactCta.heading}</h3>
       <p class="text-neutral-600 mb-4">{about?.contactCta.body}</p>
       <div class="flex justify-center gap-4">
-        {(about?.contactCta.ctas ?? []).map((cta) => (
+        {contactCtas.map((cta) => (
           <a href={cta.href} target={cta.href.startsWith('http') ? '_blank' : undefined} rel={cta.href.startsWith('http') ? 'noopener noreferrer' : undefined} class={getCtaClass(cta.variant).replace('btn-sm', '')}>
             {cta.label}
           </a>

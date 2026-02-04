@@ -4,10 +4,20 @@ import Hero from '../../components/Hero.astro';
 import MeetupCard from '../../components/MeetupCard.astro';
 import { getCollection, getEntry } from 'astro:content';
 import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
+import { resolveLink } from '../../utils/siteLinks';
 
 const allMeetups = await getCollection('meetups');
 const meetupsEntry = await getEntry('global', 'meetups');
 const meetupsPage = meetupsEntry?.data?.type === 'meetups' ? meetupsEntry.data : undefined;
+const siteEntry = await getEntry('global', 'site');
+const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
+const resolveHref = (href: string) => resolveLink(href, site?.links, site?.social);
+const emptyCta = meetupsPage?.empty?.cta
+  ? {
+      ...meetupsPage.empty.cta,
+      href: resolveHref(meetupsPage.empty.cta.href),
+    }
+  : undefined;
 const taxonomy = await getTaxonomyData();
 const meetupStatusLabels = createLabelMap(taxonomy?.meetupStatuses);
 const meetupBadgeLabels = createLabelMap(taxonomy?.meetupBadges);
@@ -62,8 +72,8 @@ const pastMeetups = allMeetups
             </svg>
             <h3 class="text-xl font-semibold mb-2">{meetupsPage?.empty.heading}</h3>
             <p class="text-neutral-600 mb-4">{meetupsPage?.empty.body}</p>
-            <a href={meetupsPage?.empty.cta.href} target="_blank" rel="noopener noreferrer" class="btn-primary">
-              {meetupsPage?.empty.cta.label}
+            <a href={emptyCta?.href} target="_blank" rel="noopener noreferrer" class="btn-primary">
+              {emptyCta?.label}
               <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
