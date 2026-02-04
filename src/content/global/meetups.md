@@ -20,6 +20,6 @@ host:
   body: We're always looking for venues and hosts. If you have a space or an idea for an event, let us know!
   cta:
     label: Contact Us
-    href: mailto:meetups@chsmesh.org
+    href: '@links.emailMeetups'
     variant: outline
 ---
