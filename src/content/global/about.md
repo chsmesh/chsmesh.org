@@ -58,7 +58,7 @@ community:
       description: Contributors who write guides and documentation
   ctaText: Interested in helping out?
   ctaLabel: Join our Discord and introduce yourself!
-    ctaHref: '@links.discord'
+  ctaHref: '@links.discord'
 faqs:
   - question: What is Meshtastic?
     answer: >-
