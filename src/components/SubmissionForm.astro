@@ -33,7 +33,7 @@ export interface PayloadRule {
   add?: Record<string, any>; // Static fields to add to payload
   addDynamic?: { field: string; value: 'currentDate' | 'currentDateTime' }[]; // Dynamic fields computed at submission time
   nest?: { sourceFields: string[]; targetField: string }[]; // Fields to nest into objects
-  filterArrayFields?: string[]; // Array fields to filter out empty/invalid entries (currently supports link objects with label/url)
+  filterArrayFields?: string[]; // Array fields to filter out empty/invalid entries (for objects with label/url like links, or any objects with at least one non-empty property)
 }
 
 export interface FormConfig {
@@ -214,6 +214,14 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
 
 <script type="module" define:vars={{ config, webhookUrl }}>
   const WEBHOOK_URL = webhookUrl;
+
+  // Helper function to validate link objects
+  function isValidLink(item) {
+    if (typeof item !== 'object' || item === null) return false;
+    const hasLabel = typeof item.label === 'string' && item.label.trim() !== '';
+    const hasUrl = typeof item.url === 'string' && item.url.trim() !== '';
+    return hasLabel && hasUrl;
+  }
 
   function initForm() {
     const form = document.getElementById(config.id);
@@ -464,9 +472,7 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
                   if (typeof item === 'object' && item !== null) {
                     // For links, require both label and url to be non-empty strings
                     if ('label' in item && 'url' in item) {
-                      const hasLabel = typeof item.label === 'string' && item.label.trim() !== '';
-                      const hasUrl = typeof item.url === 'string' && item.url.trim() !== '';
-                      return hasLabel && hasUrl;
+                      return isValidLink(item);
                     }
                     // For other objects, keep if they have at least one non-empty property
                     return Object.values(item).some(v => v !== '' && v !== null && v !== undefined);
