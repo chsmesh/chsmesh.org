@@ -39,7 +39,16 @@ const getStatValue = (key: string) => {
 ---
 
 <Layout title={mapPage?.pageTitle ?? 'Network Map'} description={mapPage?.pageDescription}>
-  <Hero title={mapPage?.hero.title ?? ''} subtitle={mapPage?.hero.subtitle ?? ''} size={mapPage?.hero.size ?? 'small'} />
+  <Hero title={mapPage?.hero.title ?? ''} subtitle={mapPage?.hero.subtitle ?? ''} size={mapPage?.hero.size ?? 'small'}>
+    <div class="mt-6">
+      <button data-modal-open="node-modal" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Add Your Node
+      </button>
+    </div>
+  </Hero>
 
   <!-- Stats Bar -->
   <section class="bg-white border-b border-neutral-200">
@@ -115,18 +124,16 @@ const getStatValue = (key: string) => {
             </ul>
           </div>
 
-          <!-- Add Your Node -->
+          <!-- Add Your Node Button -->
           <div class="card card-body bg-primary-50 border-primary-200">
             <h3 class="font-semibold mb-2">{mapPage?.addNode.heading}</h3>
             <p class="text-sm text-neutral-600 mb-4">{mapPage?.addNode.body}</p>
-            <a 
-              href={mapPage?.addNode.cta.href}
-              target="_blank" 
-              rel="noopener noreferrer"
+            <button
+              data-modal-open="node-modal"
               class="btn-primary btn-sm w-full"
             >
               {mapPage?.addNode.cta.label}
-            </a>
+            </button>
           </div>
 
           <!-- Coverage Info -->

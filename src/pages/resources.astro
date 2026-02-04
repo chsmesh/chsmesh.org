@@ -53,7 +53,16 @@ const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.resources
 ---
 
 <Layout title={resourcesPage?.pageTitle ?? 'Resources'} description={resourcesPage?.pageDescription}>
-  <Hero title={resourcesPage?.hero.title ?? ''} subtitle={resourcesPage?.hero.subtitle ?? ''} size={resourcesPage?.hero.size ?? 'small'} />
+  <Hero title={resourcesPage?.hero.title ?? ''} subtitle={resourcesPage?.hero.subtitle ?? ''} size={resourcesPage?.hero.size ?? 'small'}>
+    <div class="mt-6">
+      <button data-modal-open="resource-modal" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Submit a Resource
+      </button>
+    </div>
+  </Hero>
 
   <section class="section">
     <div class="container-wide">
@@ -68,19 +77,6 @@ const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.resources
         </div>
       ) : (
         <>
-          {/* Quick Buy Section */}
-          <div class="alert-info mb-12 p-4">
-            <div class="flex items-start gap-3">
-              <svg class="w-5 h-5 text-secondary-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <h4 class="font-medium text-secondary-800 mb-1">{resourcesPage?.quickStart.heading}</h4>
-                <p class="text-sm text-secondary-700">{resourcesPage?.quickStart.body}</p>
-              </div>
-            </div>
-          </div>
-
           {/* Category Navigation */}
           <nav class="flex flex-wrap gap-2 mb-12 justify-center">
             {activeTabs.map(([key, cat]) => (

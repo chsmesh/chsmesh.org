@@ -24,7 +24,16 @@ const pastMeetups = allMeetups
 ---
 
 <Layout title={meetupsPage?.pageTitle ?? 'Meetups'} description={meetupsPage?.pageDescription}>
-  <Hero title={meetupsPage?.hero.title ?? ''} subtitle={meetupsPage?.hero.subtitle ?? ''} size={meetupsPage?.hero.size ?? 'small'} />
+  <Hero title={meetupsPage?.hero.title ?? ''} subtitle={meetupsPage?.hero.subtitle ?? ''} size={meetupsPage?.hero.size ?? 'small'}>
+    <div class="mt-6">
+      <button data-modal-open="meetup-modal" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Submit a Meetup
+      </button>
+    </div>
+  </Hero>
 
   <section class="section">
     <div class="container-wide">
@@ -80,17 +89,6 @@ const pastMeetups = allMeetups
           </div>
         </div>
       )}
-    </div>
-  </section>
-
-  <!-- Host a Meetup CTA -->
-  <section class="section-sm bg-primary-50 border-t border-primary-100">
-    <div class="container-wide text-center">
-      <h3 class="text-xl font-semibold mb-2">{meetupsPage?.host.heading}</h3>
-      <p class="text-neutral-600 mb-4">{meetupsPage?.host.body}</p>
-      <a href={meetupsPage?.host.cta.href} class="btn-outline">
-        {meetupsPage?.host.cta.label}
-      </a>
     </div>
   </section>
 </Layout>
