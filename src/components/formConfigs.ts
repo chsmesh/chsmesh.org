@@ -80,7 +80,7 @@ export const nodeFormConfig: FormConfig = {
       type: 'email',
       required: true,
       placeholder: 'your.email@example.com',
-      helpText: 'For PR notifications (not published on site)',
+      helpText: 'For chsmesh.org contact only (not published on site)',
     },
   ],
   schema: z.object({
@@ -200,7 +200,7 @@ export const guideFormConfig: FormConfig = {
       type: 'email',
       required: true,
       placeholder: 'your.email@example.com',
-      helpText: 'For PR notifications (not published on site)',
+      helpText: 'For chsmesh.org contact only (not published on site)',
     },
   ],
   schema: z.object({
@@ -336,7 +336,7 @@ export const meetupFormConfig: FormConfig = {
       type: 'email',
       required: true,
       placeholder: 'your.email@example.com',
-      helpText: 'For PR notifications (not published on site)',
+      helpText: 'For chsmesh.org contact only (not published on site)',
     },
   ],
   schema: z.object({
@@ -512,7 +512,7 @@ export const resourceFormConfig: FormConfig = {
       type: 'email',
       required: true,
       placeholder: 'your.email@example.com',
-      helpText: 'For PR notifications (not published on site)',
+      helpText: 'For chsmesh.org contact only (not published on site)',
     },
   ],
   schema: z.object({
