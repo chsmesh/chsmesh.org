@@ -19,7 +19,7 @@ community:
   heading: Community
   links:
     - label: Join Discord
-      href: https://discord.gg/Jucxwk5r
+      href: https://discord.gg/8Btn3fck2U
       external: true
     - label: GitHub
       href: https://github.com/chsmesh

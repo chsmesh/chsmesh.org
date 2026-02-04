@@ -6,7 +6,7 @@ location: "TBD"
 address: "TBD"
 description: "Join us for our monthly meetup! Bring your nodes, ask questions, and meet fellow mesh enthusiasts. All skill levels welcome."
 featured: true
-rsvpLink: "https://discord.gg/Jucxwk5r"
+rsvpLink: "https://discord.gg/8Btn3fck2U"
 coordinates:
   lat: 32.7876
   lng: -79.9403

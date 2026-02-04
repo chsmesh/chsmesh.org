@@ -5,7 +5,7 @@ category: community
 order: 1
 links:
   - label: "Join Discord"
-    url: "https://discord.gg/Jucxwk5r"
+    url: "https://discord.gg/8Btn3fck2U"
     type: community
 pros:
   - Local community
