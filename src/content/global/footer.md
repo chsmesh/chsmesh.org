@@ -19,13 +19,10 @@ community:
   heading: Community
   links:
     - label: Join Discord
-      href: https://discord.gg/8Btn3fck2U
+      href: '@links.discord'
       external: true
     - label: GitHub
-      href: https://github.com/chsmesh
-      external: true
-    - label: Reddit
-      href: https://reddit.com/r/chsmesh
+      href: '@links.github'
       external: true
     - label: About Us
       href: /about

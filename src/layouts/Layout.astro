@@ -4,6 +4,7 @@ import Modal from '../components/Modal.astro';
 import SubmissionForm from '../components/SubmissionForm.astro';
 import { nodeFormConfig, guideFormConfig, meetupFormConfig, resourceFormConfig } from '../components/formConfigs';
 import '../styles/global.css';
+import { resolveLink } from '../utils/siteLinks';
 
 interface Props {
   title: string;
@@ -21,8 +22,23 @@ const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
 const footerEntry = await getEntry('global', 'footer');
 const footer = footerEntry?.data?.type === 'footer' ? footerEntry.data : undefined;
 const navigationLinks = (navigation?.links ?? []) as { label: string; href: string; external?: boolean }[];
-const footerQuickLinks = (footer?.quickLinks.links ?? []) as { label: string; href: string; external?: boolean }[];
-const footerCommunityLinks = (footer?.community.links ?? []) as { label: string; href: string; external?: boolean }[];
+const resolveHref = (href: string) => resolveLink(href, site?.links, site?.social);
+const footerQuickLinks = (footer?.quickLinks.links ?? []).map((link) => {
+  const href = resolveHref(link.href);
+  return {
+    ...link,
+    href,
+    external: link.external ?? href.startsWith('http'),
+  };
+}) as { label: string; href: string; external?: boolean }[];
+const footerCommunityLinks = (footer?.community.links ?? []).map((link) => {
+  const href = resolveHref(link.href);
+  return {
+    ...link,
+    href,
+    external: link.external ?? href.startsWith('http'),
+  };
+}) as { label: string; href: string; external?: boolean }[];
 const footerCopyright = footer?.legal.copyright.replace('{year}', String(new Date().getFullYear()));
 
 const currentPath = Astro.url.pathname;

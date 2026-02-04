@@ -143,6 +143,7 @@ const global = defineCollection({
       type: z.literal('site'),
       title: z.string(),
       description: z.string(),
+      links: z.record(z.string()).optional(),
       social: z
         .array(
           z.object({
