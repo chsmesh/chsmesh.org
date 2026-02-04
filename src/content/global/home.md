@@ -4,7 +4,7 @@ pageTitle: Home
 pageDescription: Charleston's Meshtastic community - building an open, decentralized mesh network across the Lowcountry
 hero:
   title: Charleston Meshtastic Community
-  subtitle: Building an open, decentralized mesh network across the Lowcountry (UNDER CONSTRUCTION)
+  subtitle: Building an open, decentralized mesh network across the Lowcountry 
   size: large
   ctas:
     - label: Get Started
@@ -14,11 +14,11 @@ hero:
       href: /meetups
       variant: secondary
 stats:
-  - value: ??+
+  - value: TBD+
     label: Active Nodes
-  - value: ??+
+  - value: TBD+
     label: Community Members
-  - value: ??mi
+  - value: TBDmi
     label: Coverage Radius
   - value: 24/7
     label: Network Uptime
