@@ -22,6 +22,20 @@ export interface FormField {
   subFields?: FormField[]; // For dynamic-array fields
 }
 
+// Transformation rules that can be serialized to JSON
+export interface TransformRule {
+  field: string;
+  type: 'number' | 'splitLines' | 'splitCommas';
+  optional?: boolean;
+}
+
+export interface PayloadRule {
+  add?: Record<string, any>; // Static fields to add to payload
+  addDynamic?: { field: string; value: 'currentDate' | 'currentDateTime' }[]; // Dynamic fields computed at submission time
+  nest?: { sourceFields: string[]; targetField: string }[]; // Fields to nest into objects
+  filterArrayFields?: string[]; // Array fields to filter out empty/invalid entries (for objects with label/url like links, or any objects with at least one non-empty property)
+}
+
 export interface FormConfig {
   id: string;
   title: string;
@@ -29,9 +43,8 @@ export interface FormConfig {
   webhookEnvVar: string;
   webhookPlaceholder: string;
   fields: FormField[];
-  schema: z.ZodSchema;
-  transformData?: (formData: FormData) => any;
-  buildPayload?: (data: any) => any;
+  transformRules?: TransformRule[]; // Serializable transformation rules
+  payloadRules?: PayloadRule; // Serializable payload building rules
   successMessage: string;
   disclaimerText: string;
 }
@@ -202,6 +215,14 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
 <script type="module" define:vars={{ config, webhookUrl }}>
   const WEBHOOK_URL = webhookUrl;
 
+  // Helper function to validate link objects
+  function isValidLink(item) {
+    if (typeof item !== 'object' || item === null) return false;
+    const hasLabel = typeof item.label === 'string' && item.label.trim() !== '';
+    const hasUrl = typeof item.url === 'string' && item.url.trim() !== '';
+    return hasLabel && hasUrl;
+  }
+
   function initForm() {
     const form = document.getElementById(config.id);
     if (!(form instanceof HTMLFormElement)) {
@@ -352,42 +373,120 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
         }
       });
 
-      // Add dynamic arrays to formData-like structure
+      // Build data object from form
       const data = {};
       for (const [key, value] of formData.entries()) {
+        // Skip empty values for optional fields only.
+        // Required fields are kept even if empty to allow HTML5 validation.
+        if (value === '') {
+          const field = config.fields.find(f => f.name === key);
+          if (!field || !field.required) {
+            continue;
+          }
+        }
         data[key] = value;
       }
       
       // Merge dynamic arrays
       dynamicArrayFields.forEach(field => {
-        data[field.name] = dynamicArrays[field.name];
+        if (dynamicArrays[field.name] && dynamicArrays[field.name].length > 0) {
+          data[field.name] = dynamicArrays[field.name];
+        }
       });
 
-      // Transform data using config function
-      let transformedData;
-      try {
-        if (config.transformData) {
-          transformedData = config.transformData(formData);
-          // Merge dynamic array data into transformed data
-          dynamicArrayFields.forEach(field => {
-            transformedData[field.name] = dynamicArrays[field.name];
-          });
-        } else {
-          transformedData = data;
-        }
-      } catch (error) {
-        showError('Error processing form data: ' + error.message);
-        return;
+      // Apply transformation rules
+      if (config.transformRules) {
+        config.transformRules.forEach(rule => {
+          const value = data[rule.field];
+          if (value === undefined || value === '') {
+            if (rule.optional) {
+              delete data[rule.field];
+            }
+            return;
+          }
+
+          switch (rule.type) {
+            case 'number':
+              data[rule.field] = parseFloat(value);
+              break;
+            case 'splitLines':
+              data[rule.field] = value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+              break;
+            case 'splitCommas':
+              data[rule.field] = value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+              break;
+          }
+        });
       }
 
       setLoading(true);
 
       try {
-        // Build payload using config function
-        const payload = config.buildPayload ? config.buildPayload(transformedData) : {
-          ...transformedData,
-          submittedAt: new Date().toISOString(),
-        };
+        // Build payload with rules
+        let payload = { ...data };
+
+        // Apply payload rules
+        if (config.payloadRules) {
+          // Add static fields
+          if (config.payloadRules.add) {
+            Object.assign(payload, config.payloadRules.add);
+          }
+
+          // Add dynamic fields
+          if (config.payloadRules.addDynamic) {
+            config.payloadRules.addDynamic.forEach(dynamicField => {
+              if (dynamicField.value === 'currentDate') {
+                payload[dynamicField.field] = new Date().toISOString().split('T')[0];
+              } else if (dynamicField.value === 'currentDateTime') {
+                payload[dynamicField.field] = new Date().toISOString();
+              }
+            });
+          }
+
+          // Nest fields into objects
+          if (config.payloadRules.nest) {
+            config.payloadRules.nest.forEach(nestRule => {
+              const allFieldsPresent = nestRule.sourceFields.every(f => 
+                payload[f] !== undefined && payload[f] !== null && payload[f] !== ''
+              );
+              
+              if (allFieldsPresent) {
+                payload[nestRule.targetField] = {};
+                nestRule.sourceFields.forEach(f => {
+                  payload[nestRule.targetField][f] = payload[f];
+                  delete payload[f];
+                });
+              } else {
+                // Remove source fields if not all present
+                nestRule.sourceFields.forEach(f => delete payload[f]);
+              }
+            });
+          }
+
+          // Filter array fields to remove empty/invalid entries
+          if (config.payloadRules.filterArrayFields) {
+            config.payloadRules.filterArrayFields.forEach(fieldName => {
+              if (Array.isArray(payload[fieldName])) {
+                payload[fieldName] = payload[fieldName].filter(item => {
+                  // For objects, check if they have required properties with non-empty values
+                  if (typeof item === 'object' && item !== null) {
+                    // For links, require both label and url to be non-empty strings
+                    if ('label' in item && 'url' in item) {
+                      return isValidLink(item);
+                    }
+                    // For other objects, keep if they have at least one non-empty property
+                    return Object.values(item).some(v => v !== '' && v !== null && v !== undefined);
+                  }
+                  // For primitives, keep non-empty values
+                  return item !== '' && item !== null && item !== undefined;
+                });
+              }
+            });
+          }
+        }
+
+        // Always add submission timestamp
+        payload.submittedAt = new Date().toISOString();
 
         const response = await fetch(WEBHOOK_URL, {
           method: 'POST',

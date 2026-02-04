@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type { FormConfig } from './SubmissionForm.astro';
 
 // Node Form Configuration
@@ -83,41 +82,22 @@ export const nodeFormConfig: FormConfig = {
       helpText: 'For chsmesh.org contact only (not published on site)',
     },
   ],
-  schema: z.object({
-    name: z.string().min(1),
-    description: z.string().optional(),
-    lat: z.number(),
-    lng: z.number(),
-    type: z.enum(['relay', 'router', 'client', 'solar']),
-    elevation: z.number().optional(),
-    owner: z.string().optional(),
-    submitterEmail: z.string().email(),
-  }),
-  transformData: (formData) => ({
-    name: formData.get('name'),
-    description: formData.get('description') || undefined,
-    lat: parseFloat(formData.get('lat') as string),
-    lng: parseFloat(formData.get('lng') as string),
-    type: formData.get('type'),
-    elevation: formData.get('elevation') ? parseInt(formData.get('elevation') as string) : undefined,
-    owner: formData.get('owner') || undefined,
-    submitterEmail: formData.get('submitterEmail'),
-  }),
-  buildPayload: (data) => ({
-    name: data.name,
-    description: data.description,
-    coordinates: {
-      lat: data.lat,
-      lng: data.lng,
+  transformRules: [
+    { field: 'lat', type: 'number' },
+    { field: 'lng', type: 'number' },
+    { field: 'elevation', type: 'number', optional: true },
+  ],
+  payloadRules: {
+    add: {
+      active: true,
     },
-    type: data.type,
-    elevation: data.elevation,
-    active: true,
-    owner: data.owner,
-    lastSeen: new Date().toISOString().split('T')[0],
-    submitterEmail: data.submitterEmail,
-    submittedAt: new Date().toISOString(),
-  }),
+    addDynamic: [
+      { field: 'lastSeen', value: 'currentDate' }
+    ],
+    nest: [
+      { sourceFields: ['lat', 'lng'], targetField: 'coordinates' }
+    ]
+  },
   successMessage: '✓ Node submitted successfully!',
   disclaimerText: 'By submitting, you agree that your node information will be publicly displayed on this website.',
 };
@@ -203,34 +183,14 @@ export const guideFormConfig: FormConfig = {
       helpText: 'For chsmesh.org contact only (not published on site)',
     },
   ],
-  schema: z.object({
-    title: z.string().min(1),
-    description: z.string().min(1),
-    content: z.string().min(50),
-    category: z.enum(['getting-started', 'hardware', 'software', 'network', 'troubleshooting']),
-    difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
-    author: z.string().optional(),
-    prerequisites: z.string().optional(),
-    submitterEmail: z.string().email(),
-  }),
-  transformData: (formData) => ({
-    title: formData.get('title'),
-    description: formData.get('description'),
-    content: formData.get('content'),
-    category: formData.get('category'),
-    difficulty: formData.get('difficulty'),
-    author: formData.get('author') || undefined,
-    prerequisites: formData.get('prerequisites') || undefined,
-    submitterEmail: formData.get('submitterEmail'),
-  }),
-  buildPayload: (data) => ({
-    ...data,
-    prerequisites: data.prerequisites
-      ? data.prerequisites.split(',').map((p: string) => p.trim()).filter((p: string) => p.length > 0)
-      : undefined,
-    order: 999,
-    submittedAt: new Date().toISOString(),
-  }),
+  transformRules: [
+    { field: 'prerequisites', type: 'splitCommas', optional: true },
+  ],
+  payloadRules: {
+    add: {
+      order: 999,
+    }
+  },
   successMessage: '✓ Guide submitted successfully!',
   disclaimerText: 'By submitting, you agree that your guide will be publicly available under the site\'s license.',
 };
@@ -339,59 +299,18 @@ export const meetupFormConfig: FormConfig = {
       helpText: 'For chsmesh.org contact only (not published on site)',
     },
   ],
-  schema: z.object({
-    title: z.string().min(1),
-    description: z.string().min(1),
-    content: z.string().optional(),
-    date: z.string().min(1),
-    endDate: z.string().optional(),
-    location: z.string().min(1),
-    address: z.string().optional(),
-    lat: z.number().optional(),
-    lng: z.number().optional(),
-    rsvpLink: z.string().optional(),
-    maxAttendees: z.number().optional(),
-    submitterEmail: z.string().email(),
-  }),
-  transformData: (formData) => {
-    const lat = formData.get('lat') ? parseFloat(formData.get('lat') as string) : undefined;
-    const lng = formData.get('lng') ? parseFloat(formData.get('lng') as string) : undefined;
-    
-    return {
-      title: formData.get('title'),
-      description: formData.get('description'),
-      content: formData.get('content') || undefined,
-      date: formData.get('date'),
-      endDate: formData.get('endDate') || undefined,
-      location: formData.get('location'),
-      address: formData.get('address') || undefined,
-      lat,
-      lng,
-      rsvpLink: formData.get('rsvpLink') || undefined,
-      maxAttendees: formData.get('maxAttendees') ? parseInt(formData.get('maxAttendees') as string) : undefined,
-      submitterEmail: formData.get('submitterEmail'),
-    };
-  },
-  buildPayload: (data) => {
-    const coordinates = (data.lat !== undefined && data.lng !== undefined)
-      ? { lat: data.lat, lng: data.lng }
-      : undefined;
-    
-    return {
-      title: data.title,
-      description: data.description,
-      content: data.content,
-      date: data.date,
-      endDate: data.endDate,
-      location: data.location,
-      address: data.address,
-      coordinates,
-      rsvpLink: data.rsvpLink,
-      maxAttendees: data.maxAttendees,
+  transformRules: [
+    { field: 'lat', type: 'number', optional: true },
+    { field: 'lng', type: 'number', optional: true },
+    { field: 'maxAttendees', type: 'number', optional: true },
+  ],
+  payloadRules: {
+    add: {
       featured: false,
-      submitterEmail: data.submitterEmail,
-      submittedAt: new Date().toISOString(),
-    };
+    },
+    nest: [
+      { sourceFields: ['lat', 'lng'], targetField: 'coordinates' }
+    ]
   },
   successMessage: '✓ Meetup submitted successfully!',
   disclaimerText: 'By submitting, you agree that your meetup information will be publicly displayed on this website.',
@@ -515,63 +434,16 @@ export const resourceFormConfig: FormConfig = {
       helpText: 'For chsmesh.org contact only (not published on site)',
     },
   ],
-  schema: z.object({
-    title: z.string().min(1),
-    description: z.string().min(1),
-    content: z.string().optional(),
-    category: z.enum(['devices', 'accessories', 'software', 'firmware', 'community']),
-    priceRange: z.string().optional(),
-    links: z.array(z.object({
-      label: z.string(),
-      url: z.string().url(),
-      type: z.string().optional(),
-    })).optional(),
-    pros: z.string().optional(),
-    cons: z.string().optional(),
-    image: z.string().optional(),
-    submitterEmail: z.string().email(),
-  }),
-  transformData: (formData) => ({
-    title: formData.get('title'),
-    description: formData.get('description'),
-    content: formData.get('content') || undefined,
-    category: formData.get('category'),
-    priceRange: formData.get('priceRange') || undefined,
-    links: [], // Will be populated by dynamic array handling in form component
-    pros: formData.get('pros') || undefined,
-    cons: formData.get('cons') || undefined,
-    image: formData.get('image') || undefined,
-    submitterEmail: formData.get('submitterEmail'),
-  }),
-  buildPayload: (data) => {
-    let links = [];
-    if (data.links && Array.isArray(data.links)) {
-      links = data.links.filter((link: any) => link.label && link.url);
-    }
-    
-    const pros = data.pros
-      ? data.pros.split('\n').map((p: string) => p.trim()).filter((p: string) => p.length > 0)
-      : [];
-    
-    const cons = data.cons
-      ? data.cons.split('\n').map((c: string) => c.trim()).filter((c: string) => c.length > 0)
-      : [];
-    
-    return {
-      title: data.title,
-      description: data.description,
-      content: data.content,
-      category: data.category,
-      priceRange: data.priceRange,
-      links,
-      pros,
-      cons,
-      image: data.image,
+  transformRules: [
+    { field: 'pros', type: 'splitLines', optional: true },
+    { field: 'cons', type: 'splitLines', optional: true },
+  ],
+  payloadRules: {
+    add: {
       order: 999,
       featured: false,
-      submitterEmail: data.submitterEmail,
-      submittedAt: new Date().toISOString(),
-    };
+    },
+    filterArrayFields: ['links']
   },
   successMessage: '✓ Resource submitted successfully!',
   disclaimerText: 'By submitting, you agree that your resource recommendation will be publicly displayed on this website.',
