@@ -90,8 +90,10 @@ export const nodeFormConfig: FormConfig = {
   payloadRules: {
     add: {
       active: true,
-      lastSeen: new Date().toISOString().split('T')[0],
     },
+    addDynamic: [
+      { field: 'lastSeen', value: 'currentDate' }
+    ],
     nest: [
       { sourceFields: ['lat', 'lng'], targetField: 'coordinates' }
     ]
@@ -440,7 +442,8 @@ export const resourceFormConfig: FormConfig = {
     add: {
       order: 999,
       featured: false,
-    }
+    },
+    filterArrayFields: ['links']
   },
   successMessage: '✓ Resource submitted successfully!',
   disclaimerText: 'By submitting, you agree that your resource recommendation will be publicly displayed on this website.',
