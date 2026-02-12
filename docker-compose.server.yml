@@ -8,7 +8,9 @@
 
 services:
   chsmesh:
-    image: ghcr.io/cstarlea/chsmesh:latest
+    # Pin to immutable digest to prevent supply-chain drift from mutable tags.
+    # Update this digest only through the documented, reviewed release workflow.
+    image: ghcr.io/cstarlea/chsmesh@sha256:8b58f8f68af6b7f0c4f5443f7f6b9a95d6f2e0040df4f44e934e8c731f0a4e3c
     container_name: chsmesh
     user: "101:101"
     ports:

@@ -44,6 +44,32 @@ test('should enforce non-root and hardened runtime controls in compose files', (
   }
 });
 
+test('should pin production container images to immutable digests', () => {
+  const compose = readFile(composePath);
+  const imageLines = compose
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith('image:'));
+
+  assert.ok(imageLines.length > 0, 'server compose should define at least one image');
+
+  for (const line of imageLines) {
+    const imageRef = line.replace(/^image:\s*/, '').trim();
+
+    assert.match(
+      imageRef,
+      /@sha256:[a-f0-9]{64}$/,
+      `image must be pinned by digest: ${imageRef}`
+    );
+
+    assert.equal(
+      /:latest$/.test(imageRef),
+      false,
+      `mutable :latest tag is not allowed in production image references: ${imageRef}`
+    );
+  }
+});
+
 test('should reject root nginx runtime in Dockerfile', () => {
   const dockerfile = readFile(dockerfilePath);
 
