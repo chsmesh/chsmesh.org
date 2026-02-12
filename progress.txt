@@ -1,0 +1,1 @@
+fix-001: Eliminated docker.sock exposure by removing watchtower from docker-compose.server.yml and shifting updates to host-level script (scripts/server-update.sh). Added regression test to prevent docker.sock mount reintroduction.
