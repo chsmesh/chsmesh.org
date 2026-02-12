@@ -117,6 +117,20 @@ docker run -p 80:8080 chsmesh
 
 This repository is configured to automatically build and deploy via Komodo webhooks. Push to `main` to trigger deployment.
 
+### Production image digest update workflow
+
+Production deploys must use immutable image references (`@sha256:<digest>`) in `docker-compose.server.yml`.
+
+When rolling out a new release:
+
+1. Build and push the release image in CI.
+2. Retrieve the published image digest from GHCR.
+3. Open a PR that updates only the digest in `docker-compose.server.yml`.
+4. Require maintainer review/approval before merge.
+5. Deploy via the approved server update process (`scripts/server-update.sh` or equivalent CI deploy job).
+
+Do not use mutable tags like `:latest` in production compose files.
+
 ## Contributing
 
 We welcome contributions! Please:
