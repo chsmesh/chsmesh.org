@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 const composePath = path.resolve(__dirname, '../../docker-compose.server.yml');
 const localComposePath = path.resolve(__dirname, '../../docker-compose.yml');
 const dockerfilePath = path.resolve(__dirname, '../../Dockerfile');
+const nginxConfigPath = path.resolve(__dirname, '../../nginx.conf');
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, 'utf8');
@@ -75,4 +76,30 @@ test('should reject root nginx runtime in Dockerfile', () => {
 
   assert.match(dockerfile, /^USER\s+nginx$/m, 'Dockerfile runtime stage must drop to nginx user');
   assert.match(dockerfile, /^EXPOSE\s+8080$/m, 'Dockerfile runtime stage should expose unprivileged port 8080');
+});
+
+test('should reject unsafe-inline CSP directives and require HSTS preload policy in nginx', () => {
+  const nginxConfig = readFile(nginxConfigPath);
+
+  assert.equal(
+    /script-src[^;]*'unsafe-inline'/.test(nginxConfig),
+    false,
+    'CSP must not allow unsafe-inline scripts'
+  );
+  assert.equal(
+    /style-src[^;]*'unsafe-inline'/.test(nginxConfig),
+    false,
+    'CSP must not allow unsafe-inline styles'
+  );
+
+  assert.match(
+    nginxConfig,
+    /add_header\s+Strict-Transport-Security\s+\$hsts_header\s+always;/,
+    'nginx must emit Strict-Transport-Security header'
+  );
+  assert.match(
+    nginxConfig,
+    /https\s+"max-age=63072000; includeSubDomains; preload";/,
+    'HSTS policy must be at least 2 years with includeSubDomains and preload'
+  );
 });
