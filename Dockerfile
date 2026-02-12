@@ -36,8 +36,11 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy built static files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose port 80
-EXPOSE 80
+# Expose unprivileged HTTP port
+EXPOSE 8080
+
+# Run runtime container as non-root
+USER nginx
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

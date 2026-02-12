@@ -10,6 +10,16 @@ services:
   chsmesh:
     image: ghcr.io/cstarlea/chsmesh:latest
     container_name: chsmesh
+    user: "101:101"
     ports:
-      - "8081:80"
+      - "8081:8080"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
