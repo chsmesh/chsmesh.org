@@ -10,6 +10,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
+# Ensure installed binaries are in PATH
+ENV PATH="/app/node_modules/.bin:$PATH"
+
 # Copy source files
 COPY . .
 
