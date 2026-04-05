@@ -1,14 +1,14 @@
 # Multi-stage build for chsmesh.org
 # Stage 1: Build the Astro site
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (--maxsockets=1 avoids OOM on Alpine)
-RUN npm ci --maxsockets=1 && ls node_modules/.bin/astro
+# Install dependencies
+RUN npm ci
 
 # Ensure installed binaries are in PATH
 ENV PATH="/app/node_modules/.bin:$PATH"
