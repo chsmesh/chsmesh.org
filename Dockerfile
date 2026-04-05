@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN NODE_OPTIONS="--max-old-space-size=512" npm install --prefer-offline && \
+    test -f node_modules/.bin/astro || (echo "ERROR: astro not installed" && exit 1)
 
 # Ensure installed binaries are in PATH
 ENV PATH="/app/node_modules/.bin:$PATH"
