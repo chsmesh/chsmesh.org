@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (--maxsockets=1 avoids OOM on Alpine)
+RUN npm ci --maxsockets=1 && ls node_modules/.bin/astro
 
 # Ensure installed binaries are in PATH
 ENV PATH="/app/node_modules/.bin:$PATH"
