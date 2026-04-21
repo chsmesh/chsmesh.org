@@ -8,7 +8,7 @@ readingTime: 12
 prerequisites:
   - Meshtastic firmware flashed to your device
   - Meshtastic app installed on your phone
-lastUpdated: 2026-01-15
+lastUpdated: 2026-04-21
 ---
 
 ## Overview
@@ -66,10 +66,14 @@ For most users:
 1. Go to **Settings** > **Device**
 2. Set **Role** to **Client** (default)
 
-Role options:
+Role options (firmware 2.7.x):
 - **Client**: Normal portable device, helps relay when awake
 - **Client Mute**: Receives but doesn't relay (saves battery)
-- **Router**: Always-on relay node (for fixed installations)
+- **Client Hidden**: Receives and transmits but does not broadcast presence
+- **Router**: Always-on relay for fixed installations with good coverage
+- **Repeater**: Pure mesh forwarder — no phone client, no user traffic
+
+Only use **Router** or **Repeater** for a node that is permanently powered and in a location that genuinely improves coverage. Misplaced routers hurt the mesh more than they help.
 
 ## Step 4: Charleston Network Settings
 

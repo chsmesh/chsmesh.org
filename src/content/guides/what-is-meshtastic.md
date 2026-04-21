@@ -5,6 +5,7 @@ difficulty: beginner
 category: getting-started
 order: 1
 readingTime: 5
+lastUpdated: 2026-04-21
 ---
 
 ## Overview
@@ -67,7 +68,7 @@ Meshtastic creates a shared resource. Every node you add improves coverage for e
 
 Be realistic about what Meshtastic can and can't do:
 
-- ✅ Short text messages (up to ~230 bytes)
+- ✅ Short text messages (up to 233 bytes per packet)
 - ✅ GPS locations
 - ✅ Basic sensor data
 - ❌ Voice calls

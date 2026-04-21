@@ -24,7 +24,7 @@ CHS Mesh promotes off-grid communication resilience and community collaboration 
 
 ### Prerequisites
 
-- Node.js 18.17+ or 21+
+- Node.js 20 LTS or newer (22 LTS or 24 LTS recommended as of April 2026)
 - npm or pnpm
 
 ### Installation
@@ -85,9 +85,12 @@ featured: false
 ```yaml
 ---
 title: "Event Name"
-date: "2026-02-15"
+date: "2026-05-15"
 location: "Charleston, SC"
-coordinates: [32.7765, -79.9311] # optional, for map display
+description: "Brief description of the event"
+coordinates:
+  lat: 32.7765
+  lng: -79.9311
 ---
 ```
 
@@ -95,10 +98,13 @@ coordinates: [32.7765, -79.9311] # optional, for map display
 ```json
 {
   "name": "Node Name",
-  "nodeId": "!abc123de",
-  "location": "Downtown",
+  "description": "Short description of the node",
   "type": "router",
-  "coordinates": [32.776, -79.931]
+  "coordinates": { "lat": 32.776, "lng": -79.931 },
+  "elevation": 30,
+  "active": true,
+  "owner": "Community Member",
+  "lastSeen": "2026-04-21"
 }
 ```
 

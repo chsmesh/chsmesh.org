@@ -20,7 +20,7 @@ pros:
   - Full device configuration
   - Widget support
 cons:
-  - iOS 16+ required
+  - iOS 17.5+ required (supports the last two major iOS versions)
   - Some features lag Android version
 ---
 

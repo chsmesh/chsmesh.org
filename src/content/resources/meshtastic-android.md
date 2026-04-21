@@ -31,4 +31,4 @@ The official Meshtastic Android app is how most users interact with their device
 - Device configuration
 - Map view showing node locations
 - Channel management
-- Firmware updates via the app
+- Firmware updates via the app (Android 8.0+ required)
