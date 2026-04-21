@@ -69,11 +69,12 @@ For most users:
 Role options (firmware 2.7.x):
 - **Client**: Normal portable device, helps relay when awake
 - **Client Mute**: Receives but doesn't relay (saves battery)
-- **Client Hidden**: Receives and transmits but does not broadcast presence
-- **Router**: Always-on relay for fixed installations with good coverage
-- **Repeater**: Pure mesh forwarder — no phone client, no user traffic
+- **Client Hidden**: Receives and transmits but is hidden from node lists (stealth mode for coverage extension)
+- **Client Base**: Like Client, but prioritizes rebroadcasting for favorited nodes — ideal for your own rooftop/attic node
+- **Router**: Always-on, well-positioned fixed node that aggressively rebroadcasts
+- **Router Late**: Router that rebroadcasts only after giving closer nodes a chance first
 
-Only use **Router** or **Repeater** for a node that is permanently powered and in a location that genuinely improves coverage. Misplaced routers hurt the mesh more than they help.
+Most users should stay on **Client**. Only use **Router** or **Router Late** for a permanently powered node in a location that genuinely improves coverage — misplaced routers hurt the mesh more than they help. Note: the **Repeater** role was deprecated in firmware 2.7.11; use Router or Router Late instead.
 
 ## Step 4: Charleston Network Settings
 

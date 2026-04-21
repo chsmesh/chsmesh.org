@@ -77,20 +77,22 @@ Consider whether you want:
 - Small battery capacity
 - Needs external antenna for best range
 
-### LilyGo T-Beam
+### LilyGo T-Beam Supreme
 
 **Best for**: GPS tracking, longer battery life
 
 **Pros**:
-- Built-in GPS
-- 18650 battery (swappable, high capacity)
-- Built-in screen
+- Built-in u-blox or L76K GPS (choose at purchase)
+- 18650 battery slot (swappable, high capacity)
+- 1.3" SH1106 OLED screen
+- USB-C charging
+- ESP32-S3 with 16 MB flash / 8 MB PSRAM
 - Well-documented
 
 **Cons**:
-- Larger form factor
-- Micro USB (not USB-C on older versions)
-- Slightly more expensive
+- Larger form factor than Heltec V3
+- More expensive (~$45-55)
+- 18650 battery sold separately
 
 ### RAK WisBlock
 
@@ -152,7 +154,7 @@ Consider whether you want:
 
 ### Specialty Retailers
 - Rokland (US-based, antenna specialists)
-- Neil Hao's store (T-Beam accessories)
+- B&Q Consulting on Tindie / uniteng.com (Station G2, Nano G2 Ultra — designed by Neil Hao)
 - RAK Store (WisBlock ecosystem)
 
 ## Our Charleston Recommendation

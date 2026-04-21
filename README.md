@@ -116,8 +116,10 @@ A multi-stage Dockerfile is included for containerized builds:
 
 ```bash
 docker build -t chsmesh .
-docker run -p 80:8080 chsmesh
+docker run -p 8080:80 chsmesh
 ```
+
+The nginx container listens on port 80 internally; the example above exposes it on host port 8080.
 
 ### Komodo Webhooks
 
@@ -137,7 +139,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## Community
 
-- **Discord**: [Charleston Meshtastic Community](https://discord.gg/meshtastic)
+- **Discord (Charleston)**: [CHS Mesh Discord](https://discord.gg/8Btn3fck2U)
+- **Discord (Global)**: [Official Meshtastic Discord](https://discord.gg/meshtastic)
 - **GitHub Issues**: Report bugs or request features
 - **Meetups**: Check the events page for upcoming gatherings
 

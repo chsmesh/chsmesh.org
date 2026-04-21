@@ -31,7 +31,9 @@ Flashing firmware is how you install or update the Meshtastic software on your d
 Know exactly which device you have:
 - **Heltec V3** (not V2!)
 - **LilyGo T-Beam** (note the version: Supreme, S3, etc.)
-- **RAK WisBlock** (specify core module)
+- **LilyGo T-Echo** (nRF52840 — uses UF2, not esptool)
+- **RAK WisBlock** (specify core module, e.g. RAK4631)
+- **B&Q Station G2 / Nano G2 Ultra** (ESP32-S3 vs. nRF52840 — different flashing flows)
 
 Using the wrong firmware can brick your device.
 
