@@ -5,10 +5,11 @@ difficulty: beginner
 category: getting-started
 order: 3
 readingTime: 10
+lastUpdated: 2026-04-21
 prerequisites:
   - A Meshtastic-compatible device
   - USB cable (data capable, not charge-only)
-  - Chrome or Edge browser (Firefox doesn't support Web Serial)
+  - Chrome or Edge browser (Web Serial is not supported in Firefox or Safari)
 ---
 
 ## Overview
@@ -30,7 +31,9 @@ Flashing firmware is how you install or update the Meshtastic software on your d
 Know exactly which device you have:
 - **Heltec V3** (not V2!)
 - **LilyGo T-Beam** (note the version: Supreme, S3, etc.)
-- **RAK WisBlock** (specify core module)
+- **LilyGo T-Echo** (nRF52840 — uses UF2, not esptool)
+- **RAK WisBlock** (specify core module, e.g. RAK4631)
+- **B&Q Station G2 / Nano G2 Ultra** (ESP32-S3 vs. nRF52840 — different flashing flows)
 
 Using the wrong firmware can brick your device.
 
@@ -60,7 +63,7 @@ Go to [flasher.meshtastic.org](https://flasher.meshtastic.org) in Chrome or Edge
 
 ### Step 4: Flash the Firmware
 
-1. Select the firmware version (usually "Stable" for most users)
+1. Select the firmware version (as of April 2026 the latest stable is **2.7.x**; pick "Stable" unless you have a reason to run Beta/Alpha)
 2. Click "Flash"
 3. Wait for the process to complete (1-3 minutes)
 4. Do not disconnect during flashing!
@@ -107,18 +110,22 @@ If you accidentally flashed the wrong device type:
 
 ### esptool (Command Line)
 
-For advanced users or if web flasher fails:
+For advanced users or if web flasher fails (ESP32-based devices only — nRF52 boards use UF2 drag-and-drop):
 
 ```bash
 # Install esptool
 pip install esptool
 
 # Erase flash
-esptool.py --chip esp32s3 erase_flash
+esptool --chip esp32s3 erase_flash
 
 # Flash firmware (download .bin files first)
-esptool.py --chip esp32s3 write_flash 0x0 firmware.bin
+esptool --chip esp32s3 write_flash 0x0 firmware.bin
 ```
+
+### nRF52 UF2 flashing
+
+nRF52-based devices (T-Echo, RAK WisBlock, Nano G2 Ultra) expose a mass-storage drive when double-tapping the reset button. Drag the `.uf2` file onto that drive to flash — no tool required.
 
 ### Meshtastic Flasher App
 

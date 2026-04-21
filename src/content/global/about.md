@@ -71,7 +71,7 @@ faqs:
       Range depends heavily on terrain, antenna quality, and node placement. Typical urban range is 1-3 miles, but with elevated nodes and good line-of-sight, ranges of 10+ miles are common. The mesh network extends range by hopping messages through intermediate nodes.
   - question: What devices work with Meshtastic?
     answer: >-
-      Popular devices include the Heltec V3, LilyGo T-Beam, RAK WisBlock, and various ESP32-based boards with SX1262 or SX1276 LoRa modules. See our Resources page for specific recommendations.
+      Popular devices include the Heltec V3, LilyGo T-Beam Supreme, LilyGo T-Echo, RAK WisBlock, and the B&Q Station G2. A notable 2026 trend is the shift from ESP32 to nRF52840-based boards for better battery life. See our Resources page for specific recommendations.
   - question: How do I connect to the Charleston mesh?
     answer: >-
       Simply get a Meshtastic device, flash the latest firmware, and configure it for the default US settings. If you're in range of our network, you'll automatically connect! Join our Discord for help getting started.
