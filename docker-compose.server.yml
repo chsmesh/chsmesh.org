@@ -1,28 +1,27 @@
-# Watchtower + chsmesh.org deployment
-# Run this on your server
+# chsmesh.org production deployment
+# Run this on your server.
+#
+# Security note:
+# Automatic in-container updaters that mount /var/run/docker.sock
+# are intentionally not used. Updates should run from the host using
+# scripts/server-update.sh (or equivalent CI/CD deploy job).
 
 services:
   chsmesh:
-    image: ghcr.io/cstarlea/chsmesh:latest
+    # Pin to immutable digest to prevent supply-chain drift from mutable tags.
+    # Update this digest only through the documented, reviewed release workflow.
+    image: ghcr.io/cstarlea/chsmesh@sha256:8b58f8f68af6b7f0c4f5443f7f6b9a95d6f2e0040df4f44e934e8c731f0a4e3c
     container_name: chsmesh
+    user: "101:101"
     ports:
-      - "8081:80"
+      - "8081:8080"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ~/.docker/config.json:/config.json:ro  # For GHCR auth
-    environment:
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=300  # Check every 5 minutes
-      - WATCHTOWER_LABEL_ENABLE=true  # Only update containers with label
-      # Optional: Notify on update
-      # - WATCHTOWER_NOTIFICATIONS=slack
-      # - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=https://hooks.slack.com/...
-    command: --interval 300
