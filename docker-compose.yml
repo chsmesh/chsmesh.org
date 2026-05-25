@@ -3,11 +3,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    user: "101:101"
     ports:
-      - "8081:80"
+      - "8081:8080"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 3
