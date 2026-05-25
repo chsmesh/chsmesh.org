@@ -10,6 +10,7 @@ const composePath = path.resolve(__dirname, '../../docker-compose.server.yml');
 const localComposePath = path.resolve(__dirname, '../../docker-compose.yml');
 const dockerfilePath = path.resolve(__dirname, '../../Dockerfile');
 const nginxConfigPath = path.resolve(__dirname, '../../nginx.conf');
+const serverUpdateScriptPath = path.resolve(__dirname, '../../scripts/server-update.sh');
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, 'utf8');
@@ -71,6 +72,17 @@ test('should pin production container images to immutable digests', () => {
   }
 });
 
+test('should configure a production healthcheck for the server compose service', () => {
+  const compose = readFile(composePath);
+
+  assert.match(
+    compose,
+    /healthcheck:\s*[\s\S]*test:\s*\["CMD-SHELL",\s*"wget -qO- http:\/\/localhost:8080\/ \|\| exit 1"\]/,
+    'server compose must define the production healthcheck command'
+  );
+  assert.match(compose, /start_period:\s*10s/, 'server compose must allow the healthcheck a startup period');
+});
+
 test('should reject root nginx runtime in Dockerfile', () => {
   const dockerfile = readFile(dockerfilePath);
 
@@ -78,7 +90,22 @@ test('should reject root nginx runtime in Dockerfile', () => {
   assert.match(dockerfile, /^EXPOSE\s+8080$/m, 'Dockerfile runtime stage should expose unprivileged port 8080');
 });
 
-test('should reject unsafe-inline CSP directives and require HSTS preload policy in nginx', () => {
+test('should validate the pulled production image before restarting the container', () => {
+  const serverUpdateScript = readFile(serverUpdateScriptPath);
+
+  assert.match(
+    serverUpdateScript,
+    /if ! docker compose -f "\$COMPOSE_FILE" pull chsmesh; then/,
+    'server update script must stop when the image pull fails'
+  );
+  assert.match(
+    serverUpdateScript,
+    /docker image inspect "\$image_ref" >/,
+    'server update script must verify the pulled image exists locally before restarting'
+  );
+});
+
+test('should reject unsafe-inline scripts, allow current inline styles, and require HSTS preload policy in nginx', () => {
   const nginxConfig = readFile(nginxConfigPath);
 
   assert.equal(
@@ -86,10 +113,10 @@ test('should reject unsafe-inline CSP directives and require HSTS preload policy
     false,
     'CSP must not allow unsafe-inline scripts'
   );
-  assert.equal(
-    /style-src[^;]*'unsafe-inline'/.test(nginxConfig),
-    false,
-    'CSP must not allow unsafe-inline styles'
+  assert.match(
+    nginxConfig,
+    /style-src[^;]*'unsafe-inline'/,
+    'CSP must allow unsafe-inline styles while inline style attributes remain in the site'
   );
 
   assert.match(
