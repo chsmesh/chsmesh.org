@@ -69,7 +69,10 @@ origin. `public/robots.txt` allows all crawlers and points at that index.
 
 ## Environment variables
 
-The submission forms POST to n8n webhooks. Four public variables configure them:
+The submission forms POST to the URLs below. Point them at `/api/submit/<kind>`
+to use the built-in submissions service; see
+[docs/cms-and-submissions.md](docs/cms-and-submissions.md) for that service,
+the CMS at `/admin/`, and their configuration.
 
 | Variable | Used by |
 | --- | --- |
