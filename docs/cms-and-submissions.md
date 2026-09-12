@@ -218,9 +218,10 @@ digest-pinned image, provide the runtime variables on the host, and update
 without the service present (`/api/` returns 502), so the two can be rolled
 out independently.
 
-If a reverse proxy or TLS terminator sits in front of the nginx container,
-configure `set_real_ip_from` and `real_ip_header` in `nginx.conf` for it.
-Otherwise every visitor shares the proxy's address and one rate-limit bucket.
+nginx trusts `X-Forwarded-For` from private networks, which is where the
+reverse proxy (Traefik in production) lives, so rate limits and the address
+passed to the service are per visitor rather than per proxy. If the proxy is
+ever on a public address, add it with `set_real_ip_from` in `nginx.conf`.
 
 ### What nginx does
 

@@ -283,19 +283,20 @@ this repository.
 ### Release and deploy (Komodo)
 
 Image build/publish and production deployment live in [Komodo](https://komo.do),
-outside this repository. Komodo is triggered by a webhook on pushes to `main`,
-builds the image with the production `PUBLIC_N8N_*` build args, and rolls out the
-new container.
+outside this repository. Two Komodo Builds clone `main` and push to the
+registry: `chsmesh` (this Dockerfile, with the production `PUBLIC_*` build
+args) and `chsmesh-submissions` (`services/submissions/Dockerfile`). Each has
+a Deployment on the production host, on the Docker network shared with
+Traefik, which terminates TLS; the deployments redeploy automatically when
+their build finishes. Komodo is reachable only on the private network, so
+builds are started from the Komodo UI rather than by a GitHub webhook.
 
-Production deploys must use immutable image references (`@sha256:<digest>`) in
-`docker-compose.server.yml` — never a mutable tag such as `:latest`. When rolling
-out a release:
+To release: merge to `main`, run the `chsmesh-submissions` build if the
+service changed, then run the `chsmesh` build. The site container listens on
+port 8080 and the Traefik service label must point at that port.
 
-1. Let Komodo build and publish the release image.
-2. Retrieve the published image digest from the registry.
-3. Open a PR that updates only the digest in `docker-compose.server.yml`.
-4. Require maintainer review/approval before merge.
-5. Deploy via the approved server update process (`scripts/server-update.sh`).
+`docker-compose.server.yml` and `scripts/server-update.sh` are a standalone
+alternative for running the pinned site image on a host without Komodo.
 
 ## Contributing
 
