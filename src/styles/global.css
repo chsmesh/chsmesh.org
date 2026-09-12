@@ -56,6 +56,30 @@ html {
   scroll-behavior: smooth;
 }
 
+/*
+ * Respect the OS "reduce motion" setting.
+ * Covers smooth scrolling, the FAQ chevron rotation (about.astro uses
+ * `group-open:rotate-180 transition-transform`), the submission form submit
+ * spinner (`animate-spin`) and the fade-in utility below.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .transition-transform {
+    transition: none !important;
+  }
+
+  .animate-spin {
+    animation: none !important;
+  }
+
+  .animate-fade-in {
+    animation: none !important;
+  }
+}
+
 body {
   background-color: var(--color-neutral-50);
   color: var(--color-neutral-800);
