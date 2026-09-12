@@ -39,10 +39,10 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
 <Layout title={title} description={description}>
   <article>
     <!-- Header -->
-    <section class="bg-gradient-to-br from-primary-600 to-secondary-700 text-white py-12">
+    <section class="hero hero-pattern py-12">
       <div class="container-narrow">
         <nav class="mb-6">
-          <a href="/guides" class="text-primary-200 hover:text-white transition-colors inline-flex items-center gap-2">
+          <a href="/guides" class="transition-colors inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -81,8 +81,8 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
 
     <!-- Prerequisites -->
     {prerequisites.length > 0 && (
-      <section class="bg-accent-50 border-b border-accent-200">
-        <div class="container-narrow py-4">
+      <section class="prereqs bg-accent-50 border-b border-accent-200">
+        <div class="container-narrow">
           <div class="flex items-start gap-3">
             <svg class="w-5 h-5 text-accent-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
