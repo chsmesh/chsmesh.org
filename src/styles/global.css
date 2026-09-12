@@ -496,7 +496,10 @@ a:not(.btn):not([class*="btn-"]):hover {
 /* Hero section */
 .hero {
   position: relative;
-  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700), var(--color-secondary-700));
+  /* Starts at primary-700, not primary-600: white text on primary-600 is only
+     3.7:1, which fails WCAG AA for the 20px subtitle on small screens. On
+     primary-700 and secondary-700 white reads 5.5:1 and 5.9:1. */
+  background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-700), var(--color-secondary-700));
   color: white;
 }
 
