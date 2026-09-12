@@ -213,7 +213,7 @@ const getStatValue = (key: string) => {
                       </td>
                       <td class="px-4 py-3 text-neutral-500">
                         {node.data.lastSeen
-                          ? node.data.lastSeen.toLocaleDateString('en-US')
+                          ? node.data.lastSeen.toLocaleDateString('en-US', { timeZone: 'UTC' })
                           : 'Unknown'}
                       </td>
                     </tr>
