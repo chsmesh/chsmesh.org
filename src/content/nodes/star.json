@@ -1,0 +1,12 @@
+{
+  "name": "star",
+  "coordinates": {
+    "lat": 32.7533,
+    "lng": -79.953667
+  },
+  "type": "client",
+  "elevation": 30,
+  "active": true,
+  "owner": "Chris Starleaf",
+  "lastSeen": "2026-09-12"
+}
