@@ -83,8 +83,13 @@ COPY --from=builder /app/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Fail the build, not the container start, if the config or the substituted
-# header include is malformed. Runs as root before the USER switch.
-RUN nginx -t
+# header include is malformed. Runs as root before the USER switch, and that
+# is the catch: `nginx -t` creates the pid file and temp directories named in
+# nginx.conf, owned by root. Left in place, the unprivileged runtime user
+# cannot open /tmp/nginx.pid and nginx exits at startup. Remove them so a
+# plain `docker run` (no tmpfs over /tmp) works exactly like the hardened
+# read-only runs, which happen to mask the problem.
+RUN nginx -t && rm -rf /tmp/nginx.pid /tmp/nginx-*
 
 # Expose unprivileged HTTP port
 EXPOSE 8080
