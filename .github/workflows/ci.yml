@@ -1,0 +1,193 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'release/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Dummy build-time webhook URLs. Real values are injected by the deployment
+  # pipeline; CI only needs syntactically valid URLs so that the forms and the
+  # CSP connect-src derived from PUBLIC_N8N_WEBHOOK_URL have something to bake in.
+  PUBLIC_N8N_WEBHOOK_URL: https://example.invalid/webhook/submit-node
+  PUBLIC_N8N_GUIDES_WEBHOOK_URL: https://example.invalid/webhook/submit-guide
+  PUBLIC_N8N_MEETUPS_WEBHOOK_URL: https://example.invalid/webhook/submit-meetup
+  PUBLIC_N8N_RESOURCES_WEBHOOK_URL: https://example.invalid/webhook/submit-resource
+
+jobs:
+  build-and-smoke-test:
+    name: Build, test, and smoke test the container
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build site
+        run: npm run build
+
+      - name: Assert no inline executable scripts in the build
+        run: |
+          # nginx serves a Content-Security-Policy with script-src 'self', so
+          # any <script> without a src attribute (other than inert JSON data
+          # islands) would be blocked in the browser. astro.config.mjs sets
+          # assetsInlineLimit: 0 to keep hoisted scripts external; this guards
+          # against that regressing silently.
+          if grep -rlE '<script( type="module")?>' dist --include='*.html'; then
+            echo 'Found inline executable <script> tags in dist/ (listed above); the CSP would block them.' >&2
+            exit 1
+          fi
+          echo 'No inline executable scripts in dist/.'
+
+      - name: Type and content schema check
+        run: npm run check
+
+      - name: Build container image
+        run: |
+          docker build \
+            --build-arg PUBLIC_N8N_WEBHOOK_URL="$PUBLIC_N8N_WEBHOOK_URL" \
+            --build-arg PUBLIC_N8N_GUIDES_WEBHOOK_URL="$PUBLIC_N8N_GUIDES_WEBHOOK_URL" \
+            --build-arg PUBLIC_N8N_MEETUPS_WEBHOOK_URL="$PUBLIC_N8N_MEETUPS_WEBHOOK_URL" \
+            --build-arg PUBLIC_N8N_RESOURCES_WEBHOOK_URL="$PUBLIC_N8N_RESOURCES_WEBHOOK_URL" \
+            -t chsmesh:ci .
+
+      - name: Start container
+        run: |
+          # The image runs nginx as an unprivileged user on a stock nginx:alpine
+          # base, so /var/cache/nginx, /var/run and /tmp must be writable tmpfs
+          # mounts (docker-compose*.yml provide the same). --read-only mirrors
+          # the production hardening so the smoke test exercises it.
+          docker run -d --name chsmesh-ci --read-only \
+            --tmpfs /var/cache/nginx --tmpfs /var/run --tmpfs /tmp \
+            -p 8080:8080 chsmesh:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8080/; then
+              echo "Container is serving on port 8080."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Container did not start serving within 60s." >&2
+          docker logs chsmesh-ci >&2 || true
+          exit 1
+
+      - name: Smoke test - home page status and security headers
+        run: |
+          # nginx emits HSTS only for requests forwarded as HTTPS, which is how
+          # the TLS edge calls the container in production.
+          headers=$(curl -sS -D - -o /dev/null \
+            -H 'X-Forwarded-Proto: https' \
+            http://127.0.0.1:8080/)
+          printf '%s\n' "$headers"
+
+          status_line=$(printf '%s\n' "$headers" | head -n 1)
+          case "$status_line" in
+            *' 200'*) ;;
+            *) echo "Expected 200 for /, got: $status_line" >&2; exit 1 ;;
+          esac
+
+          printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
+            || { echo 'Missing Content-Security-Policy header on /' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^strict-transport-security:' \
+            || { echo 'Missing Strict-Transport-Security header on /' >&2; exit 1; }
+
+      - name: Smoke test - guide route returns 200
+        run: |
+          status=$(curl -sS -o /dev/null -w '%{http_code}' \
+            http://127.0.0.1:8080/guides/what-is-meshtastic/)
+          if [ "$status" != "200" ]; then
+            echo "Expected 200 for /guides/what-is-meshtastic/, got $status" >&2
+            exit 1
+          fi
+
+      - name: Smoke test - legacy .md guide URL redirects to the clean URL
+        run: |
+          # nginx.conf rewrites the legacy `/guides/<name>.md/` URLs that are
+          # live today onto the clean URLs the site now emits. Assert both the
+          # 301 status and the Location target, so a dropped rewrite fails here
+          # rather than silently 404ing inbound links.
+          response=$(curl -sS -D - -o /dev/null \
+            http://127.0.0.1:8080/guides/what-is-meshtastic.md/)
+          printf '%s\n' "$response"
+
+          status=$(printf '%s\n' "$response" | head -n 1)
+          case "$status" in
+            *' 301'*) ;;
+            *) echo "Expected 301 for /guides/what-is-meshtastic.md/, got: $status" >&2; exit 1 ;;
+          esac
+
+          location=$(printf '%s\n' "$response" \
+            | tr -d '\r' \
+            | sed -n 's/^[Ll]ocation: *//p' \
+            | tail -n 1)
+          case "$location" in
+            */guides/what-is-meshtastic/) ;;
+            *) echo "Expected redirect to /guides/what-is-meshtastic/, got: '$location'" >&2; exit 1 ;;
+          esac
+
+      - name: Smoke test - unknown route returns 404 with security headers
+        run: |
+          # The 404 page is served from its own `location = /404.html` block,
+          # which declares add_header and must therefore re-include
+          # security-headers.conf; assert the CSP survives there.
+          headers=$(curl -sS -D - -o /dev/null http://127.0.0.1:8080/definitely-missing/)
+          printf '%s\n' "$headers"
+          status_line=$(printf '%s\n' "$headers" | head -n 1)
+          case "$status_line" in
+            *' 404'*) ;;
+            *) echo "Expected 404 for /definitely-missing/, got: $status_line" >&2; exit 1 ;;
+          esac
+          printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
+            || { echo 'Missing Content-Security-Policy header on the 404 response' >&2; exit 1; }
+
+      - name: Smoke test - hashed asset is cached and keeps security headers
+        run: |
+          # /_astro/ assets come from a `location ^~ /_astro/` block with its own
+          # add_header lines, so it too must re-include security-headers.conf.
+          css=$(find dist/_astro -name '*.css' | head -n 1)
+          if [ -z "$css" ]; then
+            echo 'No CSS asset found in dist/_astro/' >&2
+            exit 1
+          fi
+          path="/_astro/$(basename "$css")"
+          headers=$(curl -sS -D - -o /dev/null "http://127.0.0.1:8080$path")
+          printf '%s\n' "$headers"
+          status_line=$(printf '%s\n' "$headers" | head -n 1)
+          case "$status_line" in
+            *' 200'*) ;;
+            *) echo "Expected 200 for $path, got: $status_line" >&2; exit 1 ;;
+          esac
+          printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
+            || { echo "Missing Content-Security-Policy header on $path" >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^cache-control:.*immutable' \
+            || { echo "Expected an immutable Cache-Control on $path" >&2; exit 1; }
+
+      - name: Container logs
+        if: always()
+        run: docker logs chsmesh-ci || true
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f chsmesh-ci || true

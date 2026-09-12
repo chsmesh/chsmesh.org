@@ -61,7 +61,7 @@ readingTime: 5
 
 1. **Respect schemas** - Match `src/content/config.ts` to avoid build-time errors.
 2. **Sort by `order`** - Guides rely on `order` for consistent list ordering.
-3. **Use `new Date()`** - Compare meetups with `date >= now` for upcoming filters.
+3. **Classify meetups with the shared helpers** - `isUpcomingMeetup()` / `isPastMeetup()` from `src/utils/meetups.ts`, not a hand-rolled `date >= now`. They compare against `endDate ?? date`, so an event in progress stays upcoming.
 4. **Prefer `getCollection`** - Keep data access centralized in page frontmatter.
 5. **Keep categories enum-safe** - Use only allowed `category` values.
 
@@ -71,14 +71,25 @@ readingTime: 5
 project/
 ├── src/
 │   ├── content/
+│   │   ├── config.ts     # schemas for every collection
 │   │   ├── guides/
-│   │   ├── meetups/
+│   │   ├── meetups/     # empty, kept by .gitkeep
 │   │   ├── resources/
-│   │   └── nodes/
+│   │   ├── nodes/       # empty, not present in a fresh clone
+│   │   ├── taxonomies/   # default.md — labels and icons
+│   │   └── global/       # 11 files of site metadata and page copy
 │   └── pages/
 │       ├── guides/
 │       └── meetups/
 ```
+
+`src/content/meetups/` exists — it is kept in git by a `.gitkeep` file — but the
+collection is still empty. Add the first `.md` entry to that directory; the
+schema and the `/meetups` routes are already in place.
+
+`src/content/nodes/` is empty too, and has no `.gitkeep`, so git does not carry
+it and a fresh clone will not have the directory. Create it when you add the
+first node `.json` file.
 
 ## Common Patterns
 

@@ -41,7 +41,7 @@ const activeNodes = nodes.filter((n) => n.data.active);
 
 ## Best Practices
 
-1. **Keep coordinates precise** - Use decimal lat/lng for map accuracy.
+1. **Round residential coordinates** - Node JSON is published verbatim on a public site and stays in git history. For nodes at a home address, round `lat`/`lng` to about 3 decimal places (roughly 100 m) or use a nearby landmark; that is precise enough for coverage mapping. Full precision is fine only for public or infrastructure sites, and never publish someone else's home location without consent.
 2. **Use valid `type` values** - `relay`, `router`, `solar`, `client` only.
 3. **Track `active` status** - Map stats rely on active nodes.
 4. **Prefer JSON data** - Nodes are stored as data entries, not markdown.
@@ -56,6 +56,14 @@ project/
         └── nodes/
             └── *.json
 ```
+
+**`src/content/nodes/` is currently empty** (kept in git by a `.gitkeep`
+file), so add the first `.json` entry directly there.
+
+Until an entry exists, `/map` reports zero nodes for every stat and renders the
+"No Nodes Registered" empty state from `src/content/global/map.md`. That is the
+correct behaviour, not a bug to work around with placeholder fixtures — node
+records are owner-submitted data about real hardware, never examples.
 
 ## Common Patterns
 
