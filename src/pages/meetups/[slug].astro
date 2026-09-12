@@ -1,12 +1,14 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getCollection, getEntry, render } from 'astro:content';
-import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
+import { getCollection, render } from 'astro:content';
+import { getTaxonomyLabels } from '../../utils/taxonomy';
+import { getGlobal } from '../../utils/global';
+import { isPastMeetup } from '../../utils/meetups';
 
 export async function getStaticPaths() {
   const meetups = await getCollection('meetups');
   return meetups.map((meetup) => ({
-    params: { slug: meetup.id },
+    params: { slug: meetup.slug },
     props: { meetup },
   }));
 }
@@ -14,12 +16,10 @@ export async function getStaticPaths() {
 const { meetup } = Astro.props;
 const { Content } = await render(meetup);
 const { title, date, endDate, location, address, description, rsvpLink, coordinates, maxAttendees, recurring } = meetup.data;
-const meetupsDetailEntry = await getEntry('global', 'meetups-detail');
-const meetupsDetail = meetupsDetailEntry?.data?.type === 'meetups-detail' ? meetupsDetailEntry.data : undefined;
-const taxonomy = await getTaxonomyData();
-const meetupStatusLabels = createLabelMap(taxonomy?.meetupStatuses);
+const meetupsDetail = await getGlobal('meetups-detail', 'meetups-detail');
+const labels = await getTaxonomyLabels();
 
-const isPast = date < new Date();
+const isPast = isPastMeetup(meetup.data);
 const formattedDate = date.toLocaleDateString('en-US', {
   weekday: 'long',
   year: 'numeric',
@@ -32,15 +32,14 @@ const formattedTime = date.toLocaleTimeString('en-US', {
 });
 
 const statusLabel = isPast
-  ? meetupStatusLabels.past ?? 'Past Event'
-  : meetupStatusLabels.upcoming ?? 'Upcoming';
+  ? labels.meetupStatuses.past ?? 'Past Event'
+  : labels.meetupStatuses.upcoming ?? 'Upcoming';
 
-const maxAttendeesLabel = meetupsDetail?.maxAttendeesLabel.replace('{count}', String(maxAttendees ?? ''));
+const maxAttendeesLabel =
+  maxAttendees === undefined
+    ? undefined
+    : meetupsDetail.maxAttendeesLabel.replace('{count}', String(maxAttendees));
 
-// Google Maps embed URL
-const mapEmbedUrl = coordinates
-  ? `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${coordinates.lat},${coordinates.lng}&zoom=15`
-  : null;
 const mapsUrl = coordinates
   ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
   : address
@@ -58,7 +57,7 @@ const mapsUrl = coordinates
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
-            {meetupsDetail?.backLabel}
+            {meetupsDetail.backLabel}
           </a>
         </nav>
 
@@ -85,7 +84,7 @@ const mapsUrl = coordinates
               <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {meetupsDetail?.dateTimeHeading}
+              {meetupsDetail.dateTimeHeading}
             </h3>
             <p class="text-lg font-medium text-neutral-900">{formattedDate}</p>
             <p class="text-neutral-600">{formattedTime}</p>
@@ -96,7 +95,7 @@ const mapsUrl = coordinates
             )}
             {recurring && (
               <p class="text-sm text-primary-600 mt-2">
-                {meetupsDetail?.recurringLabel} {recurring.frequency}{recurring.day ? ` (${recurring.day})` : ''}
+                {meetupsDetail.recurringLabel} {recurring.frequency}{recurring.day ? ` (${recurring.day})` : ''}
               </p>
             )}
           </div>
@@ -108,7 +107,7 @@ const mapsUrl = coordinates
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              {meetupsDetail?.locationHeading}
+              {meetupsDetail.locationHeading}
             </h3>
             <p class="text-lg font-medium text-neutral-900">{location}</p>
             {address && <p class="text-neutral-600">{address}</p>}
@@ -119,7 +118,7 @@ const mapsUrl = coordinates
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 mt-2 text-sm"
               >
-                {meetupsDetail?.openMapsLabel}
+                {meetupsDetail.openMapsLabel}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
@@ -132,7 +131,7 @@ const mapsUrl = coordinates
         {rsvpLink && !isPast && (
           <div class="mt-8 text-center">
             <a href={rsvpLink} target="_blank" rel="noopener noreferrer" class="btn-primary btn-lg">
-              {meetupsDetail?.rsvpLabel}
+              {meetupsDetail.rsvpLabel}
               <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
@@ -156,17 +155,17 @@ const mapsUrl = coordinates
     {coordinates && (
       <section class="section-sm bg-neutral-50">
         <div class="container-narrow">
-          <h3 class="text-lg font-semibold mb-4">{meetupsDetail?.mapHeading}</h3>
+          <h3 class="text-lg font-semibold mb-4">{meetupsDetail.mapHeading}</h3>
           <div class="map-container bg-neutral-200 flex items-center justify-center">
             <div class="text-center p-8">
-              <p class="text-neutral-500 mb-4">{meetupsDetail?.mapBody}</p>
+              <p class="text-neutral-500 mb-4">{meetupsDetail.mapBody}</p>
               <a
                 href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 class="btn-primary"
               >
-                {meetupsDetail?.mapCtaLabel}
+                {meetupsDetail.mapCtaLabel}
               </a>
             </div>
           </div>

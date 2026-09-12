@@ -144,15 +144,6 @@ const global = defineCollection({
       title: z.string(),
       description: z.string(),
       links: z.record(z.string()).optional(),
-      social: z
-        .array(
-          z.object({
-            platform: z.string(),
-            url: z.string().url(),
-            label: z.string().optional(),
-          })
-        )
-        .optional(),
     }),
     z.object({
       type: z.literal('home'),
