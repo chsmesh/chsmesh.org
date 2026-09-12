@@ -3,6 +3,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Forwarded from the shell environment or .env so a documented
+      # `docker compose build` produces working submission forms and a CSP
+      # connect-src that allows the n8n webhook host. These are PUBLIC_ values
+      # baked into the static output at build time - rotating them requires a
+      # rebuild, not just a restart.
+      args:
+        PUBLIC_N8N_WEBHOOK_URL: ${PUBLIC_N8N_WEBHOOK_URL:-}
+        PUBLIC_N8N_GUIDES_WEBHOOK_URL: ${PUBLIC_N8N_GUIDES_WEBHOOK_URL:-}
+        PUBLIC_N8N_MEETUPS_WEBHOOK_URL: ${PUBLIC_N8N_MEETUPS_WEBHOOK_URL:-}
+        PUBLIC_N8N_RESOURCES_WEBHOOK_URL: ${PUBLIC_N8N_RESOURCES_WEBHOOK_URL:-}
     user: "101:101"
     ports:
       - "8081:8080"
