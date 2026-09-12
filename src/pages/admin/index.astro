@@ -1,0 +1,44 @@
+---
+// Sveltia CMS shell, served at /admin/. The CMS bundle is imported from npm so
+// Vite emits it as a hashed /_astro/ file and the site-wide CSP of
+// script-src 'self' still holds; the extra origins the admin page needs are
+// spliced in by nginx (see security-headers.conf and nginx.conf).
+// Unlike the CDN build, the npm package never auto-initialises, so init() is
+// called explicitly. It loads the config from the cms-config-url link below
+// and deep-merges the object passed here on top. The OAuth authenticator runs
+// on the site's own origin (nginx proxies /api/ to it), so base_url is set
+// from the page's origin at runtime: the same build then signs in correctly
+// on https://chsmesh.org and on a local http://localhost:8081 stack. Keep this
+// page free of any site layout, CSS or other markup: the CMS owns the whole
+// document. See docs/cms-and-submissions.md.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>CHS Mesh CMS</title>
+    <link href="/admin/config.yml" type="application/yaml" rel="cms-config-url" />
+  </head>
+  <body>
+    <script>
+      import { init, type CmsConfig } from '@sveltia/cms';
+
+      // Runtime overrides deep-merged over /admin/config.yml. The type asks
+      // for a complete backend, but Sveltia merges partials, so cast.
+      const overrides = {
+        backend: {
+          base_url: window.location.origin,
+          auth_endpoint: 'api/auth',
+          // Sveltia reports "cms.netlify.com" as the site_id on localhost
+          // (a Netlify OAuth convention); send the real hostname instead.
+          site_domain: window.location.hostname,
+        },
+      } as unknown as CmsConfig;
+
+      init({ config: overrides });
+    </script>
+  </body>
+</html>

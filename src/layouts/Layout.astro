@@ -42,6 +42,10 @@ const footerCommunityLinks = (footer?.community.links ?? []).map((link) => {
 const footerCopyright = footer?.legal.copyright.replace('{year}', String(new Date().getFullYear()));
 
 const currentPath = Astro.url.pathname;
+// Turnstile protects the submission modals below. Only load Cloudflare's
+// script when a site key is configured; SubmissionForm.astro renders the
+// widget explicitly on first interaction.
+const turnstileEnabled = Boolean((import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '').trim());
 const fullTitle = currentPath === '/' ? 'CHS Mesh - Charleston Meshtastic Community' : `${title} | CHS Mesh`;
 const canonicalUrl = new URL(currentPath, Astro.site);
 ---
@@ -76,6 +80,10 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     {!noIndex && <link rel="canonical" href={canonicalUrl} />}
 
     <title>{fullTitle}</title>
+
+    {turnstileEnabled && (
+      <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    )}
   </head>
   <body class="min-h-screen flex flex-col">
     <!-- Navigation -->

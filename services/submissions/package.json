@@ -1,0 +1,12 @@
+{
+  "name": "chsmesh-submissions",
+  "private": true,
+  "type": "module",
+  "description": "Same-origin form submission and CMS OAuth service for chsmesh.org",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

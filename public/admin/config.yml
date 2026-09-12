@@ -1,0 +1,310 @@
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
+#
+# Sveltia CMS configuration for chsmesh.org (served at /admin/).
+#
+# Editors sign in with GitHub through the same-origin OAuth handshake in the
+# submissions service (/api/auth). Every save lands on a `cms/<collection>/<slug>`
+# branch with a pull request, so nothing reaches `main` without review.
+# Field definitions mirror src/content/config.ts; keep the two in sync.
+
+backend:
+  name: github
+  repo: chsmesh/chsmesh.org
+  branch: main
+  # The same-origin authenticator (base_url + auth_endpoint) is injected by
+  # src/pages/admin/index.astro from the page's own origin, so this file works
+  # unchanged in production and in a local Docker stack.
+  auth_scope: public_repo
+  cms_label_prefix: "cms/"
+  squash_merges: true
+  commit_messages:
+    create: "content({{collection}}): add {{slug}}"
+    update: "content({{collection}}): update {{slug}}"
+    delete: "content({{collection}}): remove {{slug}}"
+    uploadMedia: "media: add {{path}}"
+    deleteMedia: "media: remove {{path}}"
+
+publish_mode: editorial_workflow
+site_url: https://chsmesh.org
+display_url: https://chsmesh.org
+logo_url: /favicon.svg
+
+media_folder: /public/images
+public_folder: /images
+
+output:
+  # The Astro collections use zod .optional(); an empty optional field must be
+  # absent from the file, not written as null or "" (which fails z.coerce.date).
+  omit_empty_optional_fields: true
+
+slug:
+  encoding: ascii
+  clean_accents: true
+  sanitize_replacement: "-"
+
+collections:
+  - name: meetups
+    label: Meetups
+    label_singular: Meetup
+    folder: src/content/meetups
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    summary: "{{title}} — {{date}}"
+    sortable_fields: [date, title]
+    fields:
+      - { name: title, label: Title, widget: string }
+      # Saved as YYYY-MM-DDTHH:mm:ss with no offset; the build parses it as UTC,
+      # so the site reads it as a naive local time. See the doc for the caveat.
+      - { name: date, label: Start, widget: datetime }
+      - { name: endDate, label: End, widget: datetime, required: false }
+      - { name: location, label: Location name, widget: string }
+      - { name: address, label: Street address, widget: string, required: false }
+      - { name: description, label: Description, widget: text }
+      - { name: featured, label: Featured, widget: boolean, default: false }
+      - { name: rsvpLink, label: RSVP link, widget: string, type: url, required: false }
+      - name: coordinates
+        label: Coordinates
+        widget: object
+        required: false
+        collapsed: true
+        fields:
+          - { name: lat, label: Latitude, widget: number, value_type: float, min: -90, max: 90 }
+          - { name: lng, label: Longitude, widget: number, value_type: float, min: -180, max: 180 }
+      - { name: maxAttendees, label: Max attendees, widget: number, value_type: int, required: false }
+      - name: recurring
+        label: Recurring
+        widget: object
+        required: false
+        collapsed: true
+        fields:
+          - { name: frequency, label: Frequency, widget: select, options: [weekly, biweekly, monthly] }
+          - { name: day, label: Day, widget: string, required: false, hint: "e.g. first Tuesday" }
+      - { name: body, label: Event details, widget: markdown }
+
+  - name: guides
+    label: Guides
+    label_singular: Guide
+    folder: src/content/guides
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    summary: "{{title}} ({{difficulty}})"
+    sortable_fields: [order, title, lastUpdated]
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: description, label: Description, widget: text }
+      - name: difficulty
+        label: Difficulty
+        widget: select
+        options:
+          - { label: Beginner, value: beginner }
+          - { label: Intermediate, value: intermediate }
+          - { label: Advanced, value: advanced }
+      - name: category
+        label: Category
+        widget: select
+        options:
+          - { label: Getting Started, value: getting-started }
+          - { label: Hardware, value: hardware }
+          - { label: Software, value: software }
+          - { label: Network, value: network }
+          - { label: Troubleshooting, value: troubleshooting }
+      - { name: order, label: Order, widget: number, value_type: int, default: 0, hint: "Lower numbers list first" }
+      - { name: readingTime, label: Reading time (minutes), widget: number, value_type: int, required: false }
+      - { name: prerequisites, label: Prerequisites, widget: list, required: false, field: { name: item, label: Prerequisite, widget: string } }
+      - { name: lastUpdated, label: Last updated, widget: datetime, type: date, required: false }
+      - { name: author, label: Author, widget: string, required: false }
+      - { name: body, label: Guide content, widget: markdown }
+
+  - name: resources
+    label: Resources
+    label_singular: Resource
+    folder: src/content/resources
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    summary: "{{title}} — {{category}}"
+    sortable_fields: [order, title]
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: description, label: Description, widget: text }
+      - name: category
+        label: Category
+        widget: select
+        options:
+          - { label: Devices, value: devices }
+          - { label: Accessories, value: accessories }
+          - { label: Software, value: software }
+          - { label: Firmware, value: firmware }
+          - { label: Community, value: community }
+      - { name: order, label: Order, widget: number, value_type: int, default: 0 }
+      - { name: featured, label: Featured, widget: boolean, default: false }
+      - name: links
+        label: Links
+        widget: list
+        required: false
+        summary: "{{fields.label}}"
+        fields:
+          - { name: label, label: Label, widget: string }
+          - { name: url, label: URL, widget: string, type: url }
+          - { name: type, label: Type, widget: select, required: false, options: [purchase, docs, download, community] }
+      - { name: priceRange, label: Price range, widget: string, required: false, hint: "e.g. $18-25" }
+      - { name: pros, label: Pros, widget: list, required: false, field: { name: item, label: Pro, widget: string } }
+      - { name: cons, label: Cons, widget: list, required: false, field: { name: item, label: Con, widget: string } }
+      - { name: image, label: Image, widget: image, required: false }
+      - { name: body, label: Detailed information, widget: markdown }
+
+  - name: nodes
+    label: Map nodes
+    label_singular: Node
+    folder: src/content/nodes
+    create: true
+    extension: json
+    format: json
+    identifier_field: name
+    slug: "{{slug}}"
+    summary: "{{name}} ({{type}})"
+    sortable_fields: [name, type, lastSeen]
+    editor: { preview: false }
+    fields:
+      - { name: name, label: Node name, widget: string }
+      - { name: description, label: Description, widget: text, required: false }
+      - name: coordinates
+        label: Coordinates
+        widget: object
+        fields:
+          - { name: lat, label: Latitude, widget: number, value_type: float, min: -90, max: 90 }
+          - { name: lng, label: Longitude, widget: number, value_type: float, min: -180, max: 180 }
+      - { name: type, label: Type, widget: select, options: [client, router, relay, solar], default: client }
+      - { name: elevation, label: Elevation (feet), widget: number, value_type: int, required: false }
+      - { name: active, label: Active, widget: boolean, default: true }
+      - { name: owner, label: Owner, widget: string, required: false }
+      - { name: lastSeen, label: Last seen, widget: datetime, type: date, required: false }
+
+  - name: taxonomies
+    label: Taxonomies
+    editor: { preview: false }
+    files:
+      - name: default
+        label: Labels and icons
+        file: src/content/taxonomies/default.md
+        fields:
+          - name: guideCategories
+            label: Guide categories
+            widget: list
+            fields:
+              - { name: key, label: Key, widget: string }
+              - { name: label, label: Label, widget: string }
+              - { name: description, label: Description, widget: string, required: false }
+              - { name: icon, label: Icon, widget: string, required: false }
+          - name: guideDifficulties
+            label: Guide difficulties
+            widget: list
+            fields:
+              - { name: key, label: Key, widget: string }
+              - { name: label, label: Label, widget: string }
+              - { name: description, label: Description, widget: string, required: false }
+              - { name: icon, label: Icon, widget: string, required: false }
+          - name: resourceCategories
+            label: Resource categories
+            widget: list
+            fields:
+              - { name: key, label: Key, widget: string }
+              - { name: label, label: Label, widget: string }
+              - { name: description, label: Description, widget: string, required: false }
+              - { name: icon, label: Icon, widget: string, required: false }
+          - name: meetupStatuses
+            label: Meetup statuses
+            widget: list
+            fields:
+              - { name: key, label: Key, widget: string }
+              - { name: label, label: Label, widget: string }
+              - { name: description, label: Description, widget: string, required: false }
+              - { name: icon, label: Icon, widget: string, required: false }
+          - name: meetupBadges
+            label: Meetup badges
+            widget: list
+            fields:
+              - { name: key, label: Key, widget: string }
+              - { name: label, label: Label, widget: string }
+              - { name: description, label: Description, widget: string, required: false }
+              - { name: icon, label: Icon, widget: string, required: false }
+
+  # Site-wide copy lives in src/content/global as one file per page. The three
+  # most-edited files are wired up here; add the page files (home, about, map,
+  # guides, meetups, resources, guides-detail, meetups-detail) the same way,
+  # mirroring their branch of the discriminated union in src/content/config.ts.
+  - name: global
+    label: Site settings
+    editor: { preview: false }
+    files:
+      - name: site
+        label: Site metadata
+        file: src/content/global/site.md
+        fields:
+          - { name: type, widget: hidden, default: site }
+          - { name: title, label: Site title, widget: string }
+          - { name: description, label: Site description, widget: text }
+          - { name: links, label: Shared links, widget: keyvalue, required: false, key_label: Name, value_label: URL }
+      - name: navigation
+        label: Navigation
+        file: src/content/global/navigation.md
+        fields:
+          - { name: type, widget: hidden, default: navigation }
+          - { name: title, label: Title, widget: string, required: false }
+          - name: links
+            label: Links
+            widget: list
+            summary: "{{fields.label}} → {{fields.href}}"
+            fields:
+              - { name: label, label: Label, widget: string }
+              - { name: href, label: Href, widget: string }
+              - { name: external, label: Opens in new tab, widget: boolean, required: false }
+      - name: footer
+        label: Footer
+        file: src/content/global/footer.md
+        fields:
+          - { name: type, widget: hidden, default: footer }
+          - { name: brandName, label: Brand name, widget: string }
+          - name: about
+            label: About
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: quickLinks
+            label: Quick links
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: links
+                label: Links
+                widget: list
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: external, label: Opens in new tab, widget: boolean, required: false }
+          - name: community
+            label: Community
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: links
+                label: Links
+                widget: list
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: external, label: Opens in new tab, widget: boolean, required: false }
+          - name: legal
+            label: Legal
+            widget: object
+            fields:
+              - { name: copyright, label: Copyright, widget: string }
+              - { name: trademark, label: Trademark notice, widget: string }

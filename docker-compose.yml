@@ -1,5 +1,33 @@
 services:
+  # Same-origin form submissions and CMS sign-in (services/submissions).
+  # Not published on a host port: nginx proxies /api/ to it on the compose
+  # network. Point PUBLIC_N8N_*_WEBHOOK_URL at /api/submit/<kind> to use it.
+  submissions:
+    build:
+      context: ./services/submissions
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SITE_ORIGIN: ${SITE_ORIGIN:-http://localhost:8081}
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   chsmesh:
+    depends_on:
+      - submissions
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,6 +41,7 @@ services:
         PUBLIC_N8N_GUIDES_WEBHOOK_URL: ${PUBLIC_N8N_GUIDES_WEBHOOK_URL:-}
         PUBLIC_N8N_MEETUPS_WEBHOOK_URL: ${PUBLIC_N8N_MEETUPS_WEBHOOK_URL:-}
         PUBLIC_N8N_RESOURCES_WEBHOOK_URL: ${PUBLIC_N8N_RESOURCES_WEBHOOK_URL:-}
+        PUBLIC_TURNSTILE_SITE_KEY: ${PUBLIC_TURNSTILE_SITE_KEY:-}
     user: "101:101"
     ports:
       - "8081:8080"
