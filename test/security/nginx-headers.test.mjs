@@ -223,7 +223,16 @@ test('should build the CSP connect-src from the n8n webhook origin at image buil
   }
   assert.match(dockerfile, /WARNING: PUBLIC_N8N_WEBHOOK_URL is unset/, 'an empty ARG must emit a build warning');
   assert.match(dockerfile, /ERROR: webhook URL is not a plain http\(s\)/, 'a malformed webhook URL must fail the build');
-  assert.match(dockerfile, /^RUN nginx -t$/m, 'the runtime stage must validate the nginx config at build time');
+  assert.match(dockerfile, /^RUN nginx -t\b/m, 'the runtime stage must validate the nginx config at build time');
+  // `nginx -t` runs as root and creates the pid file and temp dirs named in
+  // nginx.conf; left behind, the unprivileged runtime user cannot open the
+  // pid file and nginx exits at startup (only visible without a tmpfs on
+  // /tmp, i.e. in a plain `docker run`).
+  assert.match(
+    dockerfile,
+    /^RUN nginx -t && rm -rf \/tmp\/nginx\.pid \/tmp\/nginx-\*$/m,
+    'the config test must remove the root-owned pid file and temp dirs it creates'
+  );
 });
 
 test('should ship the security header include into the runtime image', () => {
