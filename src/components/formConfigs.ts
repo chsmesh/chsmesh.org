@@ -1,5 +1,24 @@
 import type { FormConfig } from './SubmissionForm.astro';
 
+/**
+ * Submission form configurations.
+ *
+ * SECURITY NOTE on `FormConfig.webhookEnvVar`:
+ *
+ * Every webhook URL below is read from a `PUBLIC_`-prefixed environment
+ * variable, and that is intentional. This is a static site with no server of
+ * its own: Astro inlines `PUBLIC_*` values into the client bundle at build
+ * time, so the webhook URLs are visible to anyone who views source. They are
+ * endpoint addresses, not credentials, and must never be treated as secrets.
+ *
+ * Because the endpoints are public and callable by anyone, the n8n workflow
+ * behind each webhook is the only trust boundary. All input validation,
+ * spam filtering and rate limiting MUST happen in n8n. Nothing the browser
+ * does here - required attributes, zod schemas, the honeypot-free form markup -
+ * is a security control; it is only user-experience polish that an attacker
+ * skips by POSTing to the webhook directly.
+ */
+
 // Node Form Configuration
 export const nodeFormConfig: FormConfig = {
   id: 'node-form',
