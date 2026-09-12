@@ -27,7 +27,7 @@ cons:
   - Stock antenna is mediocre
 ---
 
-The Heltec V3 remains our top recommendation for first-time Meshtastic users in Charleston as of April 2026. It's inexpensive enough to experiment with and capable enough for daily use, with excellent support in current firmware (2.7.x).
+The Heltec V3 remains our top recommendation for first-time Meshtastic users in Charleston as of April 2026. It's inexpensive enough to experiment with and capable enough for daily use, and it's well supported by the current stable Meshtastic release.
 
 ## What's Included
 

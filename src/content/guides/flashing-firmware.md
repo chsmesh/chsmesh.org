@@ -63,7 +63,7 @@ Go to [flasher.meshtastic.org](https://flasher.meshtastic.org) in Chrome or Edge
 
 ### Step 4: Flash the Firmware
 
-1. Select the firmware version (as of April 2026 the latest stable is **2.7.x**; pick "Stable" unless you have a reason to run Beta/Alpha)
+1. Select the firmware version - pick the current stable release ("Stable") unless you have a reason to run Beta/Alpha
 2. Click "Flash"
 3. Wait for the process to complete (1-3 minutes)
 4. Do not disconnect during flashing!
@@ -80,9 +80,9 @@ After flashing:
 ### "No device found"
 
 1. **Try a different cable** - Most common issue
-2. **Install drivers** - 
-   - [CP210x drivers](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers)
-   - [CH340 drivers](https://sparks.gogo.co.nz/ch340.html)
+2. **Install drivers** - macOS and Linux include CH340 support out of the box, and Windows 10/11 usually fetches the driver through Windows Update the first time you plug the board in. Only install a driver if your board still isn't detected:
+   - [CP210x drivers (Silicon Labs)](https://www.silabs.com/software-and-tools/usb-to-uart-bridge-vcp-drivers)
+   - [CH340 drivers (WCH, the chip vendor)](https://www.wch-ic.com/products/CH340.html) - the product page links the Windows, macOS, and Linux packages separately
 3. **Try a different USB port** - Front ports are sometimes unreliable
 4. **Restart your browser** - Web Serial can be finicky
 

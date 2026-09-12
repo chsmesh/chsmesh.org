@@ -25,7 +25,3 @@ The official Meshtastic Discord server is the primary community hub. With thousa
 - **#hardware** - Device-specific help
 - **#firmware** - Software and updates
 - **#regional** - Find local communities
-
-## CHS Mesh Discord
-
-We also have our own local Discord specifically for Charleston - join us for local-specific help and meetup coordination!
