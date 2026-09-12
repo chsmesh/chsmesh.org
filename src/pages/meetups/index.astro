@@ -11,7 +11,7 @@ import { isPastMeetup } from '../../utils/meetups';
 const allMeetups = await getCollection('meetups');
 const meetupsPage = await getGlobal('meetups', 'meetups');
 const site = await getGlobal('site', 'site');
-const resolveHref = (href: string) => resolveLink(href, site.links, site.social);
+const resolveHref = (href: string) => resolveLink(href, site.links);
 const emptyCta = {
   ...meetupsPage.empty.cta,
   href: resolveHref(meetupsPage.empty.cta.href),

@@ -11,7 +11,7 @@ import { resolveLink } from '../../utils/siteLinks';
 const allGuides = await getCollection('guides');
 const guidesPage = await getGlobal('guides', 'guides');
 const site = await getGlobal('site', 'site');
-const resolveHref = (href: string) => resolveLink(href, site.links, site.social);
+const resolveHref = (href: string) => resolveLink(href, site.links);
 const taxonomy = await getTaxonomyData();
 const guideCategoryTaxonomy = taxonomy?.guideCategories ?? [];
 const guideCategoryLabels = createLabelMap(guideCategoryTaxonomy);

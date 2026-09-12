@@ -7,7 +7,7 @@ import { getCtaClass } from '../utils/cta';
 
 const about = await getGlobal('about', 'about');
 const site = await getGlobal('site', 'site');
-const resolveHref = (href: string) => resolveLink(href, site.links, site.social);
+const resolveHref = (href: string) => resolveLink(href, site.links);
 const getInvolvedCards = about.getInvolved.cards.map((card) => ({
   ...card,
   cta: {

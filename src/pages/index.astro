@@ -25,7 +25,7 @@ const featuredGuides = allGuides
   .sort((a, b) => a.data.order - b.data.order)
   .slice(0, 3);
 
-const stats = home.stats;
+const stats = home.stats ?? [];
 const features = home.features;
 const heroCtas = home.hero.ctas;
 const ctaSectionCtas = home.cta.ctas;
@@ -49,18 +49,20 @@ const ctaSectionCtas = home.cta.ctas;
   </Hero>
 
   <!-- Stats Section -->
-  <section class="bg-white border-b border-neutral-200">
-    <div class="container-wide py-8">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-        {stats.map((stat: (typeof stats)[number]) => (
-          <div class="stat-card">
-            <div class="stat-value">{stat.value}</div>
-            <div class="stat-label">{stat.label}</div>
-          </div>
-        ))}
+  {stats.length > 0 && (
+    <section class="bg-white border-b border-neutral-200">
+      <div class="container-wide py-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {stats.map((stat: (typeof stats)[number]) => (
+            <div class="stat-card">
+              <div class="stat-value">{stat.value}</div>
+              <div class="stat-label">{stat.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  )}
 
   <!-- What is Meshtastic Section -->
   <section class="section bg-neutral-50">

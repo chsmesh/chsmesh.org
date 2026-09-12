@@ -11,7 +11,7 @@ import { resolveLink } from '../utils/siteLinks';
 const allResources = await getCollection('resources');
 const resourcesPage = await getGlobal('resources', 'resources');
 const site = await getGlobal('site', 'site');
-const resolveHref = (href: string) => resolveLink(href, site.links, site.social);
+const resolveHref = (href: string) => resolveLink(href, site.links);
 const emptyCta = {
   ...resourcesPage.empty.cta,
   href: resolveHref(resourcesPage.empty.cta.href),
