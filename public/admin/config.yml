@@ -11,9 +11,9 @@ backend:
   name: github
   repo: chsmesh/chsmesh.org
   branch: main
-  # Same-origin authenticator: the CMS only accepts the token from this origin.
-  base_url: https://chsmesh.org
-  auth_endpoint: api/auth
+  # The same-origin authenticator (base_url + auth_endpoint) is injected by
+  # src/pages/admin/index.astro from the page's own origin, so this file works
+  # unchanged in production and in a local Docker stack.
   auth_scope: public_repo
   cms_label_prefix: "cms/"
   squash_merges: true

@@ -4,9 +4,13 @@
 // script-src 'self' still holds; the extra origins the admin page needs are
 // spliced in by nginx (see security-headers.conf and nginx.conf).
 // Unlike the CDN build, the npm package never auto-initialises, so init() is
-// called explicitly; with no arguments it loads the config from the
-// cms-config-url link below. Keep this page free of any site layout, CSS or
-// other markup: the CMS owns the whole document. See docs/cms-and-submissions.md.
+// called explicitly. It loads the config from the cms-config-url link below
+// and deep-merges the object passed here on top. The OAuth authenticator runs
+// on the site's own origin (nginx proxies /api/ to it), so base_url is set
+// from the page's origin at runtime: the same build then signs in correctly
+// on https://chsmesh.org and on a local http://localhost:8081 stack. Keep this
+// page free of any site layout, CSS or other markup: the CMS owns the whole
+// document. See docs/cms-and-submissions.md.
 ---
 
 <!doctype html>
@@ -22,7 +26,14 @@
     <script>
       import { init } from '@sveltia/cms';
 
-      init();
+      init({
+        config: {
+          backend: {
+            base_url: window.location.origin,
+            auth_endpoint: 'api/auth',
+          },
+        },
+      });
     </script>
   </body>
 </html>

@@ -87,13 +87,19 @@ Endpoints:
 1. Create a GitHub OAuth App (organisation settings, Developer settings).
    Homepage `https://chsmesh.org`, authorization callback URL
    `https://chsmesh.org/api/auth/callback`. Put the client id and secret in
-   `GITHUB_OAUTH_CLIENT_ID` and `GITHUB_OAUTH_CLIENT_SECRET`.
+   `GITHUB_OAUTH_CLIENT_ID` and `GITHUB_OAUTH_CLIENT_SECRET`. For a local
+   stack, register a second app whose callback is
+   `http://localhost:8081/api/auth/callback` and put its credentials in
+   `.env` next to `SITE_ORIGIN=http://localhost:8081`.
 2. Protect `main`: require a pull request before merging, and require the CI
    status check. The CMS never commits to `main` directly in editorial
    workflow mode, and this guarantees it even if the mode is switched off.
 3. Give editors write access to the repository. Sveltia commits with the
    editor's own token, so their GitHub account is the audit trail.
-4. Open `https://chsmesh.org/admin/`. The sign-in screen lists any config
+4. Open `https://chsmesh.org/admin/`. Always use the exact `SITE_ORIGIN`
+   host (locally, `http://localhost:8081`, not `127.0.0.1`): the service
+   refuses other hosts and the popup only posts the token back to that
+   origin. The sign-in screen lists any config
    validation errors; the config also validates against the published JSON
    schema (`# yaml-language-server` line at the top of `config.yml` gives
    editors live checking). If the CSP blocks something on first use, the
