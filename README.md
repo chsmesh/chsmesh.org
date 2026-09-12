@@ -108,7 +108,7 @@ src/
 │   ├── config.ts       # Zod schemas for every collection
 │   ├── guides/         # Tutorial content (Markdown) — 4 entries
 │   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
-│   ├── nodes/          # Mesh network node definitions (JSON) — no entries yet
+│   ├── nodes/          # Mesh network node definitions (JSON) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
 │   └── global/         # Site configuration and page copy — 11 Markdown files
@@ -123,10 +123,9 @@ Two collections are defined and routed but currently hold no entries:
 - **meetups** — `src/content/meetups/` exists and is kept in git by a `.gitkeep`
   file; it just has no entries. Add the first `.md` file there. The `/meetups`
   and `/meetups/<slug>` routes are already wired up.
-- **nodes** — `src/content/nodes/` is empty and has no `.gitkeep`. Git does not
-  track empty directories, so the directory is **absent from a fresh clone**:
-  create it when you add the first node JSON file. Until then `/map` counts zero
-  nodes and renders its "No Nodes Registered" panel.
+- **nodes** — `src/content/nodes/` exists and is kept in git by a `.gitkeep`
+  file; it just has no entries. Add the first `.json` file there. Until then
+  `/map` counts zero nodes and renders its "No Nodes Registered" panel.
 
 The 11 files in `src/content/global/` are `site.md`, `navigation.md`,
 `footer.md`, `home.md`, `about.md`, `map.md`, `guides.md`, `guides-detail.md`,
@@ -160,8 +159,8 @@ coordinates:
 ---
 ```
 
-**Nodes**: Add a `.json` file to `src/content/nodes/`, creating that directory
-first if your clone does not have it (it is empty, so git does not carry it):
+**Nodes**: Add a `.json` file to `src/content/nodes/` (the directory already
+exists, kept by a `.gitkeep`; it simply has no entries yet):
 ```json
 {
   "name": "Node Name",
@@ -188,12 +187,19 @@ docker build \
   --build-arg PUBLIC_N8N_MEETUPS_WEBHOOK_URL="https://n8n.example.com/webhook/submit-meetup" \
   --build-arg PUBLIC_N8N_RESOURCES_WEBHOOK_URL="https://n8n.example.com/webhook/submit-resource" \
   -t chsmesh .
-docker run -p 8080:8080 chsmesh
+docker run --read-only \
+  --tmpfs /var/cache/nginx --tmpfs /var/run --tmpfs /tmp \
+  -p 8080:8080 chsmesh
 ```
 
 The nginx container runs as a non-root user and listens on port **8080**
-internally; the example above maps it to host port 8080. `docker-compose.yml`
-maps host 8081 to container 8080 so it can run alongside another local service.
+internally; the example above maps it to host port 8080. The `--tmpfs` mounts
+are required: nginx runs as an unprivileged user on a stock `nginx:alpine` base
+and needs writable `/var/cache/nginx`, `/var/run` and `/tmp`, so a bare
+`docker run` exits immediately with a permission error. `docker-compose.yml`
+provides the same mounts and maps host 8081 to container 8080 so it can run
+alongside another local service; `docker compose up --build` is the simpler
+path.
 
 ### nginx security headers — read before editing `nginx.conf`
 

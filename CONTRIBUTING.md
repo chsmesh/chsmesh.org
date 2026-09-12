@@ -77,12 +77,13 @@ their consent.
 3. Reference any related issues with `Fixes #123`
 4. Ensure `npm test` passes locally
 5. Ensure `npm run build` succeeds locally
-6. Add screenshots for UI changes
-7. Wait for feedback and review
+6. Ensure `npm run check` (Astro type and content-schema check) passes locally
+7. Add screenshots for UI changes
+8. Wait for feedback and review
 
-CI (`.github/workflows/ci.yml`) runs `npm test` and `npm run build` on every pull
-request, then builds the Docker image and smoke tests the served site. Running
-both locally first saves a round trip.
+CI (`.github/workflows/ci.yml`) runs `npm test`, `npm run build` and
+`npm run check` on every pull request, then builds the Docker image and smoke
+tests the served site. Running all three locally first saves a round trip.
 
 ## Code of Conduct
 

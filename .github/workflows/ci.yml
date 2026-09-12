@@ -48,6 +48,19 @@ jobs:
       - name: Build site
         run: npm run build
 
+      - name: Assert no inline executable scripts in the build
+        run: |
+          # nginx serves a Content-Security-Policy with script-src 'self', so
+          # any <script> without a src attribute (other than inert JSON data
+          # islands) would be blocked in the browser. astro.config.mjs sets
+          # assetsInlineLimit: 0 to keep hoisted scripts external; this guards
+          # against that regressing silently.
+          if grep -rlE '<script( type="module")?>' dist --include='*.html'; then
+            echo 'Found inline executable <script> tags in dist/ (listed above); the CSP would block them.' >&2
+            exit 1
+          fi
+          echo 'No inline executable scripts in dist/.'
+
       - name: Type and content schema check
         run: npm run check
 
@@ -62,7 +75,13 @@ jobs:
 
       - name: Start container
         run: |
-          docker run -d --name chsmesh-ci -p 8080:8080 chsmesh:ci
+          # The image runs nginx as an unprivileged user on a stock nginx:alpine
+          # base, so /var/cache/nginx, /var/run and /tmp must be writable tmpfs
+          # mounts (docker-compose*.yml provide the same). --read-only mirrors
+          # the production hardening so the smoke test exercises it.
+          docker run -d --name chsmesh-ci --read-only \
+            --tmpfs /var/cache/nginx --tmpfs /var/run --tmpfs /tmp \
+            -p 8080:8080 chsmesh:ci
           for _ in $(seq 1 30); do
             if curl -fsS -o /dev/null http://127.0.0.1:8080/; then
               echo "Container is serving on port 8080."
@@ -128,14 +147,42 @@ jobs:
             *) echo "Expected redirect to /guides/what-is-meshtastic/, got: '$location'" >&2; exit 1 ;;
           esac
 
-      - name: Smoke test - unknown route returns 404
+      - name: Smoke test - unknown route returns 404 with security headers
         run: |
-          status=$(curl -sS -o /dev/null -w '%{http_code}' \
-            http://127.0.0.1:8080/definitely-missing/)
-          if [ "$status" != "404" ]; then
-            echo "Expected 404 for /definitely-missing/, got $status" >&2
+          # The 404 page is served from its own `location = /404.html` block,
+          # which declares add_header and must therefore re-include
+          # security-headers.conf; assert the CSP survives there.
+          headers=$(curl -sS -D - -o /dev/null http://127.0.0.1:8080/definitely-missing/)
+          printf '%s\n' "$headers"
+          status_line=$(printf '%s\n' "$headers" | head -n 1)
+          case "$status_line" in
+            *' 404'*) ;;
+            *) echo "Expected 404 for /definitely-missing/, got: $status_line" >&2; exit 1 ;;
+          esac
+          printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
+            || { echo 'Missing Content-Security-Policy header on the 404 response' >&2; exit 1; }
+
+      - name: Smoke test - hashed asset is cached and keeps security headers
+        run: |
+          # /_astro/ assets come from a `location ^~ /_astro/` block with its own
+          # add_header lines, so it too must re-include security-headers.conf.
+          css=$(find dist/_astro -name '*.css' | head -n 1)
+          if [ -z "$css" ]; then
+            echo 'No CSS asset found in dist/_astro/' >&2
             exit 1
           fi
+          path="/_astro/$(basename "$css")"
+          headers=$(curl -sS -D - -o /dev/null "http://127.0.0.1:8080$path")
+          printf '%s\n' "$headers"
+          status_line=$(printf '%s\n' "$headers" | head -n 1)
+          case "$status_line" in
+            *' 200'*) ;;
+            *) echo "Expected 200 for $path, got: $status_line" >&2; exit 1 ;;
+          esac
+          printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
+            || { echo "Missing Content-Security-Policy header on $path" >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^cache-control:.*immutable' \
+            || { echo "Expected an immutable Cache-Control on $path" >&2; exit 1; }
 
       - name: Container logs
         if: always()

@@ -57,13 +57,8 @@ project/
             └── *.json
 ```
 
-**`src/content/nodes/` is currently empty, and git does not track empty
-directories, so a fresh clone will not have it.** Create the directory yourself
-before adding the first `.json` entry:
-
-```bash
-mkdir -p src/content/nodes
-```
+**`src/content/nodes/` is currently empty** (kept in git by a `.gitkeep`
+file), so add the first `.json` entry directly there.
 
 Until an entry exists, `/map` reports zero nodes for every stat and renders the
 "No Nodes Registered" empty state from `src/content/global/map.md`. That is the
