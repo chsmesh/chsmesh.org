@@ -66,7 +66,7 @@ For most users:
 1. Go to **Settings** > **Device**
 2. Set **Role** to **Client** (default)
 
-Role options (firmware 2.7.x):
+Role options in the current stable firmware:
 - **Client**: Normal portable device, helps relay when awake
 - **Client Mute**: Receives but doesn't relay (saves battery)
 - **Client Hidden**: Receives and transmits but is hidden from node lists (stealth mode for coverage extension)
