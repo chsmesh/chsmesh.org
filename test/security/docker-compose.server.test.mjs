@@ -10,6 +10,7 @@ const composePath = path.resolve(__dirname, '../../docker-compose.server.yml');
 const localComposePath = path.resolve(__dirname, '../../docker-compose.yml');
 const dockerfilePath = path.resolve(__dirname, '../../Dockerfile');
 const nginxConfigPath = path.resolve(__dirname, '../../nginx.conf');
+const securityHeadersPath = path.resolve(__dirname, '../../security-headers.conf');
 const serverUpdateScriptPath = path.resolve(__dirname, '../../scripts/server-update.sh');
 
 function readFile(filePath) {
@@ -106,7 +107,9 @@ test('should validate the pulled production image before restarting the containe
 });
 
 test('should reject unsafe-inline scripts, allow current inline styles, and require HSTS preload policy in nginx', () => {
-  const nginxConfig = readFile(nginxConfigPath);
+  // The security headers now live in the shared include that nginx.conf pulls
+  // into the server block and every add_header location, so assert across both.
+  const nginxConfig = `${readFile(nginxConfigPath)}\n${readFile(securityHeadersPath)}`;
 
   assert.equal(
     /script-src[^;]*'unsafe-inline'/.test(nginxConfig),
