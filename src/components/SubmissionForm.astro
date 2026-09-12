@@ -51,9 +51,29 @@ export interface FormConfig {
 
 const { config } = Astro.props;
 const webhookUrl = import.meta.env[config.webhookEnvVar];
+
+// The form config is handed to the client through an inert
+// `<script type="application/json">` data block rather than `define:vars`.
+// `define:vars` forces the script inline, which cannot be allowed under a CSP
+// of `script-src 'self'`; a plain hoisted script plus this data block keeps the
+// page free of executable inline JavaScript.
+//
+// "<" is escaped so no value in the config can close this tag early.
+const formConfigJson = JSON.stringify({
+  config,
+  webhookUrl: webhookUrl ?? '',
+}).replace(/</g, '\\u003c');
 ---
 
 <div class="card card-body">
+  <script
+    type="application/json"
+    data-form-config
+    data-form-id={config.id}
+    is:inline
+    set:html={formConfigJson}
+  />
+
   <h3 class="text-xl font-semibold mb-2">{config.title}</h3>
   <p class="text-sm text-neutral-600 mb-6">{config.description}</p>
 
@@ -191,10 +211,20 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
     </div>
 
     <!-- Error Message -->
-    <div id={`${config.id}-error`} class="hidden p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"></div>
+    <div
+      id={`${config.id}-error`}
+      role="alert"
+      aria-live="assertive"
+      class="hidden p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"
+    ></div>
 
     <!-- Success Message -->
-    <div id={`${config.id}-success`} class="hidden p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-700"></div>
+    <div
+      id={`${config.id}-success`}
+      role="status"
+      aria-live="polite"
+      class="hidden p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-700"
+    ></div>
 
     <!-- Submit Button -->
     <button type="submit" id={`${config.id}-submit`} class="btn-primary w-full">
@@ -212,8 +242,12 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
   </form>
 </div>
 
-<script type="module" define:vars={{ config, webhookUrl }}>
-  const WEBHOOK_URL = webhookUrl;
+<script>
+  // This script is hoisted and bundled by Astro, so it is served as an external
+  // file and satisfies `script-src 'self'`. It is emitted once per page no
+  // matter how many <SubmissionForm /> instances the page renders, so it walks
+  // every `<script type="application/json" data-form-config>` data block and
+  // initialises the form each one describes.
 
   // Helper function to validate link objects
   function isValidLink(item) {
@@ -223,7 +257,17 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
     return hasLabel && hasUrl;
   }
 
-  function initForm() {
+  // Escape values interpolated into the dynamic-array item markup below.
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function initForm(config, WEBHOOK_URL) {
     const form = document.getElementById(config.id);
     if (!(form instanceof HTMLFormElement)) {
       console.warn(`Submission form not found: ${config.id}`);
@@ -259,21 +303,25 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
       // Render subfields
       let itemHTML = '';
       subFields.forEach(subField => {
-        const fieldId = `${config.id}-${fieldName}-${index}-${subField.name}`;
+        const fieldId = escapeHtml(`${config.id}-${fieldName}-${index}-${subField.name}`);
         const value = data[subField.name] || '';
-        
+        // Sub-fields are inside the <form>, so `required` drives native
+        // constraint validation; `aria-required` announces it to screen readers
+        // (some older ATs do not map `required` on dynamically inserted nodes).
+        const requiredAttrs = subField.required ? ' required aria-required="true"' : '';
+
         itemHTML += `<div>
           <label for="${fieldId}" class="block text-xs font-medium text-neutral-700 mb-1">
-            ${subField.label}
+            ${escapeHtml(subField.label)}
             ${subField.required ? '<span class="text-red-500">*</span>' : ''}
           </label>`;
 
         if (subField.type === 'select') {
-          itemHTML += `<select id="${fieldId}" class="w-full px-2 py-1 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500">
-            ${subField.options?.map(opt => `<option value="${opt.value}" ${value === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('')}
+          itemHTML += `<select id="${fieldId}"${requiredAttrs} class="w-full px-2 py-1 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500">
+            ${subField.options?.map(opt => `<option value="${escapeHtml(opt.value)}" ${value === opt.value ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
           </select>`;
         } else {
-          itemHTML += `<input type="${subField.type}" id="${fieldId}" value="${value}" placeholder="${subField.placeholder || ''}" class="w-full px-2 py-1 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" />`;
+          itemHTML += `<input type="${escapeHtml(subField.type)}" id="${fieldId}"${requiredAttrs} value="${escapeHtml(value)}" placeholder="${escapeHtml(subField.placeholder || '')}" class="w-full px-2 py-1 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" />`;
         }
         itemHTML += '</div>';
       });
@@ -517,7 +565,15 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
             document.body.classList.remove('modal-open');
           }, 2000); // Close after 2 seconds so user sees success message
         } else {
-          successMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          // Respect prefers-reduced-motion: jump instead of smooth-scrolling.
+          const prefersReducedMotion =
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          successMessage.scrollIntoView(
+            prefersReducedMotion
+              ? { block: 'nearest' }
+              : { behavior: 'smooth', block: 'nearest' }
+          );
         }
       } catch (error) {
         console.error('Submission error:', error);
@@ -528,9 +584,23 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
     });
   }
 
+  function initAllForms() {
+    document.querySelectorAll('script[type="application/json"][data-form-config]').forEach((node) => {
+      let parsed;
+      try {
+        parsed = JSON.parse(node.textContent || '');
+      } catch (error) {
+        console.error('Invalid submission form config', node.dataset.formId, error);
+        return;
+      }
+      if (!parsed || !parsed.config) return;
+      initForm(parsed.config, parsed.webhookUrl || '');
+    });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initForm);
+    document.addEventListener('DOMContentLoaded', initAllForms);
   } else {
-    initForm();
+    initAllForms();
   }
 </script>
