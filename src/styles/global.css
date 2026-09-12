@@ -56,6 +56,30 @@ html {
   scroll-behavior: smooth;
 }
 
+/*
+ * Respect the OS "reduce motion" setting.
+ * Covers smooth scrolling, the FAQ chevron rotation (about.astro uses
+ * `group-open:rotate-180 transition-transform`), the submission form submit
+ * spinner (`animate-spin`) and the fade-in utility below.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .transition-transform {
+    transition: none !important;
+  }
+
+  .animate-spin {
+    animation: none !important;
+  }
+
+  .animate-fade-in {
+    animation: none !important;
+  }
+}
+
 body {
   background-color: var(--color-neutral-50);
   color: var(--color-neutral-800);
@@ -472,7 +496,10 @@ a:not(.btn):not([class*="btn-"]):hover {
 /* Hero section */
 .hero {
   position: relative;
-  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700), var(--color-secondary-700));
+  /* Starts at primary-700, not primary-600: white text on primary-600 is only
+     3.7:1, which fails WCAG AA for the 20px subtitle on small screens. On
+     primary-700 and secondary-700 white reads 5.5:1 and 5.9:1. */
+  background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-700), var(--color-secondary-700));
   color: white;
 }
 
