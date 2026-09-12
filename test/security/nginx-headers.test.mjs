@@ -206,15 +206,24 @@ test('should build the CSP connect-src from the n8n webhook origin at image buil
   );
   assert.match(
     dockerfile,
-    /sed\s+-i\s+"s#__N8N_ORIGIN__#\$\{origin\}#g"/,
-    'the builder stage must substitute the derived origin into the placeholder'
+    /sed\s+-i\s+"s#__N8N_ORIGIN__#\$\{origins?\}#g"/,
+    'the builder stage must substitute the derived origin list into the placeholder'
   );
-  assert.match(
-    dockerfile,
-    /PUBLIC_N8N_WEBHOOK_URL/,
-    'the origin must be derived from PUBLIC_N8N_WEBHOOK_URL'
-  );
+  for (const arg of [
+    'PUBLIC_N8N_WEBHOOK_URL',
+    'PUBLIC_N8N_GUIDES_WEBHOOK_URL',
+    'PUBLIC_N8N_MEETUPS_WEBHOOK_URL',
+    'PUBLIC_N8N_RESOURCES_WEBHOOK_URL',
+  ]) {
+    assert.match(
+      dockerfile,
+      new RegExp(`for url in[^;]*\\$\\{${arg}:-\\}`),
+      `the origin list must be derived from ${arg}`
+    );
+  }
   assert.match(dockerfile, /WARNING: PUBLIC_N8N_WEBHOOK_URL is unset/, 'an empty ARG must emit a build warning');
+  assert.match(dockerfile, /ERROR: webhook URL is not a plain http\(s\)/, 'a malformed webhook URL must fail the build');
+  assert.match(dockerfile, /^RUN nginx -t$/m, 'the runtime stage must validate the nginx config at build time');
 });
 
 test('should ship the security header include into the runtime image', () => {

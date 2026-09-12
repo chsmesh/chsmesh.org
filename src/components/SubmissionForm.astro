@@ -598,12 +598,19 @@ const formConfigJson = JSON.stringify({
           renderDynamicArrayItems(field.name, field.subFields ?? []);
         });
 
-        // Close modal if form is inside one
+        // Close modal if form is inside one. Go through the modal's own close
+        // control so Modal.astro's close handling (including focus restoration
+        // to the opener) runs, rather than toggling classes directly.
         const modal = form.closest('.modal');
         if (modal) {
           setTimeout(() => {
-            modal.classList.add('hidden');
-            document.body.classList.remove('modal-open');
+            const closeButton = modal.querySelector<HTMLElement>('button[data-modal-close]');
+            if (closeButton) {
+              closeButton.click();
+            } else {
+              modal.classList.add('hidden');
+              document.body.classList.remove('modal-open');
+            }
           }, 2000); // Close after 2 seconds so user sees success message
         } else {
           // Respect prefers-reduced-motion: jump instead of smooth-scrolling.
