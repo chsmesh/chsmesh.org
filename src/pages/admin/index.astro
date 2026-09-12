@@ -31,6 +31,9 @@
           backend: {
             base_url: window.location.origin,
             auth_endpoint: 'api/auth',
+            // Sveltia reports "cms.netlify.com" as the site_id on localhost
+            // (a Netlify OAuth convention); send the real hostname instead.
+            site_domain: window.location.hostname,
           },
         },
       });

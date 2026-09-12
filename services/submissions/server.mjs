@@ -287,9 +287,13 @@ function handleAuthStart(req, res, url) {
   if (!oauthReady()) return send(res, 503, { ok: false, error: 'CMS sign-in is not configured' });
   const provider = url.searchParams.get('provider') ?? 'github';
   if (provider !== 'github') return send(res, 400, { ok: false, error: 'unsupported provider' });
-  // Sveltia sends the page's hostname (no port) as site_id.
+  // Sveltia sends the page's hostname (no port) as site_id. On localhost it
+  // sends "cms.netlify.com" unless the admin page overrides site_domain, so
+  // accept that placeholder for a local origin too.
   const siteId = url.searchParams.get('site_id');
-  if (siteId && siteId !== new URL(SITE_ORIGIN).hostname) {
+  const expectedHost = new URL(SITE_ORIGIN).hostname;
+  const allowedSiteIds = expectedHost === 'localhost' ? [expectedHost, 'cms.netlify.com'] : [expectedHost];
+  if (siteId && !allowedSiteIds.includes(siteId)) {
     return send(res, 403, { ok: false, error: `unknown site ${siteId}; open the CMS at ${SITE_ORIGIN}` });
   }
 
