@@ -42,7 +42,8 @@ const footerCommunityLinks = (footer?.community.links ?? []).map((link) => {
 const footerCopyright = footer?.legal.copyright.replace('{year}', String(new Date().getFullYear()));
 
 const currentPath = Astro.url.pathname;
-const fullTitle = title === 'Home' ? 'CHS Mesh - Charleston Meshtastic Community' : `${title} | CHS Mesh`;
+const fullTitle = currentPath === '/' ? 'CHS Mesh - Charleston Meshtastic Community' : `${title} | CHS Mesh`;
+const canonicalUrl = new URL(currentPath, Astro.site);
 ---
 
 <!doctype html>
@@ -70,6 +71,9 @@ const fullTitle = title === 'Home' ? 'CHS Mesh - Charleston Meshtastic Community
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalUrl} />
 
     <title>{fullTitle}</title>
   </head>
