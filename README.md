@@ -194,9 +194,10 @@ docker run --read-only \
 
 The nginx container runs as a non-root user and listens on port **8080**
 internally; the example above maps it to host port 8080. The `--tmpfs` mounts
-are required: nginx runs as an unprivileged user on a stock `nginx:alpine` base
-and needs writable `/var/cache/nginx`, `/var/run` and `/tmp`, so a bare
-`docker run` exits immediately with a permission error. `docker-compose.yml`
+are required: nginx runs as an unprivileged user and keeps its pid file and
+temp directories under `/tmp` (see the top of `nginx.conf`), so with
+`--read-only` and no writable `/tmp` it exits immediately. The other two mounts
+match the compose files. `docker-compose.yml`
 provides the same mounts and maps host 8081 to container 8080 so it can run
 alongside another local service; `docker compose up --build` is the simpler
 path.

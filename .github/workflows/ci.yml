@@ -75,10 +75,10 @@ jobs:
 
       - name: Start container
         run: |
-          # The image runs nginx as an unprivileged user on a stock nginx:alpine
-          # base, so /var/cache/nginx, /var/run and /tmp must be writable tmpfs
-          # mounts (docker-compose*.yml provide the same). --read-only mirrors
-          # the production hardening so the smoke test exercises it.
+          # The image runs nginx as an unprivileged user with its pid and temp
+          # files under /tmp, so /tmp must be writable; the other two tmpfs
+          # mounts match docker-compose*.yml. --read-only mirrors the
+          # production hardening so the smoke test exercises it.
           docker run -d --name chsmesh-ci --read-only \
             --tmpfs /var/cache/nginx --tmpfs /var/run --tmpfs /tmp \
             -p 8080:8080 chsmesh:ci
