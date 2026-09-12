@@ -57,6 +57,19 @@ project/
             └── *.json
 ```
 
+**`src/content/nodes/` is currently empty, and git does not track empty
+directories, so a fresh clone will not have it.** Create the directory yourself
+before adding the first `.json` entry:
+
+```bash
+mkdir -p src/content/nodes
+```
+
+Until an entry exists, `/map` reports zero nodes for every stat and renders the
+"No Nodes Registered" empty state from `src/content/global/map.md`. That is the
+correct behaviour, not a bug to work around with placeholder fixtures — node
+records are owner-submitted data about real hardware, never examples.
+
 ## Common Patterns
 
 ### Node Type Stats

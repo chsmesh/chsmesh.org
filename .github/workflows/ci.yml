@@ -48,6 +48,9 @@ jobs:
       - name: Build site
         run: npm run build
 
+      - name: Type and content schema check
+        run: npm run check
+
       - name: Build container image
         run: |
           docker build \
@@ -99,6 +102,31 @@ jobs:
             echo "Expected 200 for /guides/what-is-meshtastic/, got $status" >&2
             exit 1
           fi
+
+      - name: Smoke test - legacy .md guide URL redirects to the clean URL
+        run: |
+          # nginx.conf rewrites the legacy `/guides/<name>.md/` URLs that are
+          # live today onto the clean URLs the site now emits. Assert both the
+          # 301 status and the Location target, so a dropped rewrite fails here
+          # rather than silently 404ing inbound links.
+          response=$(curl -sS -D - -o /dev/null \
+            http://127.0.0.1:8080/guides/what-is-meshtastic.md/)
+          printf '%s\n' "$response"
+
+          status=$(printf '%s\n' "$response" | head -n 1)
+          case "$status" in
+            *' 301'*) ;;
+            *) echo "Expected 301 for /guides/what-is-meshtastic.md/, got: $status" >&2; exit 1 ;;
+          esac
+
+          location=$(printf '%s\n' "$response" \
+            | tr -d '\r' \
+            | sed -n 's/^[Ll]ocation: *//p' \
+            | tail -n 1)
+          case "$location" in
+            */guides/what-is-meshtastic/) ;;
+            *) echo "Expected redirect to /guides/what-is-meshtastic/, got: '$location'" >&2; exit 1 ;;
+          esac
 
       - name: Smoke test - unknown route returns 404
         run: |

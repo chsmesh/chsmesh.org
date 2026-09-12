@@ -8,7 +8,7 @@ A community-driven static website showcasing Charleston's Meshtastic mesh networ
 
 CHS Mesh promotes off-grid communication resilience and community collaboration through the Meshtastic protocol. Our website documents:
 
-- **Active Network Nodes**: Real-time data on local mesh routers, relays, and solar-powered infrastructure
+- **Network Map**: A directory of community-registered mesh nodes — routers, relays, clients, and solar-powered infrastructure. Node records are submitted by their owners rather than polled from the mesh, so none of it is live telemetry, and the map shows a "No Nodes Registered" empty state until the first node is added
 - **Community Meetups**: Scheduled gatherings for testing, learning, and networking
 - **Educational Guides**: Beginner-to-advanced tutorials covering setup, hardware, and troubleshooting
 - **Hardware Resources**: Device specifications and software links for Meshtastic devices
@@ -46,9 +46,26 @@ Visit `http://localhost:4321` to see your changes live.
 ### Building for Production
 
 ```bash
-npm run build
-npm run preview
+npm run check     # astro check — TypeScript and content-collection schema validation
+npm run build     # static output in dist/
+npm run preview   # serve dist/ locally
 ```
+
+`npm run check` is a separate gate, not part of `npm run build`; CI runs both.
+
+The build also emits a sitemap:
+[`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/)
+is registered in `astro.config.mjs`, so `dist/` gets `sitemap-index.xml` and
+`sitemap-0.xml`, generated from the configured `site: 'https://chsmesh.org'`
+origin. `public/robots.txt` allows all crawlers and points at that index.
+
+### Site-wide pages and assets
+
+| Path | Purpose |
+| --- | --- |
+| `src/pages/404.astro` | Builds to `dist/404.html`; nginx serves it through `error_page 404` |
+| `public/robots.txt` | Crawler policy plus the `Sitemap:` pointer |
+| `public/og-image.png` | 1200×630 default Open Graph / Twitter card, used by `Layout.astro` when a page passes no `ogImage` |
 
 ## Environment variables
 
@@ -90,7 +107,8 @@ src/
 ├── content/
 │   ├── config.ts       # Zod schemas for every collection
 │   ├── guides/         # Tutorial content (Markdown) — 4 entries
-│   ├── nodes/          # Mesh network node definitions (JSON) — 3 entries
+│   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
+│   ├── nodes/          # Mesh network node definitions (JSON) — no entries yet
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
 │   └── global/         # Site configuration and page copy — 11 Markdown files
@@ -100,10 +118,15 @@ src/
 └── utils/              # Helper functions
 ```
 
-The `meetups` collection is defined in `src/content/config.ts` and has pages at
-`/meetups` and `/meetups/<slug>`, but there is **no `src/content/meetups/`
-directory yet** — no meetup has been published. Create the directory along with
-the first meetup entry.
+Two collections are defined and routed but currently hold no entries:
+
+- **meetups** — `src/content/meetups/` exists and is kept in git by a `.gitkeep`
+  file; it just has no entries. Add the first `.md` file there. The `/meetups`
+  and `/meetups/<slug>` routes are already wired up.
+- **nodes** — `src/content/nodes/` is empty and has no `.gitkeep`. Git does not
+  track empty directories, so the directory is **absent from a fresh clone**:
+  create it when you add the first node JSON file. Until then `/map` counts zero
+  nodes and renders its "No Nodes Registered" panel.
 
 The 11 files in `src/content/global/` are `site.md`, `navigation.md`,
 `footer.md`, `home.md`, `about.md`, `map.md`, `guides.md`, `guides-detail.md`,
@@ -124,7 +147,7 @@ featured: false
 ---
 ```
 
-**Meetups**: Create a `.md` file in `src/content/meetups/` (the directory does not exist yet — create it with the first entry):
+**Meetups**: Create a `.md` file in `src/content/meetups/` (the directory already exists, kept by a `.gitkeep`; it simply has no entries yet):
 ```yaml
 ---
 title: "Event Name"
@@ -137,7 +160,8 @@ coordinates:
 ---
 ```
 
-**Nodes**: Add a `.json` file to `src/content/nodes/`:
+**Nodes**: Add a `.json` file to `src/content/nodes/`, creating that directory
+first if your clone does not have it (it is empty, so git does not carry it):
 ```json
 {
   "name": "Node Name",
@@ -171,14 +195,77 @@ The nginx container runs as a non-root user and listens on port **8080**
 internally; the example above maps it to host port 8080. `docker-compose.yml`
 maps host 8081 to container 8080 so it can run alongside another local service.
 
+### nginx security headers — read before editing `nginx.conf`
+
+Every security response header (`Content-Security-Policy`,
+`Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
+`X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy`) lives in
+**`security-headers.conf`**, which the `Dockerfile` copies to
+`/etc/nginx/security-headers.conf` and `nginx.conf` `include`s once in the
+`server` block.
+
+**nginx does not inherit `add_header` into a `location` block that declares an
+`add_header` of its own.** A location that sets even a single header of its own
+silently drops *every* header from the enclosing server block — no warning, no
+config error, just responses with no security headers. So **every `location`
+that uses `add_header` must re-include the file**:
+
+```nginx
+location ^~ /_astro/ {
+    expires 1y;
+    add_header Cache-Control "public, immutable" always;
+    include /etc/nginx/security-headers.conf;   # required, or this location ships zero security headers
+}
+```
+
+Today that applies to `^~ /_astro/`, the static-asset regex location, the
+`.html` location, and `= /404.html`. `test/security/nginx-headers.test.mjs`
+parses `nginx.conf` into blocks and fails `npm test` if any location uses
+`add_header` without the include, so a new caching location cannot quietly
+regress this.
+
+Two related behaviours worth knowing:
+
+- **HSTS is conditional by design.** `Strict-Transport-Security` comes from a
+  `map` on `$http_x_forwarded_proto` and is empty unless the TLS edge forwards
+  `X-Forwarded-Proto: https`. A plain HTTP request straight to the container
+  correctly gets no HSTS header — that is not a missing header.
+- **The CSP `connect-src` is baked at build time.** `security-headers.conf`
+  ships a `__N8N_ORIGIN__` placeholder; the Dockerfile builder stage derives
+  `scheme://host` from `PUBLIC_N8N_WEBHOOK_URL` and substitutes it. With no
+  build arg the placeholder collapses to nothing, `connect-src` stays `'self'`,
+  and the browser blocks form submissions.
+
+### Legacy `.md` URL redirects
+
+The live site previously served guide and meetup URLs carrying the `.md`
+extension (`/guides/what-is-meshtastic.md/`), because those legacy
+`type: 'content'` collections keep the extension in `entry.id`. The pages now
+emit clean URLs, so `nginx.conf` holds two permanent redirects that keep old
+links, bookmarks, and search results working:
+
+```nginx
+rewrite "^/guides/(.+)\.md/?$"  /guides/$1/  permanent;
+rewrite "^/meetups/(.+)\.md/?$" /meetups/$1/ permanent;
+```
+
+They return **301**, with or without the trailing slash. CI smoke tests the
+guides rewrite against the running container. Do not drop these without first
+checking inbound links.
+
 ### Continuous integration
 
 `.github/workflows/ci.yml` runs on pull requests and on pushes to `main` and
-`release/**`. It installs dependencies with `npm ci`, runs `npm test` and
-`npm run build`, then builds the Docker image and smoke tests the running
-container: `/` must return 200 with `Content-Security-Policy` and
-`Strict-Transport-Security` headers, a guide URL must return 200, and an unknown
-URL must return a real 404.
+`release/**`. It installs dependencies with `npm ci`, runs `npm test`,
+`npm run build`, and `npm run check`, then builds the Docker image and smoke
+tests the running container:
+
+- `/` returns 200 with `Content-Security-Policy` and `Strict-Transport-Security`
+  headers (the request is sent with `X-Forwarded-Proto: https` so HSTS applies)
+- `/guides/what-is-meshtastic/` returns 200
+- `/guides/what-is-meshtastic.md/` returns **301** to
+  `/guides/what-is-meshtastic/`, covering the legacy redirects above
+- an unknown URL returns a real 404
 
 CI does **not** build, push, or deploy images. There is no release workflow in
 this repository.
