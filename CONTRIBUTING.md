@@ -42,10 +42,17 @@ Thank you for your interest in contributing to CHS Mesh! We welcome contribution
 
 ### Network Nodes
 
-- Include node ID, location, and node type (router/relay/sensor)
-- Optional: GPS coordinates for map visualization
+- Include the node name, location, and node type: `relay`, `router`, `client`, or `solar` (these are the only values the schema accepts; `type` defaults to `client`)
+- Required by the schema: `name` and `coordinates` (`lat`/`lng`)
+- Optional: `description`, `elevation` (feet), `active`, `owner`, `lastSeen`
 - Describe the node's role in the network
 - Keep information current
+
+**Privacy**: if a node sits at a home address, please round its coordinates to
+about 3 decimal places (roughly 100 m) before submitting, or use a nearby
+landmark instead. Node entries are published as static JSON on a public site and
+stay in git history forever. Never submit someone else's home location without
+their consent.
 
 ### Resources
 
@@ -68,9 +75,14 @@ Thank you for your interest in contributing to CHS Mesh! We welcome contribution
 1. Update relevant documentation
 2. Include a clear description of changes
 3. Reference any related issues with `Fixes #123`
-4. Ensure `npm run build` succeeds locally
-5. Add screenshots for UI changes
-6. Wait for feedback and review
+4. Ensure `npm test` passes locally
+5. Ensure `npm run build` succeeds locally
+6. Add screenshots for UI changes
+7. Wait for feedback and review
+
+CI (`.github/workflows/ci.yml`) runs `npm test` and `npm run build` on every pull
+request, then builds the Docker image and smoke tests the served site. Running
+both locally first saves a round trip.
 
 ## Code of Conduct
 
