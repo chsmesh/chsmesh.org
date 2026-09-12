@@ -1,0 +1,35 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const links = [
+  { label: 'Go Home', href: '/', variant: 'primary' as const },
+  { label: 'Browse Guides', href: '/guides', variant: 'outline' as const },
+  { label: 'Network Map', href: '/map', variant: 'outline' as const },
+];
+---
+
+<Layout
+  title="Page Not Found"
+  description="The page you were looking for is not part of the CHS Mesh site."
+>
+  <section class="section">
+    <div class="container-narrow text-center">
+      <p class="text-6xl font-bold text-primary-600 mb-4">404</p>
+      <h1 class="mb-4">This node is off the mesh</h1>
+      <p class="text-lg text-neutral-600 mb-8 max-w-xl mx-auto">
+        We could not find that page. It may have moved, or the link that brought you
+        here may be out of date. Here are some good places to pick the trail back up.
+      </p>
+      <div class="flex flex-wrap justify-center gap-4">
+        {links.map((link) => (
+          <a
+            href={link.href}
+            class={link.variant === 'primary' ? 'btn-primary btn-lg' : 'btn-outline btn-lg'}
+          >
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
