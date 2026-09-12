@@ -195,10 +195,29 @@ jobs:
           printf '%s\n' "$headers" | grep -qi '^cache-control:.*immutable' \
             || { echo "Expected an immutable Cache-Control on $path" >&2; exit 1; }
 
+      - name: Smoke test - image also starts with no mounts at all
+        run: |
+          # Production (Komodo) runs the image with a plain `docker run`: no
+          # --read-only and no tmpfs over /tmp. That exposes anything the
+          # build stage left in the image that the unprivileged runtime user
+          # cannot use (a root-owned /tmp/nginx.pid once crash-looped
+          # production while the tmpfs runs above passed), so exercise it.
+          docker run -d --name chsmesh-ci-plain -p 8090:8080 chsmesh:ci
+          for _ in $(seq 1 15); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8090/; then
+              echo "Plain container is serving on port 8090."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Plain container (no tmpfs, not read-only) did not start serving within 30s." >&2
+          docker logs chsmesh-ci-plain >&2 || true
+          exit 1
+
       - name: Container logs
         if: always()
         run: docker logs chsmesh-ci || true
 
-      - name: Stop container
+      - name: Stop containers
         if: always()
-        run: docker rm -f chsmesh-ci || true
+        run: docker rm -f chsmesh-ci chsmesh-ci-plain || true
