@@ -1,10 +1,12 @@
 ---
 // Sveltia CMS shell, served at /admin/. The CMS bundle is imported from npm so
 // Vite emits it as a hashed /_astro/ file and the site-wide CSP of
-// script-src 'self' still holds; the wider connect-src the admin page needs
-// is spliced in by nginx (see security-headers.conf and nginx.conf).
-// The CMS reads its configuration from the cms-config-url link below.
-// See docs/cms-and-submissions.md.
+// script-src 'self' still holds; the extra origins the admin page needs are
+// spliced in by nginx (see security-headers.conf and nginx.conf).
+// Unlike the CDN build, the npm package never auto-initialises, so init() is
+// called explicitly; with no arguments it loads the config from the
+// cms-config-url link below. Keep this page free of any site layout, CSS or
+// other markup: the CMS owns the whole document. See docs/cms-and-submissions.md.
 ---
 
 <!doctype html>
@@ -14,12 +16,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>CHS Mesh CMS</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link href="/admin/config.yml" type="application/yaml" rel="cms-config-url" />
   </head>
   <body>
     <script>
-      import '@sveltia/cms';
+      import { init } from '@sveltia/cms';
+
+      init();
     </script>
   </body>
 </html>

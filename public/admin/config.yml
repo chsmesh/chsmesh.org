@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
+#
 # Sveltia CMS configuration for chsmesh.org (served at /admin/).
 #
 # Editors sign in with GitHub through the same-origin OAuth handshake in the
@@ -27,8 +29,13 @@ site_url: https://chsmesh.org
 display_url: https://chsmesh.org
 logo_url: /favicon.svg
 
-media_folder: public/images
+media_folder: /public/images
 public_folder: /images
+
+output:
+  # The Astro collections use zod .optional(); an empty optional field must be
+  # absent from the file, not written as null or "" (which fails z.coerce.date).
+  omit_empty_optional_fields: true
 
 slug:
   encoding: ascii
@@ -48,13 +55,15 @@ collections:
     sortable_fields: [date, title]
     fields:
       - { name: title, label: Title, widget: string }
-      - { name: date, label: Start, widget: datetime, picker_utc: false }
+      # Saved as YYYY-MM-DDTHH:mm:ss with no offset; the build parses it as UTC,
+      # so the site reads it as a naive local time. See the doc for the caveat.
+      - { name: date, label: Start, widget: datetime }
       - { name: endDate, label: End, widget: datetime, required: false }
       - { name: location, label: Location name, widget: string }
       - { name: address, label: Street address, widget: string, required: false }
       - { name: description, label: Description, widget: text }
       - { name: featured, label: Featured, widget: boolean, default: false }
-      - { name: rsvpLink, label: RSVP link, widget: string, required: false, pattern: ['^https?://', 'Must be an http(s) URL'] }
+      - { name: rsvpLink, label: RSVP link, widget: string, type: url, required: false }
       - name: coordinates
         label: Coordinates
         widget: object
@@ -106,7 +115,7 @@ collections:
       - { name: order, label: Order, widget: number, value_type: int, default: 0, hint: "Lower numbers list first" }
       - { name: readingTime, label: Reading time (minutes), widget: number, value_type: int, required: false }
       - { name: prerequisites, label: Prerequisites, widget: list, required: false, field: { name: item, label: Prerequisite, widget: string } }
-      - { name: lastUpdated, label: Last updated, widget: datetime, format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: false }
+      - { name: lastUpdated, label: Last updated, widget: datetime, type: date, required: false }
       - { name: author, label: Author, widget: string, required: false }
       - { name: body, label: Guide content, widget: markdown }
 
@@ -141,7 +150,7 @@ collections:
         summary: "{{fields.label}}"
         fields:
           - { name: label, label: Label, widget: string }
-          - { name: url, label: URL, widget: string, pattern: ['^https?://', 'Must be an http(s) URL'] }
+          - { name: url, label: URL, widget: string, type: url }
           - { name: type, label: Type, widget: select, required: false, options: [purchase, docs, download, community] }
       - { name: priceRange, label: Price range, widget: string, required: false, hint: "e.g. $18-25" }
       - { name: pros, label: Pros, widget: list, required: false, field: { name: item, label: Pro, widget: string } }
@@ -174,7 +183,7 @@ collections:
       - { name: elevation, label: Elevation (feet), widget: number, value_type: int, required: false }
       - { name: active, label: Active, widget: boolean, default: true }
       - { name: owner, label: Owner, widget: string, required: false }
-      - { name: lastSeen, label: Last seen, widget: datetime, format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: false }
+      - { name: lastSeen, label: Last seen, widget: datetime, type: date, required: false }
 
   - name: taxonomies
     label: Taxonomies

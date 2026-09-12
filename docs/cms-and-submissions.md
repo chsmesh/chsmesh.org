@@ -21,7 +21,7 @@ one path prefix, `/api/`, to a small Node service on the compose network.
 | `src/pages/admin/index.astro` | The CMS shell. Imports `@sveltia/cms` from npm so the bundle ships as a hashed `/_astro/` file and the `script-src 'self'` CSP holds. |
 | `services/submissions/` | Dependency-free Node 22 service: validates form payloads, opens PRs, notifies Discord, and runs the GitHub OAuth handshake for the CMS. `lib.mjs` is pure and unit tested. |
 | `nginx.conf` | `location ^~ /api/` proxies to the service (rate limited, 64 KB bodies). `location ^~ /admin/` serves the CMS with `no-store` and `noindex`. Three `map` variables widen the CSP for `/admin/` only. |
-| `security-headers.conf` | The single CSP now splices in `$csp_admin_*` variables, empty everywhere except `/admin/`. |
+| `security-headers.conf` | The single CSP now splices in `$csp_admin_*` variables, empty everywhere except `/admin/`. They add exactly what Sveltia's documented base policy needs: GitHub's API and avatars, fonts from jsdelivr, and `blob:` URLs. |
 | `Dockerfile` | Webhook URLs beginning with `/` are accepted as same-origin paths instead of failing the build. |
 | `docker-compose.yml` | Adds the `submissions` service, hardened like the nginx container. |
 | `.env.example` | New variables, documented inline. |
@@ -93,16 +93,29 @@ Endpoints:
    workflow mode, and this guarantees it even if the mode is switched off.
 3. Give editors write access to the repository. Sveltia commits with the
    editor's own token, so their GitHub account is the audit trail.
-4. Open `https://chsmesh.org/admin/`, sign in, and check the browser console
-   on first use: if the CSP blocks something the CMS needs, the console names
-   the directive. Adjust the `$csp_admin_*` maps in `nginx.conf`, not the
-   shared policy.
+4. Open `https://chsmesh.org/admin/`. The sign-in screen lists any config
+   validation errors; the config also validates against the published JSON
+   schema (`# yaml-language-server` line at the top of `config.yml` gives
+   editors live checking). If the CSP blocks something on first use, the
+   browser console names the directive; adjust the `$csp_admin_*` maps in
+   `nginx.conf`, not the shared policy.
+
+Why a server-side authenticator at all: Sveltia's browser-only PKCE sign-in
+for GitHub is unimplemented until GitHub ships client-side PKCE, so the
+authorization code flow with a backend holding the client secret is the
+supported path. The submissions service plays that role.
 
 How editing works: every new or changed entry lives on a
 `cms/<collection>/<slug>` branch with a pull request the CMS opens. Editors
 move it through Draft, In review and Ready; publishing merges the PR. Public
 submissions arrive as ordinary PRs, so an editor can check one out in the CMS
 by opening the branch, or simply review the file on GitHub.
+
+Two Sveltia behaviours to know: a Draft may be saved with required fields
+empty, so CI on that PR can go red until the entry is finished (nothing
+reaches `main` until it is published). And `datetime` fields are saved
+without a timezone offset, which the build reads as UTC; enter meetup times
+knowing they display as typed.
 
 ## Follow-ups not in this sketch
 
