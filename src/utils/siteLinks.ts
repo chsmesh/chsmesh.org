@@ -1,27 +1,16 @@
 export type SiteLinks = Record<string, string>;
 
-type SocialLink = {
-  platform: string;
-  url: string;
-  label?: string;
-};
-
-export const resolveLink = (
-  href: string,
-  links?: SiteLinks,
-  social?: SocialLink[]
-): string => {
+/**
+ * Resolves an `@links.<key>` token against the link map in
+ * `src/content/global/site.md`, which is the single source of truth for the
+ * site's Discord, GitHub, and email URLs. Any other value is returned as-is.
+ */
+export const resolveLink = (href: string, links?: SiteLinks): string => {
   if (!href) return href;
 
   if (href.startsWith('@links.')) {
     const key = href.slice('@links.'.length);
     return links?.[key] ?? href;
-  }
-
-  if (href.startsWith('@social.')) {
-    const key = href.slice('@social.'.length).toLowerCase();
-    const match = social?.find((item) => item.platform.toLowerCase() === key);
-    return match?.url ?? href;
   }
 
   return href;

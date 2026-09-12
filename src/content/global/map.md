@@ -52,7 +52,7 @@ addNode:
   body: Got a node? Help us map the network! Submit your node location to appear on the map.
   cta:
     label: Submit Node
-    href: https://github.com/chsmesh/chsmesh.org/issues/new?template=add-node.md
+    href: https://github.com/chsmesh/chsmesh.org/issues/new?template=add_content.md
     variant: primary
 coverage:
   heading: Coverage Goals
