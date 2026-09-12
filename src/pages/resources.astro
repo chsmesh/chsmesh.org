@@ -2,14 +2,23 @@
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import ResourceCard from '../components/ResourceCard.astro';
-import { getCollection, getEntry } from 'astro:content';
-import { getTaxonomyData } from '../utils/taxonomy';
+import { getCollection } from 'astro:content';
+import { createLabelMap, getTaxonomyData } from '../utils/taxonomy';
+import { getGlobal } from '../utils/global';
+import { getCtaClass } from '../utils/cta';
+import { resolveLink } from '../utils/siteLinks';
 
 const allResources = await getCollection('resources');
-const resourcesEntry = await getEntry('global', 'resources');
-const resourcesPage = resourcesEntry?.data?.type === 'resources' ? resourcesEntry.data : undefined;
+const resourcesPage = await getGlobal('resources', 'resources');
+const site = await getGlobal('site', 'site');
+const resolveHref = (href: string) => resolveLink(href, site.links, site.social);
+const emptyCta = {
+  ...resourcesPage.empty.cta,
+  href: resolveHref(resourcesPage.empty.cta.href),
+};
 const taxonomy = await getTaxonomyData();
 const resourceCategoryTaxonomy = taxonomy?.resourceCategories ?? [];
+const resourceCategoryLabels = createLabelMap(resourceCategoryTaxonomy);
 
 // Group resources by category
 const categories = resourceCategoryTaxonomy.reduce<Record<string, { label: string; description?: string; icon?: string; resources: typeof allResources }>>(
@@ -30,7 +39,7 @@ allResources.forEach((resource) => {
   const key = resource.data.category;
   if (!categories[key]) {
     categories[key] = {
-      label: key,
+      label: resourceCategoryLabels[key] ?? key,
       description: undefined,
       icon: undefined,
       resources: [] as typeof allResources,
@@ -52,8 +61,8 @@ Object.values(categories).forEach((cat) => {
 const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.resources.length > 0);
 ---
 
-<Layout title={resourcesPage?.pageTitle ?? 'Resources'} description={resourcesPage?.pageDescription}>
-  <Hero title={resourcesPage?.hero.title ?? ''} subtitle={resourcesPage?.hero.subtitle ?? ''} size={resourcesPage?.hero.size ?? 'small'}>
+<Layout title={resourcesPage.pageTitle} description={resourcesPage.pageDescription}>
+  <Hero title={resourcesPage.hero.title} subtitle={resourcesPage.hero.subtitle} size={resourcesPage.hero.size ?? 'small'}>
     <div class="mt-6">
       <button data-modal-open="resource-modal" class="btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,6 +73,21 @@ const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.resources
     </div>
   </Hero>
 
+  <!-- Quick Start -->
+  <section class="section-sm bg-accent-50 border-b border-accent-200">
+    <div class="container-narrow">
+      <div class="flex items-start gap-3">
+        <svg class="w-6 h-6 text-accent-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <div>
+          <h2 class="text-xl font-semibold text-accent-800 mb-2">{resourcesPage.quickStart.heading}</h2>
+          <p class="text-accent-700">{resourcesPage.quickStart.body}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="section">
     <div class="container-wide">
       {activeTabs.length === 0 ? (
@@ -71,9 +95,9 @@ const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.resources
           <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
-          <h3 class="text-xl font-semibold mb-2">{resourcesPage?.empty.heading}</h3>
-          <p class="text-neutral-600 mb-4">{resourcesPage?.empty.body}</p>
-          <a href={resourcesPage?.empty.cta.href} class="btn-primary">{resourcesPage?.empty.cta.label}</a>
+          <h3 class="text-xl font-semibold mb-2">{resourcesPage.empty.heading}</h3>
+          <p class="text-neutral-600 mb-4">{resourcesPage.empty.body}</p>
+          <a href={emptyCta.href} class={getCtaClass(emptyCta.variant)}>{emptyCta.label}</a>
         </div>
       ) : (
         <>
@@ -141,7 +165,7 @@ const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.resources
   <section class="section-sm bg-neutral-100 border-t border-neutral-200">
     <div class="container-narrow text-center text-sm text-neutral-500">
       <p>
-        <strong>Disclaimer:</strong> {resourcesPage?.disclaimer.body}
+        <strong>Disclaimer:</strong> {resourcesPage.disclaimer.body}
       </p>
     </div>
   </section>

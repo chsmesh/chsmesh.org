@@ -2,39 +2,39 @@
 import Layout from '../../layouts/Layout.astro';
 import Hero from '../../components/Hero.astro';
 import MeetupCard from '../../components/MeetupCard.astro';
-import { getCollection, getEntry } from 'astro:content';
-import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
+import { getCollection } from 'astro:content';
 import { resolveLink } from '../../utils/siteLinks';
+import { getGlobal } from '../../utils/global';
+import { getCtaClass } from '../../utils/cta';
+import { isPastMeetup } from '../../utils/meetups';
 
 const allMeetups = await getCollection('meetups');
-const meetupsEntry = await getEntry('global', 'meetups');
-const meetupsPage = meetupsEntry?.data?.type === 'meetups' ? meetupsEntry.data : undefined;
-const siteEntry = await getEntry('global', 'site');
-const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
-const resolveHref = (href: string) => resolveLink(href, site?.links, site?.social);
-const emptyCta = meetupsPage?.empty?.cta
-  ? {
-      ...meetupsPage.empty.cta,
-      href: resolveHref(meetupsPage.empty.cta.href),
-    }
-  : undefined;
-const taxonomy = await getTaxonomyData();
-const meetupStatusLabels = createLabelMap(taxonomy?.meetupStatuses);
-const meetupBadgeLabels = createLabelMap(taxonomy?.meetupBadges);
+const meetupsPage = await getGlobal('meetups', 'meetups');
+const site = await getGlobal('site', 'site');
+const resolveHref = (href: string) => resolveLink(href, site.links, site.social);
+const emptyCta = {
+  ...meetupsPage.empty.cta,
+  href: resolveHref(meetupsPage.empty.cta.href),
+};
+const hostCta = {
+  ...meetupsPage.host.cta,
+  href: resolveHref(meetupsPage.host.cta.href),
+};
 const now = new Date();
 
-// Separate upcoming and past meetups
+// Separate upcoming and past meetups. A meetup only moves to "past" once its
+// end time has elapsed, so all-day / multi-hour events stay listed while running.
 const upcomingMeetups = allMeetups
-  .filter((m) => m.data.date >= now)
+  .filter((m) => !isPastMeetup(m.data, now))
   .sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
 
 const pastMeetups = allMeetups
-  .filter((m) => m.data.date < now)
+  .filter((m) => isPastMeetup(m.data, now))
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
-<Layout title={meetupsPage?.pageTitle ?? 'Meetups'} description={meetupsPage?.pageDescription}>
-  <Hero title={meetupsPage?.hero.title ?? ''} subtitle={meetupsPage?.hero.subtitle ?? ''} size={meetupsPage?.hero.size ?? 'small'}>
+<Layout title={meetupsPage.pageTitle} description={meetupsPage.pageDescription}>
+  <Hero title={meetupsPage.hero.title} subtitle={meetupsPage.hero.subtitle} size={meetupsPage.hero.size ?? 'small'}>
     <div class="mt-6">
       <button data-modal-open="meetup-modal" class="btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,17 +50,10 @@ const pastMeetups = allMeetups
       <!-- Upcoming Meetups -->
       {upcomingMeetups.length > 0 ? (
         <div class="mb-16">
-          <h2 class="mb-8">{meetupsPage?.upcomingHeading}</h2>
+          <h2 class="mb-8">{meetupsPage.upcomingHeading}</h2>
           <div class="card-grid">
             {upcomingMeetups.map((meetup, index) => (
-              <MeetupCard
-                meetup={meetup}
-                featured={index === 0}
-                taxonomy={{
-                  statusLabels: meetupStatusLabels,
-                  badgeLabels: meetupBadgeLabels,
-                }}
-              />
+              <MeetupCard meetup={meetup} featured={index === 0} />
             ))}
           </div>
         </div>
@@ -70,10 +63,10 @@ const pastMeetups = allMeetups
             <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <h3 class="text-xl font-semibold mb-2">{meetupsPage?.empty.heading}</h3>
-            <p class="text-neutral-600 mb-4">{meetupsPage?.empty.body}</p>
-            <a href={emptyCta?.href} target="_blank" rel="noopener noreferrer" class="btn-primary">
-              {emptyCta?.label}
+            <h3 class="text-xl font-semibold mb-2">{meetupsPage.empty.heading}</h3>
+            <p class="text-neutral-600 mb-4">{meetupsPage.empty.body}</p>
+            <a href={emptyCta.href} target="_blank" rel="noopener noreferrer" class={getCtaClass(emptyCta.variant)}>
+              {emptyCta.label}
               <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
@@ -85,20 +78,30 @@ const pastMeetups = allMeetups
       <!-- Past Meetups -->
       {pastMeetups.length > 0 && (
         <div>
-          <h2 class="mb-8 text-neutral-500">{meetupsPage?.pastHeading}</h2>
+          <h2 class="mb-8 text-neutral-500">{meetupsPage.pastHeading}</h2>
           <div class="card-grid">
             {pastMeetups.map((meetup) => (
-              <MeetupCard
-                meetup={meetup}
-                taxonomy={{
-                  statusLabels: meetupStatusLabels,
-                  badgeLabels: meetupBadgeLabels,
-                }}
-              />
+              <MeetupCard meetup={meetup} />
             ))}
           </div>
         </div>
       )}
+    </div>
+  </section>
+
+  <!-- Host a Meetup -->
+  <section class="section-sm bg-neutral-50 border-t border-neutral-200">
+    <div class="container-narrow text-center">
+      <h2 class="text-2xl font-semibold mb-2">{meetupsPage.host.heading}</h2>
+      <p class="text-neutral-600 mb-6">{meetupsPage.host.body}</p>
+      <a
+        href={hostCta.href}
+        target={hostCta.href.startsWith('http') ? '_blank' : undefined}
+        rel={hostCta.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+        class={getCtaClass(hostCta.variant)}
+      >
+        {hostCta.label}
+      </a>
     </div>
   </section>
 </Layout>

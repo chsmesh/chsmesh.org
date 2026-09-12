@@ -1,12 +1,13 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getCollection, getEntry, render } from 'astro:content';
-import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
+import { getCollection, render } from 'astro:content';
+import { getTaxonomyLabels } from '../../utils/taxonomy';
+import { getGlobal } from '../../utils/global';
 
 export async function getStaticPaths() {
   const guides = await getCollection('guides');
   return guides.map((guide) => ({
-    params: { slug: guide.id },
+    params: { slug: guide.slug },
     props: { guide },
   }));
 }
@@ -14,13 +15,10 @@ export async function getStaticPaths() {
 const { guide } = Astro.props;
 const { Content } = await render(guide);
 const { title, description, difficulty, category, readingTime, prerequisites, lastUpdated, author } = guide.data;
-const guidesDetailEntry = await getEntry('global', 'guides-detail');
-const guidesDetail = guidesDetailEntry?.data?.type === 'guides-detail' ? guidesDetailEntry.data : undefined;
-const taxonomy = await getTaxonomyData();
-const guideDifficultyLabels = createLabelMap(taxonomy?.guideDifficulties);
-const guideCategoryLabels = createLabelMap(taxonomy?.guideCategories);
-const difficultyLabel = guideDifficultyLabels[difficulty] ?? difficulty;
-const categoryLabel = guideCategoryLabels[category] ?? category;
+const guidesDetail = await getGlobal('guides-detail', 'guides-detail');
+const labels = await getTaxonomyLabels();
+const difficultyLabel = labels.guideDifficulties[difficulty] ?? difficulty;
+const categoryLabel = labels.guideCategories[category] ?? category;
 
 const difficultyColors = {
   beginner: 'badge-beginner',
@@ -35,7 +33,7 @@ const relatedGuides = allGuides
   .sort((a, b) => a.data.order - b.data.order)
   .slice(0, 3);
 
-const reportUrl = guidesDetail?.feedback.reportUrlTemplate.replace('{title}', encodeURIComponent(title));
+const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', encodeURIComponent(title));
 ---
 
 <Layout title={title} description={description}>
@@ -48,7 +46,7 @@ const reportUrl = guidesDetail?.feedback.reportUrlTemplate.replace('{title}', en
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
-            {guidesDetail?.backLabel}
+            {guidesDetail.backLabel}
           </a>
         </nav>
 
@@ -90,7 +88,7 @@ const reportUrl = guidesDetail?.feedback.reportUrlTemplate.replace('{title}', en
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <h4 class="font-medium text-accent-800 mb-1">{guidesDetail?.prerequisitesHeading}</h4>
+              <h4 class="font-medium text-accent-800 mb-1">{guidesDetail.prerequisitesHeading}</h4>
               <ul class="text-sm text-accent-700">
                 {prerequisites.map((prereq) => (
                   <li class="flex items-center gap-2">
@@ -116,10 +114,10 @@ const reportUrl = guidesDetail?.feedback.reportUrlTemplate.replace('{title}', en
     {relatedGuides.length > 0 && (
       <section class="section-sm bg-neutral-50 border-t border-neutral-200">
         <div class="container-narrow">
-          <h3 class="text-xl font-semibold mb-6">{guidesDetail?.relatedHeading}</h3>
+          <h3 class="text-xl font-semibold mb-6">{guidesDetail.relatedHeading}</h3>
           <div class="grid gap-4">
             {relatedGuides.map((related) => (
-              <a href={`/guides/${related.id}`} class="card card-body flex items-center gap-4 hover:border-primary-300 transition-colors">
+              <a href={`/guides/${related.slug}`} class="card card-body flex items-center gap-4 hover:border-primary-300 transition-colors">
                 <div class="flex-grow">
                   <h4 class="font-medium text-neutral-900">{related.data.title}</h4>
                   <p class="text-sm text-neutral-500 line-clamp-1">{related.data.description}</p>
@@ -137,13 +135,13 @@ const reportUrl = guidesDetail?.feedback.reportUrlTemplate.replace('{title}', en
     <!-- Feedback -->
     <section class="section-sm border-t border-neutral-200">
       <div class="container-narrow text-center">
-        <p class="text-neutral-600 mb-4">{guidesDetail?.feedback.question}</p>
+        <p class="text-neutral-600 mb-4">{guidesDetail.feedback.question}</p>
         <div class="flex justify-center gap-4">
           <a href={reportUrl} target="_blank" rel="noopener noreferrer" class="btn-outline btn-sm">
-            {guidesDetail?.feedback.reportLabel}
+            {guidesDetail.feedback.reportLabel}
           </a>
-          <a href={guidesDetail?.feedback.improveUrl} target="_blank" rel="noopener noreferrer" class="btn-ghost btn-sm">
-            {guidesDetail?.feedback.improveLabel}
+          <a href={guidesDetail.feedback.improveUrl} target="_blank" rel="noopener noreferrer" class="btn-ghost btn-sm">
+            {guidesDetail.feedback.improveLabel}
           </a>
         </div>
       </div>

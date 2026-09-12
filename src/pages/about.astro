@@ -1,15 +1,14 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
-import { getEntry } from 'astro:content';
 import { resolveLink } from '../utils/siteLinks';
+import { getGlobal } from '../utils/global';
+import { getCtaClass } from '../utils/cta';
 
-const aboutEntry = await getEntry('global', 'about');
-const about = aboutEntry?.data?.type === 'about' ? aboutEntry.data : undefined;
-const siteEntry = await getEntry('global', 'site');
-const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
-const resolveHref = (href: string) => resolveLink(href, site?.links, site?.social);
-const getInvolvedCards = (about?.getInvolved.cards ?? []).map((card) => ({
+const about = await getGlobal('about', 'about');
+const site = await getGlobal('site', 'site');
+const resolveHref = (href: string) => resolveLink(href, site.links, site.social);
+const getInvolvedCards = about.getInvolved.cards.map((card) => ({
   ...card,
   cta: {
     ...card.cta,
@@ -21,46 +20,38 @@ const getInvolvedCards = (about?.getInvolved.cards ?? []).map((card) => ({
   icon?: string;
   cta: { label: string; href: string; variant?: string };
 }[];
-const communityRoles = (about?.community.roles ?? []) as { name: string; description: string }[];
-const faqs = (about?.faqs ?? []) as { question: string; answer: string }[];
-const communityCtaHref = resolveHref(about?.community.ctaHref ?? '');
-const contactCtas = (about?.contactCta.ctas ?? []).map((cta) => ({
+const communityRoles = about.community.roles as { name: string; description: string }[];
+const faqs = about.faqs as { question: string; answer: string }[];
+const communityCtaHref = resolveHref(about.community.ctaHref);
+const contactCtas = about.contactCta.ctas.map((cta) => ({
   ...cta,
   href: resolveHref(cta.href),
 })) as { label: string; href: string; variant?: string }[];
-
-const getCtaClass = (variant?: string) => {
-  if (variant === 'outline') return 'btn-outline btn-sm';
-  if (variant === 'ghost') return 'btn-ghost btn-sm';
-  if (variant === 'secondary') return 'btn btn-sm bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm';
-  return 'btn-primary btn-sm';
-};
-
 ---
 
-<Layout title={about?.pageTitle ?? 'About'} description={about?.pageDescription}>
-  <Hero title={about?.hero.title ?? ''} subtitle={about?.hero.subtitle ?? ''} size={about?.hero.size ?? 'small'} />
+<Layout title={about.pageTitle} description={about.pageDescription}>
+  <Hero title={about.hero.title} subtitle={about.hero.subtitle} size={about.hero.size ?? 'small'} />
 
   <section class="section">
     <div class="container-narrow">
       <!-- Mission -->
       <div class="prose max-w-none mb-16">
-        <h2>{about?.mission.heading}</h2>
-        <p class="text-lg">{about?.mission.intro}</p>
-        <p>{about?.mission.leadIn}</p>
+        <h2>{about.mission.heading}</h2>
+        <p class="text-lg">{about.mission.intro}</p>
+        <p>{about.mission.leadIn}</p>
         <ul>
-          {(about?.mission.bullets ?? []).map((bullet) => (
+          {about.mission.bullets.map((bullet) => (
             <li>
               <strong>{bullet.title}</strong> - {bullet.description}
             </li>
           ))}
         </ul>
-        <p>{about?.mission.outro}</p>
+        <p>{about.mission.outro}</p>
       </div>
 
       <!-- How to Get Involved -->
       <div class="mb-16">
-        <h2 class="text-2xl font-semibold mb-6">{about?.getInvolved.heading}</h2>
+        <h2 class="text-2xl font-semibold mb-6">{about.getInvolved.heading}</h2>
         <div class="grid md:grid-cols-3 gap-6">
           {getInvolvedCards.map((card) => (
             <div class="card card-body text-center">
@@ -83,7 +74,7 @@ const getCtaClass = (variant?: string) => {
               </div>
               <h3 class="text-lg font-semibold mb-2">{card.title}</h3>
               <p class="text-sm text-neutral-600 mb-4">{card.description}</p>
-              <a href={card.cta.href} target={card.cta.href.startsWith('http') ? '_blank' : undefined} rel={card.cta.href.startsWith('http') ? 'noopener noreferrer' : undefined} class={getCtaClass(card.cta.variant)}>
+              <a href={card.cta.href} target={card.cta.href.startsWith('http') ? '_blank' : undefined} rel={card.cta.href.startsWith('http') ? 'noopener noreferrer' : undefined} class={getCtaClass(card.cta.variant, 'sm')}>
                 {card.cta.label}
               </a>
             </div>
@@ -93,8 +84,8 @@ const getCtaClass = (variant?: string) => {
 
       <!-- Team -->
       <div class="mb-16">
-        <h2 class="text-2xl font-semibold mb-6">{about?.community.heading}</h2>
-        <p class="text-neutral-600 mb-6">{about?.community.intro}</p>
+        <h2 class="text-2xl font-semibold mb-6">{about.community.heading}</h2>
+        <p class="text-neutral-600 mb-6">{about.community.intro}</p>
         <div class="grid md:grid-cols-3 gap-4">
           {communityRoles.map((role) => (
             <div class="card card-body">
@@ -104,8 +95,8 @@ const getCtaClass = (variant?: string) => {
           ))}
         </div>
         <p class="text-center mt-6 text-neutral-500">
-          {about?.community.ctaText}{' '}
-          <a href={communityCtaHref} class="text-primary-600 hover:underline">{about?.community.ctaLabel}</a>
+          {about.community.ctaText}{' '}
+          <a href={communityCtaHref} class="text-primary-600 hover:underline">{about.community.ctaLabel}</a>
         </p>
       </div>
 
@@ -134,11 +125,11 @@ const getCtaClass = (variant?: string) => {
   <!-- Contact CTA -->
   <section class="section-sm bg-primary-50 border-t border-primary-100">
     <div class="container-narrow text-center">
-      <h3 class="text-xl font-semibold mb-2">{about?.contactCta.heading}</h3>
-      <p class="text-neutral-600 mb-4">{about?.contactCta.body}</p>
+      <h3 class="text-xl font-semibold mb-2">{about.contactCta.heading}</h3>
+      <p class="text-neutral-600 mb-4">{about.contactCta.body}</p>
       <div class="flex justify-center gap-4">
         {contactCtas.map((cta) => (
-          <a href={cta.href} target={cta.href.startsWith('http') ? '_blank' : undefined} rel={cta.href.startsWith('http') ? 'noopener noreferrer' : undefined} class={getCtaClass(cta.variant).replace('btn-sm', '')}>
+          <a href={cta.href} target={cta.href.startsWith('http') ? '_blank' : undefined} rel={cta.href.startsWith('http') ? 'noopener noreferrer' : undefined} class={getCtaClass(cta.variant)}>
             {cta.label}
           </a>
         ))}
