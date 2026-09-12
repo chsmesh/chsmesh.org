@@ -6,7 +6,12 @@ import tailwindcss from '@tailwindcss/vite';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://chsmesh.org',
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      // The CMS shell is not content.
+      filter: (page) => !page.includes('/admin'),
+    }),
+  ],
   image: {
     // Avoid a hard dependency on the optional `sharp` binary so builds succeed
     // wherever it is unavailable (e.g. the slim Docker build image).

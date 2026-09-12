@@ -37,8 +37,9 @@ ENV PUBLIC_N8N_GUIDES_WEBHOOK_URL=$PUBLIC_N8N_GUIDES_WEBHOOK_URL
 ENV PUBLIC_N8N_MEETUPS_WEBHOOK_URL=$PUBLIC_N8N_MEETUPS_WEBHOOK_URL
 ENV PUBLIC_N8N_RESOURCES_WEBHOOK_URL=$PUBLIC_N8N_RESOURCES_WEBHOOK_URL
 
-# The forms POST cross-origin to the n8n webhook hosts, which are only known at
-# build time. Derive scheme://host[:port] from every PUBLIC_N8N_*_WEBHOOK_URL,
+# The forms POST to the webhook URLs, which are only known at build time. A
+# value starting with "/" is a same-origin path (the submissions service behind
+# nginx's /api/ location) and is already covered by connect-src 'self'. Derive scheme://host[:port] from every PUBLIC_N8N_*_WEBHOOK_URL,
 # dedupe, and bake the list into the CSP connect-src placeholder. A URL that is
 # not a plain http(s) URL fails the build here rather than producing an image
 # whose CSP header is malformed. With no ARGs set, the placeholder collapses to
@@ -48,6 +49,7 @@ RUN set -eu; \
     for url in "${PUBLIC_N8N_WEBHOOK_URL:-}" "${PUBLIC_N8N_GUIDES_WEBHOOK_URL:-}" \
                "${PUBLIC_N8N_MEETUPS_WEBHOOK_URL:-}" "${PUBLIC_N8N_RESOURCES_WEBHOOK_URL:-}"; do \
         [ -n "$url" ] || continue; \
+        case "$url" in /*) echo "Same-origin submission path (covered by connect-src 'self'): $url"; continue ;; esac; \
         origin=$(printf '%s\n' "$url" | sed -nE 's%^(https?://[A-Za-z0-9.-]+(:[0-9]+)?)([/?#].*)?$%\1%p'); \
         if [ -z "$origin" ]; then \
             echo "ERROR: webhook URL is not a plain http(s)://host[:port]/... URL: $url" >&2; \
