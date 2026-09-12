@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { getTaxonomyLabels } from '../utils/taxonomy';
 
 interface Props {
   resource: CollectionEntry<'resources'>;
@@ -8,13 +9,8 @@ interface Props {
 const { resource } = Astro.props;
 const { title, description, category, priceRange, pros, cons, links, featured, image } = resource.data;
 
-const categoryLabels = {
-  devices: 'Device',
-  accessories: 'Accessory',
-  software: 'Software',
-  firmware: 'Firmware',
-  community: 'Community',
-};
+const labels = await getTaxonomyLabels();
+const categoryLabel = labels.resourceCategories[category] ?? category;
 ---
 
 <article class:list={['card', featured && 'border-accent-300 border-2']}>
@@ -33,7 +29,7 @@ const categoryLabels = {
   <div class="card-body">
     <div class="flex items-start justify-between gap-3 mb-3">
       <h3 class="text-xl font-semibold text-neutral-900">{title}</h3>
-      <span class="badge-secondary shrink-0">{categoryLabels[category]}</span>
+      <span class="badge-secondary shrink-0">{categoryLabel}</span>
     </div>
 
     <p class="text-neutral-600 mb-4">{description}</p>

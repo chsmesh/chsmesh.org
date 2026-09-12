@@ -4,7 +4,8 @@ dist/
 .astro/
 
 # dependencies
-node_modules/
+# no trailing slash: also ignore a node_modules symlink (used by git worktrees)
+node_modules
 
 # logs
 npm-debug.log*
@@ -15,7 +16,8 @@ pnpm-debug.log*
 
 # environment variables
 .env
-.env.production
+.env.*
+!.env.example
 
 # macOS-specific files
 .DS_Store

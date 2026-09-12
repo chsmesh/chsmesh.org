@@ -17,7 +17,7 @@ mission:
     - title: Privacy
       description: No tracking, no data collection, no corporate surveillance
     - title: Accessibility
-      description: Free to use with affordable hardware (under $50 to get started)
+      description: Free to use with affordable hardware (about $30-75 to get started)
     - title: Education
       description: Learn about radio technology, networking, and open-source hardware
   outro: Whether you're interested in emergency preparedness, outdoor adventures, privacy-focused communication, or just love tinkering with technology, you're welcome here.

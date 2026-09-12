@@ -1,4 +1,3 @@
-```chatagent
 ---
 name: [Specialty] Specialist
 description: >
@@ -78,7 +77,6 @@ project/
 - [Out of scope item]
 - [Out of scope item]
 - [Out of scope item]
-```
 
 ---
 

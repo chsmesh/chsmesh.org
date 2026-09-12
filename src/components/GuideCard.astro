@@ -1,15 +1,12 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { getTaxonomyLabels } from '../utils/taxonomy';
 
 interface Props {
   guide: CollectionEntry<'guides'>;
-  taxonomy?: {
-    categoryLabels?: Record<string, string>;
-    difficultyLabels?: Record<string, string>;
-  };
 }
 
-const { guide, taxonomy } = Astro.props;
+const { guide } = Astro.props;
 const { title, description, difficulty, category, readingTime, prerequisites } = guide.data;
 
 const difficultyColors = {
@@ -18,16 +15,10 @@ const difficultyColors = {
   advanced: 'badge-advanced',
 };
 
-const categoryLabels = {
-  'getting-started': 'Getting Started',
-  hardware: 'Hardware',
-  software: 'Software',
-  network: 'Network',
-  troubleshooting: 'Troubleshooting',
-};
-
-const difficultyLabel = taxonomy?.difficultyLabels?.[difficulty] ?? difficulty;
-const categoryLabel = taxonomy?.categoryLabels?.[category] ?? categoryLabels[category] ?? category;
+const labels = await getTaxonomyLabels();
+const difficultyLabel = labels.guideDifficulties[difficulty] ?? difficulty;
+const categoryLabel = labels.guideCategories[category] ?? category;
+const guideHref = `/guides/${guide.slug}`;
 ---
 
 <article class="card hover:border-primary-300 transition-colors">
@@ -46,7 +37,7 @@ const categoryLabel = taxonomy?.categoryLabels?.[category] ?? categoryLabels[cat
     </div>
 
     <h3 class="text-xl font-semibold mb-2">
-      <a href={`/guides/${guide.id}`} class="hover:text-primary-600 transition-colors text-neutral-900">
+      <a href={guideHref} class="hover:text-primary-600 transition-colors text-neutral-900">
         {title}
       </a>
     </h3>
@@ -60,7 +51,7 @@ const categoryLabel = taxonomy?.categoryLabels?.[category] ?? categoryLabels[cat
       </div>
     )}
 
-    <a href={`/guides/${guide.id}`} class="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm">
+    <a href={guideHref} class="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm">
       Read Guide
       <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

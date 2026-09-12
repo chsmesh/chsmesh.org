@@ -1,19 +1,17 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { getTaxonomyLabels } from '../utils/taxonomy';
+import { isPastMeetup } from '../utils/meetups';
 
 interface Props {
   meetup: CollectionEntry<'meetups'>;
   featured?: boolean;
-  taxonomy?: {
-    statusLabels?: Record<string, string>;
-    badgeLabels?: Record<string, string>;
-  };
 }
 
-const { meetup, featured = false, taxonomy } = Astro.props;
+const { meetup, featured = false } = Astro.props;
 const { title, date, location, description, rsvpLink, address } = meetup.data;
 
-const isPast = date < new Date();
+const isPast = isPastMeetup(meetup.data);
 const formattedDate = date.toLocaleDateString('en-US', {
   weekday: 'long',
   year: 'numeric',
@@ -25,10 +23,12 @@ const formattedTime = date.toLocaleTimeString('en-US', {
   minute: '2-digit',
 });
 
+const labels = await getTaxonomyLabels();
 const statusLabel = isPast
-  ? taxonomy?.statusLabels?.past ?? 'Past'
-  : taxonomy?.statusLabels?.upcoming ?? 'Upcoming';
-const featuredLabel = taxonomy?.badgeLabels?.featured ?? 'Featured Event';
+  ? labels.meetupStatuses.past ?? 'Past'
+  : labels.meetupStatuses.upcoming ?? 'Upcoming';
+const featuredLabel = labels.meetupBadges.featured ?? 'Featured Event';
+const meetupHref = `/meetups/${meetup.slug}`;
 ---
 
 <article class:list={['card', featured && 'border-primary-300 border-2']}>
@@ -40,7 +40,7 @@ const featuredLabel = taxonomy?.badgeLabels?.featured ?? 'Featured Event';
   <div class="card-body">
     <div class="flex items-start justify-between gap-4 mb-3">
       <h3 class="text-xl font-semibold">
-        <a href={`/meetups/${meetup.id}`} class="hover:text-primary-600 transition-colors text-neutral-900">
+        <a href={meetupHref} class="hover:text-primary-600 transition-colors text-neutral-900">
           {title}
         </a>
       </h3>
@@ -75,7 +75,7 @@ const featuredLabel = taxonomy?.badgeLabels?.featured ?? 'Featured Event';
     <p class="text-neutral-600 line-clamp-2 mb-4">{description}</p>
 
     <div class="flex items-center gap-3">
-      <a href={`/meetups/${meetup.id}`} class="btn-outline btn-sm">
+      <a href={meetupHref} class="btn-outline btn-sm">
         View Details
       </a>
       {rsvpLink && !isPast && (

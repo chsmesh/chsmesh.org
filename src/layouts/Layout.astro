@@ -22,7 +22,7 @@ const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
 const footerEntry = await getEntry('global', 'footer');
 const footer = footerEntry?.data?.type === 'footer' ? footerEntry.data : undefined;
 const navigationLinks = (navigation?.links ?? []) as { label: string; href: string; external?: boolean }[];
-const resolveHref = (href: string) => resolveLink(href, site?.links, site?.social);
+const resolveHref = (href: string) => resolveLink(href, site?.links);
 const footerQuickLinks = (footer?.quickLinks.links ?? []).map((link) => {
   const href = resolveHref(link.href);
   return {
@@ -42,7 +42,8 @@ const footerCommunityLinks = (footer?.community.links ?? []).map((link) => {
 const footerCopyright = footer?.legal.copyright.replace('{year}', String(new Date().getFullYear()));
 
 const currentPath = Astro.url.pathname;
-const fullTitle = title === 'Home' ? 'CHS Mesh - Charleston Meshtastic Community' : `${title} | CHS Mesh`;
+const fullTitle = currentPath === '/' ? 'CHS Mesh - Charleston Meshtastic Community' : `${title} | CHS Mesh`;
+const canonicalUrl = new URL(currentPath, Astro.site);
 ---
 
 <!doctype html>
@@ -70,6 +71,9 @@ const fullTitle = title === 'Home' ? 'CHS Mesh - Charleston Meshtastic Community
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Canonical URL -->
+    {!noIndex && <link rel="canonical" href={canonicalUrl} />}
 
     <title>{fullTitle}</title>
   </head>

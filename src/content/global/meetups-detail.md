@@ -8,6 +8,6 @@ rsvpLabel: RSVP Now
 maxAttendeesLabel: Limited to {count} attendees
 recurringLabel: "🔄 Recurring:"
 mapHeading: Location Map
-mapBody: Map preview requires Google Maps API key
+mapBody: Open this location in Google Maps for turn-by-turn directions and parking options.
 mapCtaLabel: View on Google Maps
 ---

@@ -13,15 +13,6 @@ hero:
     - label: Join a Meetup
       href: /meetups
       variant: secondary
-stats:
-  - value: TBD+
-    label: Active Nodes
-  - value: TBD+
-    label: Community Members
-  - value: TBDmi
-    label: Coverage Radius
-  - value: 24/7
-    label: Network Uptime
 intro:
   heading: What is Meshtastic?
   body: Meshtastic is an open-source project that enables long-range, low-power mesh networking using affordable LoRa radios. Messages hop between nodes to extend range far beyond a single radio's capability. 
@@ -36,7 +27,7 @@ features:
     description: Meshtastic is 100% open source. Modify, extend, and contribute to the project.
     icon: code
   - title: Low Cost
-    description: Get started for under $35. No monthly fees, no subscriptions, no data limits.
+    description: Get started for about $30-75 including an antenna upgrade. No monthly fees, no subscriptions, no data limits.
     icon: dollar
 meetupsSection:
   heading: Upcoming Meetups

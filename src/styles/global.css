@@ -56,6 +56,30 @@ html {
   scroll-behavior: smooth;
 }
 
+/*
+ * Respect the OS "reduce motion" setting.
+ * Covers smooth scrolling, the FAQ chevron rotation (about.astro uses
+ * `group-open:rotate-180 transition-transform`), the submission form submit
+ * spinner (`animate-spin`) and the fade-in utility below.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .transition-transform {
+    transition: none !important;
+  }
+
+  .animate-spin {
+    animation: none !important;
+  }
+
+  .animate-fade-in {
+    animation: none !important;
+  }
+}
+
 body {
   background-color: var(--color-neutral-50);
   color: var(--color-neutral-800);
@@ -330,8 +354,23 @@ a:not(.btn):not([class*="btn-"]):hover {
   border-top: 1px solid var(--color-neutral-100);
 }
 
-/* Badges */
-.badge {
+/* Badges. Every variant carries the base shape so markup can use a variant
+   class on its own (GuideCard, MeetupCard and ResourceCard all do). */
+.badge,
+.badge-primary,
+.badge-secondary,
+.badge-accent,
+.badge-success,
+.badge-warning,
+.badge-error,
+.badge-neutral,
+.badge-beginner,
+.badge-intermediate,
+.badge-advanced,
+.badge-relay,
+.badge-router,
+.badge-client,
+.badge-solar {
   display: inline-flex;
   align-items: center;
   padding: 0.125rem 0.625rem;
@@ -432,6 +471,20 @@ a:not(.btn):not([class*="btn-"]):hover {
     padding: 3rem 0;
   }
 }
+/* A hero already carries generous bottom padding; trim the top of the section
+   that immediately follows it so the two do not stack into a 6rem gap. */
+.hero + .section,
+.hero + .section-sm {
+  padding-top: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .hero + .section,
+  .hero + .section-sm {
+    padding-top: 1.75rem;
+  }
+}
+
 
 .container-narrow {
   max-width: 56rem;
@@ -472,12 +525,51 @@ a:not(.btn):not([class*="btn-"]):hover {
 /* Hero section */
 .hero {
   position: relative;
-  background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700), var(--color-secondary-700));
+  /* Starts at primary-700, not primary-600: white text on primary-600 is only
+     3.7:1, which fails WCAG AA for the 20px subtitle on small screens. On
+     primary-700 and secondary-700 white reads 5.5:1 and 5.9:1. */
+  --hero-gradient: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-700), var(--color-secondary-700));
+  background: var(--hero-gradient);
   color: white;
 }
 
+/* The dot pattern is layered OVER the gradient. A bare background-image here
+   would replace the gradient (it is a background-image too), leaving white text
+   on the page background. */
 .hero-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"), var(--hero-gradient);
+}
+
+/* Links inside a hero sit on the gradient. The global link colour above is
+   invisible there, and Tailwind colour utilities cannot override it because
+   they live in @layer utilities while this sheet is unlayered. */
+.hero a:not(.btn):not([class*="btn-"]) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero a:not(.btn):not([class*="btn-"]):hover {
+  color: white;
+  text-decoration: underline;
+}
+
+/* Guide prerequisites strip between the hero and the body. It needs its own
+   vertical padding (a py-* utility on .container-narrow loses to that class's
+   unlayered padding), and the body section after it gets the same trimmed top
+   as a section directly after a hero. */
+.prereqs {
+  padding: 0.75rem 0;
+}
+
+.prereqs + .section,
+.prereqs + .section-sm {
+  padding-top: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .prereqs + .section,
+  .prereqs + .section-sm {
+    padding-top: 1.75rem;
+  }
 }
 
 /* Navigation */

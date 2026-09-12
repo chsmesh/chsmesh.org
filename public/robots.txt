@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://chsmesh.org/sitemap-index.xml

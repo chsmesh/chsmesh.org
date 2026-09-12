@@ -10,11 +10,12 @@ CHS Mesh is an Astro-based static website for Charleston's Meshtastic community.
 
 ### Content Collections (Astro Content API)
 Content is organized in `src/content/` with schema validation in `src/content/config.ts`:
-- **meetups**: Community events with dates, locations, optional coordinates for map display
-- **guides**: Tutorials with difficulty levels (beginner/intermediate/advanced) and categories (getting-started, hardware, software, network, troubleshooting)
-- **resources**: Hardware device specifications and community links
-- **nodes**: JSON files describing active mesh network nodes (routers, relays, solar-powered)
-- **global**: Site metadata (site.md) and navigation configuration (navigation.md)
+- **meetups**: Community events with dates, locations, optional coordinates for map display. `src/content/meetups/` exists (kept in git by a `.gitkeep`) but holds no entries yet — add the first `.md` file there.
+- **guides**: Tutorials with difficulty levels (beginner/intermediate/advanced) and categories (getting-started, hardware, software, network, troubleshooting). 4 entries in `src/content/guides/`.
+- **resources**: Hardware device specifications and community links. 7 entries in `src/content/resources/`.
+- **nodes**: JSON files describing community-registered mesh network nodes. `type` is one of `relay`, `router`, `client`, `solar` (default `client`). No entries yet: `src/content/nodes/` exists (kept in git by a `.gitkeep`) but holds no files — add the first `.json` there. `/map` counts zero nodes and renders its "No Nodes Registered" empty state until then; the records are owner-submitted, not live telemetry.
+- **taxonomies**: Display labels, descriptions, and icons for guide categories/difficulties, resource categories, and meetup statuses/badges. A single entry, `src/content/taxonomies/default.md`, read through `src/utils/taxonomy.ts`.
+- **global**: Site metadata and per-page copy — 11 Markdown files in `src/content/global/`: `site.md`, `navigation.md`, `footer.md`, `home.md`, `about.md`, `map.md`, `guides.md`, `guides-detail.md`, `meetups.md`, `meetups-detail.md`, `resources.md`. The schema is a discriminated union on the `type` frontmatter field, so each file must declare its `type`.
 
 ### Page Generation
 - Static routes: `src/pages/` → predictable URLs (index.astro → /, about.astro → /about)
@@ -47,10 +48,14 @@ Content is organized in `src/content/` with schema validation in `src/content/co
 ### Development Commands
 ```bash
 npm run dev        # Start localhost:4321 with hot reload
-npm run build      # Generate dist/ for production
+npm test           # node --test — security/config suites under test/
+npm run check      # astro check — types plus content-collection schemas
+npm run build      # Generate dist/ for production (also emits sitemap-index.xml)
 npm run preview    # Test built site locally
 npm run astro ...  # Pass through Astro CLI commands
 ```
+
+`check` is not part of `build`; CI runs both.
 
 ## Project-Specific Conventions
 
@@ -63,12 +68,14 @@ npm run astro ...  # Pass through Astro CLI commands
 ### Layout Structure
 - All pages extend `src/layouts/Layout.astro`, which handles SEO metadata, header/footer
 - Pass `title`, `description`, and `ogImage` props to Layout for page-specific metadata
-- Header/footer sourced from global navigation config; update `src/content/global/navigation.md` to modify site-wide links
+- Header navigation comes from `src/content/global/navigation.md`; the footer (brand blurb, quick links, community links, copyright, trademark) comes from `src/content/global/footer.md`. Update the matching file — editing `navigation.md` does not change the footer.
 
 ### Component Composition
 - Cards (GuideCard, MeetupCard, ResourceCard) expect collection item objects with `data` and `id` properties
-- Category/difficulty labels: Use `.map()` with lookup objects to convert enum values to display labels
-- Time calculations: Always use `new Date()` for current date; filter by comparing `date >= now` for "upcoming" items
+- Category/difficulty/status labels: resolve them through `getTaxonomyLabels()` in `src/utils/taxonomy.ts`, which reads `src/content/taxonomies/default.md`. Never hand-write a local lookup object — component-private maps drifted from the authored taxonomy (a card said "Device" where the taxonomy says "Devices"). Cards resolve their own labels, so pages do not drill taxonomy props through them
+- Upcoming vs. past meetups: use `isUpcomingMeetup()` / `isPastMeetup()` from `src/utils/meetups.ts`. They compare against `endDate ?? date`, so an event that has started but not ended still counts as upcoming; a bare `data.date >= now` test would drop it from the listing mid-event
+- Page copy: load it with `getGlobal(id, type)` from `src/utils/global.ts` rather than `getEntry('global', id)` plus `?? ''` fallbacks. It throws on a missing entry or a `type` mismatch, so an authoring mistake fails the build instead of rendering a blank heading
+- CTA buttons: build the class with `getCtaClass(variant, size?)` from `src/utils/cta.ts` rather than hand-writing `btn-*` classes. The about, guides, home, meetups, and resources pages do this; `map.astro` still hardcodes `btn-primary` for its two CTAs and ignores `variant` (a known gap, not a pattern to copy)
 
 ## Common Patterns & Examples
 
@@ -88,14 +95,40 @@ const { Content } = await render(guide);
 // Use <Content /> component to render markdown HTML
 ```
 
-### Enum Mapping Pattern
+### Shared Utilities (`src/utils/`)
+
+Enum-to-label maps, meetup date logic, page-copy loading, and CTA classes are
+centralized. Reach for these instead of re-deriving them in a component:
+
 ```astro
-const difficultyColors = {
-  beginner: 'badge-beginner',
-  intermediate: 'badge-intermediate',
-  advanced: 'badge-advanced',
-};
+---
+import { getTaxonomyLabels } from '../utils/taxonomy';
+import { isUpcomingMeetup, isPastMeetup } from '../utils/meetups';
+import { getGlobal } from '../utils/global';
+import { getCtaClass } from '../utils/cta';
+
+// Display labels, straight from src/content/taxonomies/default.md.
+// Shape: { guideCategories, guideDifficulties, resourceCategories,
+//          meetupStatuses, meetupBadges }, each a Record<string, string>.
+const labels = await getTaxonomyLabels();
+const difficultyLabel = labels.guideDifficulties[guide.data.difficulty];
+
+// End-date aware: a running event stays "upcoming" until endDate ?? date passes.
+const now = new Date();
+const upcoming = allMeetups.filter((m) => isUpcomingMeetup(m.data, now));
+const past = allMeetups.filter((m) => isPastMeetup(m.data, now));
+
+// Required page copy; throws if the entry is missing or its `type` disagrees.
+const guidesPage = await getGlobal('guides', 'guides');
+
+// 'primary' | 'secondary' | 'outline' | 'ghost'; size 'sm' | 'lg' optional.
+const ctaClass = getCtaClass(guidesPage.contribute.cta.variant, 'lg');
+---
 ```
+
+Badge *color* classes (`badge-beginner` / `badge-intermediate` /
+`badge-advanced`) are still plain Tailwind utility names from
+`src/styles/global.css` — only the human-readable text comes from the taxonomy.
 
 ### Utility Class Naming
 - Buttons: `.btn-primary` (colored), `.btn` (secondary)
@@ -107,8 +140,9 @@ const difficultyColors = {
 
 - **Astro Content API**: Core data layer; schema validation prevents invalid frontmatter
 - **Tailwind CSS**: All styling; no custom CSS classes outside `src/styles/global.css` except component-scoped styles
-- **Site Config** (`astro.config.mjs`): `site: 'https://chsmesh.org'` sets canonical URLs for SEO
-- **Social/Community Links**: Stored in `src/content/global/site.md` global data; used in footer/nav
+- **Site Config** (`astro.config.mjs`): `site: 'https://chsmesh.org'` sets canonical URLs for SEO and is the origin `@astrojs/sitemap` uses for `sitemap-index.xml`
+- **Community Links**: `src/content/global/site.md` has one `links` map (Discord, GitHub, repo, and the `info@`/`meetups@` mailto addresses) — there is no separate `social` list. Page copy refers to them with `@links.<key>` tokens, resolved by `resolveLink()` in `src/utils/siteLinks.ts`; used in footer/nav and in CTA hrefs
+- **nginx** (`nginx.conf` + `security-headers.conf`): security headers live in the include, and **any `location` that declares an `add_header` must re-`include` `security-headers.conf`** or it serves none of them — see the deployment section of `README.md`
 
 ## Debugging & Troubleshooting
 
@@ -118,4 +152,4 @@ const difficultyColors = {
 - Collection queries return empty? Confirm markdown files are in `src/content/{collection}/` directory with correct schema
 
 ---
-**Last Updated**: January 2026 | **Astro Version**: 5.16.11
+**Last Updated**: September 2026 | **Astro Version**: 5.16.11 (from `package.json`)

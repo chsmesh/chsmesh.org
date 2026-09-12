@@ -1,12 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
-import { getCollection, getEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
+import { getGlobal } from '../utils/global';
 
 const nodes = await getCollection('nodes');
 const activeNodes = nodes.filter((n) => n.data.active);
-const mapEntry = await getEntry('global', 'map');
-const mapPage = mapEntry?.data?.type === 'map' ? mapEntry.data : undefined;
+const mapPage = await getGlobal('map', 'map');
 
 // Group nodes by type for stats
 const nodesByType = {
@@ -16,10 +16,10 @@ const nodesByType = {
   client: activeNodes.filter((n) => n.data.type === 'client'),
 };
 
-const stats = (mapPage?.stats ?? []) as { key: string; label: string; colorClass?: string }[];
-const legendItems = (mapPage?.legend.items ?? []) as { label: string; description: string; colorClass: string }[];
-const coverageLocations = (mapPage?.coverage.locations ?? []) as { label: string; status: 'complete' | 'progress' | 'planned' }[];
-const externalMaps = (mapPage?.externalMaps.links ?? []) as { label: string; href: string; external?: boolean }[];
+const stats = mapPage.stats as { key: string; label: string; colorClass?: string }[];
+const legendItems = mapPage.legend.items as { label: string; description: string; colorClass: string }[];
+const coverageLocations = mapPage.coverage.locations as { label: string; status: 'complete' | 'progress' | 'planned' }[];
+const externalMaps = mapPage.externalMaps.links as { label: string; href: string; external?: boolean }[];
 
 const getCoverageIcon = (status: 'complete' | 'progress' | 'planned') => {
   if (status === 'complete') return 'check';
@@ -38,8 +38,8 @@ const getStatValue = (key: string) => {
 
 ---
 
-<Layout title={mapPage?.pageTitle ?? 'Network Map'} description={mapPage?.pageDescription}>
-  <Hero title={mapPage?.hero.title ?? ''} subtitle={mapPage?.hero.subtitle ?? ''} size={mapPage?.hero.size ?? 'small'}>
+<Layout title={mapPage.pageTitle} description={mapPage.pageDescription}>
+  <Hero title={mapPage.hero.title} subtitle={mapPage.hero.subtitle} size={mapPage.hero.size ?? 'small'}>
     <div class="mt-6">
       <button data-modal-open="node-modal" class="btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,15 +79,15 @@ const getStatValue = (key: string) => {
                   <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
-                  <h3 class="text-lg font-semibold text-neutral-700 mb-2">{mapPage?.map.heading}</h3>
-                  <p class="text-neutral-500 mb-4">{mapPage?.map.body}</p>
+                  <h3 class="text-lg font-semibold text-neutral-700 mb-2">{mapPage.map.heading}</h3>
+                  <p class="text-neutral-500 mb-4">{mapPage.map.body}</p>
                   <a 
-                    href={mapPage?.map.cta.href}
+                    href={mapPage.map.cta.href}
                     target="_blank" 
                     rel="noopener noreferrer"
                     class="btn-primary"
                   >
-                    {mapPage?.map.cta.label}
+                    {mapPage.map.cta.label}
                     <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
@@ -99,8 +99,8 @@ const getStatValue = (key: string) => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <h3 class="text-lg font-semibold text-neutral-700 mb-2">{mapPage?.empty.heading}</h3>
-                  <p class="text-neutral-500">{mapPage?.empty.body}</p>
+                  <h3 class="text-lg font-semibold text-neutral-700 mb-2">{mapPage.empty.heading}</h3>
+                  <p class="text-neutral-500">{mapPage.empty.body}</p>
                 </div>
               )}
             </div>
@@ -111,7 +111,7 @@ const getStatValue = (key: string) => {
         <div class="space-y-6">
           <!-- Legend -->
           <div class="card card-body">
-            <h3 class="font-semibold mb-4">{mapPage?.legend.heading}</h3>
+            <h3 class="font-semibold mb-4">{mapPage.legend.heading}</h3>
             <ul class="space-y-3">
               {legendItems.map((item) => (
                 <li class="flex items-center gap-3">
@@ -126,20 +126,20 @@ const getStatValue = (key: string) => {
 
           <!-- Add Your Node Button -->
           <div class="card card-body bg-primary-50 border-primary-200">
-            <h3 class="font-semibold mb-2">{mapPage?.addNode.heading}</h3>
-            <p class="text-sm text-neutral-600 mb-4">{mapPage?.addNode.body}</p>
+            <h3 class="font-semibold mb-2">{mapPage.addNode.heading}</h3>
+            <p class="text-sm text-neutral-600 mb-4">{mapPage.addNode.body}</p>
             <button
               data-modal-open="node-modal"
               class="btn-primary btn-sm w-full"
             >
-              {mapPage?.addNode.cta.label}
+              {mapPage.addNode.cta.label}
             </button>
           </div>
 
           <!-- Coverage Info -->
           <div class="card card-body">
-            <h3 class="font-semibold mb-2">{mapPage?.coverage.heading}</h3>
-            <p class="text-sm text-neutral-600 mb-4">{mapPage?.coverage.body}</p>
+            <h3 class="font-semibold mb-2">{mapPage.coverage.heading}</h3>
+            <p class="text-sm text-neutral-600 mb-4">{mapPage.coverage.body}</p>
             <ul class="text-sm text-neutral-600 space-y-1">
               {coverageLocations.map((location) => (
                 <li class="flex items-center gap-2">
@@ -166,7 +166,7 @@ const getStatValue = (key: string) => {
 
           <!-- External Links -->
           <div class="card card-body">
-            <h3 class="font-semibold mb-3">{mapPage?.externalMaps.heading}</h3>
+            <h3 class="font-semibold mb-3">{mapPage.externalMaps.heading}</h3>
             <div class="space-y-2">
               {externalMaps.map((link) => (
                 <a 
@@ -189,16 +189,16 @@ const getStatValue = (key: string) => {
       <!-- Node List (if nodes exist) -->
       {activeNodes.length > 0 && (
         <div class="mt-12">
-          <h3 class="text-xl font-semibold mb-6">{mapPage?.registeredNodes.heading}</h3>
+          <h3 class="text-xl font-semibold mb-6">{mapPage.registeredNodes.heading}</h3>
           <div class="card overflow-hidden">
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead class="bg-neutral-50 border-b border-neutral-200">
                   <tr>
-                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage?.registeredNodes.table.name}</th>
-                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage?.registeredNodes.table.type}</th>
-                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage?.registeredNodes.table.elevation}</th>
-                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage?.registeredNodes.table.lastSeen}</th>
+                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage.registeredNodes.table.name}</th>
+                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage.registeredNodes.table.type}</th>
+                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage.registeredNodes.table.elevation}</th>
+                    <th class="text-left px-4 py-3 font-medium text-neutral-600">{mapPage.registeredNodes.table.lastSeen}</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-neutral-100">
@@ -212,8 +212,8 @@ const getStatValue = (key: string) => {
                         {node.data.elevation ? `${node.data.elevation} ft` : '-'}
                       </td>
                       <td class="px-4 py-3 text-neutral-500">
-                        {node.data.lastSeen 
-                          ? node.data.lastSeen.toLocaleDateString() 
+                        {node.data.lastSeen
+                          ? node.data.lastSeen.toLocaleDateString('en-US', { timeZone: 'UTC' })
                           : 'Unknown'}
                       </td>
                     </tr>

@@ -58,9 +58,19 @@ project/
 └── src/
     └── content/
         ├── guides/
-        ├── meetups/
-        └── resources/
+        ├── meetups/     # empty, kept by .gitkeep
+        ├── resources/
+        ├── nodes/       # empty, not present in a fresh clone
+        ├── taxonomies/
+        └── global/
 ```
+
+`src/content/meetups/` already exists (a `.gitkeep` keeps it in git) and the
+collection is defined in `src/content/config.ts` — it simply has no entries yet.
+Add the first meetup as an `.md` file in that directory.
+
+`src/content/nodes/` is also empty but has no `.gitkeep`, so git does not carry
+it; create the directory if your clone lacks it.
 
 ## Common Patterns
 
