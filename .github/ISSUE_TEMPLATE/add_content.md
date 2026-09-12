@@ -32,9 +32,10 @@ Describe the content you're adding.
 - Description:
 
 ### For Nodes:
-- Node name/ID:
+- Node name:
 - Location:
-- Type: (router/relay/sensor)
+- Type: (relay/router/client/solar)
+- Coordinates (lat/lng — please round residential locations to ~3 decimals):
 - Brief description:
 
 ### For Resources:

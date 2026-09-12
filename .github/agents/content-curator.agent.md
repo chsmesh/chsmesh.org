@@ -58,9 +58,14 @@ project/
 └── src/
     └── content/
         ├── guides/
-        ├── meetups/
-        └── resources/
+        ├── resources/
+        ├── nodes/
+        ├── taxonomies/
+        └── global/
 ```
+
+There is no `src/content/meetups/` directory yet; the collection is defined in
+`src/content/config.ts`, so create the directory with the first meetup entry.
 
 ## Common Patterns
 

@@ -26,7 +26,7 @@ import { getCollection, render } from 'astro:content';
 export async function getStaticPaths() {
   const guides = await getCollection('guides');
   return guides.map((guide) => ({
-    params: { slug: guide.id },
+    params: { slug: guide.slug },
     props: { guide },
   }));
 }
@@ -44,7 +44,7 @@ const { Content } = await render(guide);
 
 1. **Always wrap pages in `Layout.astro`** - Keeps SEO, nav, and footer consistent.
 2. **Pass page metadata** - Provide `title` and `description` per route.
-3. **Use `guide.id` for slugs** - Aligns with collection filenames.
+3. **Use `entry.slug` for route params** - `slug` is the filename with the extension stripped, so routes come out as clean URLs (`/guides/what-is-meshtastic/`). Do not use `entry.id`: for Markdown collections it still carries the `.md` extension and would leak it into the URL.
 4. **Keep data loading in frontmatter** - Avoid client-side fetching for static pages.
 5. **Prefer predictable routes** - Use `src/pages/` for static pages.
 

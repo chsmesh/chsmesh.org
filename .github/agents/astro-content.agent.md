@@ -71,14 +71,20 @@ readingTime: 5
 project/
 ├── src/
 │   ├── content/
+│   │   ├── config.ts     # schemas for every collection
 │   │   ├── guides/
-│   │   ├── meetups/
 │   │   ├── resources/
-│   │   └── nodes/
+│   │   ├── nodes/
+│   │   ├── taxonomies/   # default.md — labels and icons
+│   │   └── global/       # 11 files of site metadata and page copy
 │   └── pages/
 │       ├── guides/
 │       └── meetups/
 ```
+
+The `meetups` collection is declared in `src/content/config.ts` and its routes
+exist, but `src/content/meetups/` has not been created — there are no meetup
+entries yet.
 
 ## Common Patterns
 

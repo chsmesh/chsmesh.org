@@ -10,11 +10,12 @@ CHS Mesh is an Astro-based static website for Charleston's Meshtastic community.
 
 ### Content Collections (Astro Content API)
 Content is organized in `src/content/` with schema validation in `src/content/config.ts`:
-- **meetups**: Community events with dates, locations, optional coordinates for map display
-- **guides**: Tutorials with difficulty levels (beginner/intermediate/advanced) and categories (getting-started, hardware, software, network, troubleshooting)
-- **resources**: Hardware device specifications and community links
-- **nodes**: JSON files describing active mesh network nodes (routers, relays, solar-powered)
-- **global**: Site metadata (site.md) and navigation configuration (navigation.md)
+- **meetups**: Community events with dates, locations, optional coordinates for map display. The collection is defined, but `src/content/meetups/` does not exist yet — there are no meetup entries.
+- **guides**: Tutorials with difficulty levels (beginner/intermediate/advanced) and categories (getting-started, hardware, software, network, troubleshooting). 4 entries in `src/content/guides/`.
+- **resources**: Hardware device specifications and community links. 7 entries in `src/content/resources/`.
+- **nodes**: JSON files describing active mesh network nodes. `type` is one of `relay`, `router`, `client`, `solar` (default `client`). 3 entries in `src/content/nodes/`.
+- **taxonomies**: Display labels, descriptions, and icons for guide categories/difficulties, resource categories, and meetup statuses/badges. A single entry, `src/content/taxonomies/default.md`, read through `src/utils/taxonomy.ts`.
+- **global**: Site metadata and per-page copy — 11 Markdown files in `src/content/global/`: `site.md`, `navigation.md`, `footer.md`, `home.md`, `about.md`, `map.md`, `guides.md`, `guides-detail.md`, `meetups.md`, `meetups-detail.md`, `resources.md`. The schema is a discriminated union on the `type` frontmatter field, so each file must declare its `type`.
 
 ### Page Generation
 - Static routes: `src/pages/` → predictable URLs (index.astro → /, about.astro → /about)
@@ -63,7 +64,7 @@ npm run astro ...  # Pass through Astro CLI commands
 ### Layout Structure
 - All pages extend `src/layouts/Layout.astro`, which handles SEO metadata, header/footer
 - Pass `title`, `description`, and `ogImage` props to Layout for page-specific metadata
-- Header/footer sourced from global navigation config; update `src/content/global/navigation.md` to modify site-wide links
+- Header navigation comes from `src/content/global/navigation.md`; the footer (brand blurb, quick links, community links, copyright, trademark) comes from `src/content/global/footer.md`. Update the matching file — editing `navigation.md` does not change the footer.
 
 ### Component Composition
 - Cards (GuideCard, MeetupCard, ResourceCard) expect collection item objects with `data` and `id` properties
@@ -118,4 +119,4 @@ const difficultyColors = {
 - Collection queries return empty? Confirm markdown files are in `src/content/{collection}/` directory with correct schema
 
 ---
-**Last Updated**: January 2026 | **Astro Version**: 5.16.11
+**Last Updated**: September 2026 | **Astro Version**: 5.16.11 (from `package.json`)
