@@ -50,12 +50,20 @@ Spam controls, in order of cost:
 
 1. nginx `limit_req` (10 per minute per address, burst 5) and the service's
    own limit (5 per hour per address per kind).
-2. Honeypot: a payload with a non-empty `website` field is silently dropped
-   with a 200. Add a visually hidden `website` input to `SubmissionForm.astro`
-   to activate this.
-3. Optional Cloudflare Turnstile: set `TURNSTILE_SECRET` and the service
-   requires a valid `turnstileToken` in the payload. The widget is not in the
-   form yet.
+2. Honeypot: the form carries an off-screen `website` input; a payload where
+   it is non-empty is silently dropped with a 200.
+3. Optional Cloudflare Turnstile. Set `PUBLIC_TURNSTILE_SITE_KEY` (public,
+   baked in at build time) and `TURNSTILE_SECRET` (service only). The form
+   renders the widget on first interaction with action `submit-<kind>`; the
+   service verifies the token with siteverify and also requires the returned
+   `hostname` to equal `SITE_ORIGIN`'s host and the `action` to match, so a
+   token from another page or site cannot be replayed. Tokens are single use
+   and the widget resets after each attempt. The widget's hostnames in the
+   Cloudflare dashboard must include the site host and `localhost` for local
+   testing; Cloudflare's test keys (`1x00000000000000000000AA` /
+   `1x0000000000000000000000000000000AA`) always pass and are what CI builds
+   with. The CSP allows `https://challenges.cloudflare.com` in `script-src`
+   and `frame-src` unconditionally.
 
 ## Setting up the service
 
@@ -125,9 +133,8 @@ knowing they display as typed.
 
 ## Follow-ups not in this sketch
 
-- Add the honeypot input (and optionally the Turnstile widget) to
-  `SubmissionForm.astro`, and rename `webhookEnvVar` and friends once n8n is
-  gone. The `PUBLIC_N8N_*` names are kept so the cutover is a config change.
+- Rename `webhookEnvVar` and friends once n8n is gone. The `PUBLIC_N8N_*`
+  names are kept so the cutover is a config change.
 - Add the remaining `src/content/global/*.md` page files to the `global`
   collection in `config.yml`.
 - Meetup times from the public form carry no timezone (the input is

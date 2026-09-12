@@ -16,7 +16,7 @@
 
 import http from 'node:http';
 import crypto from 'node:crypto';
-import { KINDS, SPECS, validate, buildFile, slugify, pullRequestBody } from './lib.mjs';
+import { KINDS, SPECS, validate, buildFile, slugify, pullRequestBody, turnstileVerdict } from './lib.mjs';
 
 const env = (name, fallback = '') => (process.env[name] ?? fallback).trim();
 
@@ -123,16 +123,34 @@ async function github(path, { method = 'GET', body } = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-async function verifyTurnstile(token, ip) {
+// Server-side Turnstile check. Returns true when the token is valid (or
+// Turnstile is not configured), false otherwise; the reason is logged, never
+// sent to the client. `kind` must match the `submit-<kind>` action the form
+// renders the widget with (see SubmissionForm.astro).
+async function verifyTurnstile(token, ip, kind) {
   if (!TURNSTILE_SECRET) return true;
-  if (!token) return false;
-  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ secret: TURNSTILE_SECRET, response: token, remoteip: ip }),
+  if (typeof token !== 'string' || !token || token.length > 2048) {
+    console.log(`Turnstile: missing token (${kind}) from ${ip}`);
+    return false;
+  }
+  let result;
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ secret: TURNSTILE_SECRET, response: token, remoteip: ip }),
+    });
+    result = await res.json();
+  } catch (error) {
+    console.error(`Turnstile: siteverify request failed: ${error.message}`);
+    return false;
+  }
+  const verdict = turnstileVerdict(result, {
+    hostname: SITE_ORIGIN ? new URL(SITE_ORIGIN).hostname : '',
+    action: `submit-${kind}`,
   });
-  const result = await res.json().catch(() => ({}));
-  return result.success === true;
+  if (!verdict.ok) console.log(`Turnstile: rejected (${kind}) from ${ip}: ${verdict.reason}`);
+  return verdict.ok;
 }
 
 async function notifyDiscord({ kind, title, email, prUrl }) {
@@ -227,7 +245,9 @@ async function handleSubmit(req, res, kind) {
     console.log(`Dropped honeypot submission (${kind}) from ${ip}`);
     return send(res, 200, { ok: true });
   }
-  if (!(await verifyTurnstile(payload.turnstileToken, ip))) {
+  // The form sends the widget token as `turnstileToken`; accept Cloudflare's
+  // default field name too for anyone posting the raw form encoding.
+  if (!(await verifyTurnstile(payload.turnstileToken ?? payload['cf-turnstile-response'], ip, kind))) {
     return send(res, 400, { ok: false, error: 'verification failed, please retry' });
   }
 

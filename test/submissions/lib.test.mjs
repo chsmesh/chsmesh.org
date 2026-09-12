@@ -1,6 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slugify, validate, buildFile, yamlLines, renderMarkdown, pullRequestBody, KINDS } from '../../services/submissions/lib.mjs';
+import { slugify, validate, buildFile, yamlLines, renderMarkdown, pullRequestBody, turnstileVerdict, KINDS } from '../../services/submissions/lib.mjs';
+
+test('turnstile verdict requires success, matching hostname and action', () => {
+  const expected = { hostname: 'chsmesh.org', action: 'submit-node' };
+  const good = { success: true, hostname: 'chsmesh.org', action: 'submit-node' };
+  assert.deepEqual(turnstileVerdict(good, expected), { ok: true });
+
+  assert.equal(turnstileVerdict({ success: false, 'error-codes': ['timeout-or-duplicate'] }, expected).ok, false);
+  assert.match(turnstileVerdict({ success: false, 'error-codes': ['timeout-or-duplicate'] }, expected).reason, /timeout-or-duplicate/);
+  assert.equal(turnstileVerdict(null, expected).ok, false);
+  assert.equal(turnstileVerdict('nope', expected).ok, false);
+  assert.equal(turnstileVerdict({ ...good, hostname: 'evil.example' }, expected).ok, false);
+  assert.equal(turnstileVerdict({ ...good, action: 'submit-guide' }, expected).ok, false);
+  // A token minted for another kind's form is a mismatch even though it is valid.
+  assert.match(turnstileVerdict({ ...good, action: 'submit-guide' }, expected).reason, /action mismatch/);
+  // Checks are skipped when the service has nothing to compare against.
+  assert.deepEqual(turnstileVerdict(good, { hostname: '', action: '' }), { ok: true });
+});
 
 test('slugify produces filesystem-safe collection slugs', () => {
   assert.equal(slugify('West Ashley Relay'), 'west-ashley-relay');

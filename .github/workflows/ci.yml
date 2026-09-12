@@ -22,6 +22,9 @@ env:
   PUBLIC_N8N_GUIDES_WEBHOOK_URL: https://example.invalid/webhook/submit-guide
   PUBLIC_N8N_MEETUPS_WEBHOOK_URL: https://example.invalid/webhook/submit-meetup
   PUBLIC_N8N_RESOURCES_WEBHOOK_URL: https://example.invalid/webhook/submit-resource
+  # Cloudflare's documented "always passes" test site key, so the build
+  # exercises the Turnstile path (script tag, widget slot) without a real widget.
+  PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
 
 jobs:
   build-and-smoke-test:
@@ -71,6 +74,7 @@ jobs:
             --build-arg PUBLIC_N8N_GUIDES_WEBHOOK_URL="$PUBLIC_N8N_GUIDES_WEBHOOK_URL" \
             --build-arg PUBLIC_N8N_MEETUPS_WEBHOOK_URL="$PUBLIC_N8N_MEETUPS_WEBHOOK_URL" \
             --build-arg PUBLIC_N8N_RESOURCES_WEBHOOK_URL="$PUBLIC_N8N_RESOURCES_WEBHOOK_URL" \
+            --build-arg PUBLIC_TURNSTILE_SITE_KEY="$PUBLIC_TURNSTILE_SITE_KEY" \
             -t chsmesh:ci .
 
       - name: Start container
@@ -110,6 +114,13 @@ jobs:
 
           printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
             || { echo 'Missing Content-Security-Policy header on /' >&2; exit 1; }
+          # The Turnstile script and challenge iframe must be allowed on pages.
+          printf '%s\n' "$headers" | grep -i '^content-security-policy:' \
+            | grep -q "script-src 'self' https://challenges.cloudflare.com" \
+            || { echo 'CSP script-src does not allow Turnstile on /' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -i '^content-security-policy:' \
+            | grep -q "frame-src 'self' https://challenges.cloudflare.com" \
+            || { echo 'CSP frame-src does not allow Turnstile on /' >&2; exit 1; }
           printf '%s\n' "$headers" | grep -qi '^strict-transport-security:' \
             || { echo 'Missing Strict-Transport-Security header on /' >&2; exit 1; }
 

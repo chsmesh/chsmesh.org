@@ -332,6 +332,25 @@ export function buildFile(kind, data, { slug, today }) {
 }
 
 /** Human-readable summary rows for the pull request body. */
+// Interpret a Cloudflare Turnstile siteverify response. `success` alone is
+// not enough: the token must have been minted for this site's hostname and
+// for the expected form action, otherwise a token harvested on another page
+// (or another site sharing the key) could be replayed here.
+// https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+export function turnstileVerdict(result, { hostname, action }) {
+  if (!isPlainObject(result) || result.success !== true) {
+    const codes = Array.isArray(result?.['error-codes']) ? result['error-codes'] : [];
+    return { ok: false, reason: codes.length ? `siteverify: ${codes.join(', ')}` : 'siteverify: not successful' };
+  }
+  if (hostname && result.hostname !== hostname) {
+    return { ok: false, reason: `hostname mismatch: token for ${result.hostname ?? '(none)'}, expected ${hostname}` };
+  }
+  if (action && result.action !== action) {
+    return { ok: false, reason: `action mismatch: token for ${result.action ?? '(none)'}, expected ${action}` };
+  }
+  return { ok: true };
+}
+
 export function summarise(kind, data) {
   const rows = [];
   for (const [key, value] of Object.entries(data)) {

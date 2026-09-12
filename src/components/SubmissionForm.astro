@@ -50,6 +50,14 @@ export interface FormConfig {
 
 const { config } = Astro.props;
 const webhookUrl = import.meta.env[config.webhookEnvVar];
+// Cloudflare Turnstile site key (public by design). When set, Layout.astro
+// loads the Turnstile script and the form renders a widget whose token the
+// submissions service verifies with TURNSTILE_SECRET. Empty = no widget.
+const turnstileSiteKey = (import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '').trim();
+// Stable action name Cloudflare echoes back from siteverify; the service
+// requires it to match `submit-<kind>` so a token minted for one form (or
+// another site using the same key) cannot be replayed against another.
+const turnstileAction = `submit-${config.id.replace(/-form$/, '')}`;
 
 // The form config is handed to the client through an inert
 // `<script type="application/json">` data block rather than `define:vars`.
@@ -61,6 +69,8 @@ const webhookUrl = import.meta.env[config.webhookEnvVar];
 const formConfigJson = JSON.stringify({
   config,
   webhookUrl: webhookUrl ?? '',
+  turnstileSiteKey,
+  turnstileAction,
 }).replace(/</g, '\\u003c');
 ---
 
@@ -209,6 +219,25 @@ const formConfigJson = JSON.stringify({
       )}
     </div>
 
+    <!--
+      Honeypot: hidden from people (and from the accessibility tree), but bots
+      that fill every input will populate it. The submissions service silently
+      drops any payload where `website` is non-empty.
+    -->
+    <div class="honeypot" aria-hidden="true">
+      <label for={`${config.id}-website`}>Website</label>
+      <input type="text" id={`${config.id}-website`} name="website" tabindex="-1" autocomplete="off" />
+    </div>
+
+    {turnstileSiteKey && (
+      <div
+        class="turnstile-slot"
+        data-turnstile
+        data-sitekey={turnstileSiteKey}
+        data-action={turnstileAction}
+      ></div>
+    )}
+
     <!-- Error Message -->
     <div
       id={`${config.id}-error`}
@@ -241,6 +270,21 @@ const formConfigJson = JSON.stringify({
   </form>
 </div>
 
+<style>
+  /* Off-screen rather than display:none so autofill bots still see it. */
+  .honeypot {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  /* Reserve the widget's height so the form does not jump when it renders. */
+  .turnstile-slot {
+    min-height: 65px;
+  }
+</style>
+
 <script>
   // This script is hoisted and bundled by Astro, so it is served as an external
   // file and satisfies `script-src 'self'`. It is emitted once per page no
@@ -260,6 +304,14 @@ const formConfigJson = JSON.stringify({
     options?: { value: string; label: string }[];
     subFields?: ClientFormField[];
   };
+
+  // The subset of the Turnstile client API this form uses.
+  // https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/
+  type Turnstile = {
+    render: (container: HTMLElement, options: Record<string, unknown>) => string | undefined;
+    reset: (widgetId?: string) => void;
+  };
+  const getTurnstile = (): Turnstile | undefined => (window as { turnstile?: Turnstile }).turnstile;
 
   type ClientFormConfig = {
     id: string;
@@ -295,7 +347,11 @@ const formConfigJson = JSON.stringify({
       .replace(/'/g, '&#39;');
   }
 
-  function initForm(config: ClientFormConfig, WEBHOOK_URL: string) {
+  function initForm(
+    config: ClientFormConfig,
+    WEBHOOK_URL: string,
+    turnstile: { siteKey: string; action: string }
+  ) {
     const formNode = document.getElementById(config.id);
     if (!(formNode instanceof HTMLFormElement)) {
       console.warn(`Submission form not found: ${config.id}`);
@@ -319,6 +375,35 @@ const formConfigJson = JSON.stringify({
     const submitLoading = submitLoadingNode;
     const errorMessage = errorMessageNode;
     const successMessage = successMessageNode;
+
+    // Turnstile is rendered lazily, the first time someone interacts with the
+    // form. The forms live in modals on every page, so rendering four
+    // challenges on each page load would be wasteful; the modal focuses the
+    // first field on open, which fires focusin here. The script is loaded
+    // with ?render=explicit, so nothing renders until this call.
+    const turnstileSlot = form.querySelector<HTMLElement>('[data-turnstile]');
+    let turnstileWidgetId: string | undefined;
+    function mountTurnstile() {
+      if (!turnstileSlot || turnstileWidgetId !== undefined) return;
+      const api = getTurnstile();
+      if (!api) return; // api.js still loading; the next interaction retries
+      turnstileWidgetId = api.render(turnstileSlot, {
+        sitekey: turnstile.siteKey,
+        action: turnstile.action,
+        size: 'flexible',
+        // The token is injected into the form as a hidden input with this name.
+        'response-field-name': 'cf-turnstile-response',
+      });
+    }
+    if (turnstileSlot) {
+      form.addEventListener('focusin', mountTurnstile);
+      form.addEventListener('pointerdown', mountTurnstile);
+    }
+    // Tokens are single use: reset after every attempt, successful or not.
+    function resetTurnstile() {
+      if (turnstileWidgetId === undefined) return;
+      getTurnstile()?.reset(turnstileWidgetId);
+    }
 
     // Store dynamic array data
     const dynamicArrays: Record<string, Record<string, unknown>[]> = {};
@@ -442,6 +527,19 @@ const formConfigJson = JSON.stringify({
 
       // Get form data
       const formData = new FormData(form);
+
+      // Pull the Turnstile token out before the generic field loop below;
+      // the service expects it as `turnstileToken`, not under Cloudflare's
+      // input name, and never as a content field.
+      const turnstileToken = String(formData.get('cf-turnstile-response') ?? '');
+      formData.delete('cf-turnstile-response');
+      if (turnstileSlot) {
+        mountTurnstile();
+        if (!turnstileToken) {
+          showError('Please wait for the verification check to finish, then try again.');
+          return;
+        }
+      }
 
       // Collect dynamic array data
       dynamicArrayFields.forEach(field => {
@@ -576,6 +674,7 @@ const formConfigJson = JSON.stringify({
 
         // Always add submission timestamp
         payload.submittedAt = new Date().toISOString();
+        if (turnstileToken) payload.turnstileToken = turnstileToken;
 
         const response = await fetch(WEBHOOK_URL, {
           method: 'POST',
@@ -591,6 +690,7 @@ const formConfigJson = JSON.stringify({
 
         showSuccess(config.successMessage);
         form.reset();
+        resetTurnstile();
 
         // Reset dynamic arrays
         dynamicArrayFields.forEach(field => {
@@ -626,6 +726,7 @@ const formConfigJson = JSON.stringify({
       } catch (error) {
         console.error('Submission error:', error);
         showError('Failed to submit. Please try again or contact us on Discord.');
+        resetTurnstile();
       } finally {
         setLoading(false);
       }
@@ -642,7 +743,10 @@ const formConfigJson = JSON.stringify({
         return;
       }
       if (!parsed || !parsed.config) return;
-      initForm(parsed.config, parsed.webhookUrl || '');
+      initForm(parsed.config, parsed.webhookUrl || '', {
+        siteKey: parsed.turnstileSiteKey || '',
+        action: parsed.turnstileAction || '',
+      });
     });
   }
 
