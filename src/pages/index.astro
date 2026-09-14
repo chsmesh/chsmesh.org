@@ -5,6 +5,7 @@ import MeetupCard from '../components/MeetupCard.astro';
 import GuideCard from '../components/GuideCard.astro';
 import { getCollection } from 'astro:content';
 import { getGlobal } from '../utils/global';
+import { resolveLink } from '../utils/siteLinks';
 import { getCtaClass } from '../utils/cta';
 import { isUpcomingMeetup } from '../utils/meetups';
 
@@ -12,6 +13,8 @@ import { isUpcomingMeetup } from '../utils/meetups';
 const allMeetups = await getCollection('meetups');
 const allGuides = await getCollection('guides');
 const home = await getGlobal('home', 'home');
+const site = await getGlobal('site', 'site');
+const resolveHref = (href: string) => resolveLink(href, site.links);
 
 // Sort and filter
 const now = new Date();
@@ -27,8 +30,10 @@ const featuredGuides = allGuides
 
 const stats = home.stats ?? [];
 const features = home.features;
-const heroCtas = home.hero.ctas;
-const ctaSectionCtas = home.cta.ctas;
+const heroCtas = home.hero.ctas.map((cta) => ({ ...cta, href: resolveHref(cta.href) }));
+const ctaSectionCtas = home.cta.ctas.map((cta) => ({ ...cta, href: resolveHref(cta.href) }));
+const meetupsSectionCta = { ...home.meetupsSection.cta, href: resolveHref(home.meetupsSection.cta.href) };
+const guidesSectionCta = { ...home.guidesSection.cta, href: resolveHref(home.guidesSection.cta.href) };
 ---
 
 <Layout title={home.pageTitle} description={home.pageDescription}>
@@ -111,8 +116,8 @@ const ctaSectionCtas = home.cta.ctas;
       <div class="container-wide">
         <div class="flex items-center justify-between mb-8">
           <h2>{home.meetupsSection.heading}</h2>
-          <a href={home.meetupsSection.cta.href} class={getCtaClass(home.meetupsSection.cta.variant, 'sm')}>
-            {home.meetupsSection.cta.label}
+          <a href={meetupsSectionCta.href} class={getCtaClass(meetupsSectionCta.variant, 'sm')}>
+            {meetupsSectionCta.label}
             <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
@@ -133,8 +138,8 @@ const ctaSectionCtas = home.cta.ctas;
       <div class="container-wide">
         <div class="flex items-center justify-between mb-8">
           <h2>{home.guidesSection.heading}</h2>
-          <a href={home.guidesSection.cta.href} class={getCtaClass(home.guidesSection.cta.variant, 'sm')}>
-            {home.guidesSection.cta.label}
+          <a href={guidesSectionCta.href} class={getCtaClass(guidesSectionCta.variant, 'sm')}>
+            {guidesSectionCta.label}
             <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>

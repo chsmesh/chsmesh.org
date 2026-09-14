@@ -8,13 +8,13 @@ quickLinks:
   heading: Quick Links
   links:
     - label: Meetups
-      href: /meetups
+      href: /meetups/
     - label: Guides
-      href: /guides
+      href: /guides/
     - label: Resources
-      href: /resources
+      href: /resources/
     - label: Network Map
-      href: /map
+      href: /map/
 community:
   heading: Community
   links:
@@ -25,7 +25,7 @@ community:
       href: '@links.github'
       external: true
     - label: About Us
-      href: /about
+      href: /about/
 legal:
   copyright: "© {year} CHS Mesh. Built with 📡 in Charleston, SC."
   trademark: Meshtastic® is a registered trademark. This is an independent community group.

@@ -3,10 +3,14 @@ import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import { getCollection } from 'astro:content';
 import { getGlobal } from '../utils/global';
+import { resolveLink } from '../utils/siteLinks';
 
 const nodes = await getCollection('nodes');
 const activeNodes = nodes.filter((n) => n.data.active);
 const mapPage = await getGlobal('map', 'map');
+const site = await getGlobal('site', 'site');
+const resolveHref = (href: string) => resolveLink(href, site.links);
+const mapCta = { ...mapPage.map.cta, href: resolveHref(mapPage.map.cta.href) };
 
 // Group nodes by type for stats
 const nodesByType = {
@@ -19,7 +23,10 @@ const nodesByType = {
 const stats = mapPage.stats as { key: string; label: string; colorClass?: string }[];
 const legendItems = mapPage.legend.items as { label: string; description: string; colorClass: string }[];
 const coverageLocations = mapPage.coverage.locations as { label: string; status: 'complete' | 'progress' | 'planned' }[];
-const externalMaps = mapPage.externalMaps.links as { label: string; href: string; external?: boolean }[];
+const externalMaps = mapPage.externalMaps.links.map((link) => ({
+  ...link,
+  href: resolveHref(link.href),
+})) as { label: string; href: string; external?: boolean }[];
 
 const getCoverageIcon = (status: 'complete' | 'progress' | 'planned') => {
   if (status === 'complete') return 'check';
@@ -82,12 +89,12 @@ const getStatValue = (key: string) => {
                   <h3 class="text-lg font-semibold text-neutral-700 mb-2">{mapPage.map.heading}</h3>
                   <p class="text-neutral-500 mb-4">{mapPage.map.body}</p>
                   <a 
-                    href={mapPage.map.cta.href}
+                    href={mapCta.href}
                     target="_blank" 
                     rel="noopener noreferrer"
                     class="btn-primary"
                   >
-                    {mapPage.map.cta.label}
+                    {mapCta.label}
                     <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>

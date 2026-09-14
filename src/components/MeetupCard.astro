@@ -28,7 +28,7 @@ const statusLabel = isPast
   ? labels.meetupStatuses.past ?? 'Past'
   : labels.meetupStatuses.upcoming ?? 'Upcoming';
 const featuredLabel = labels.meetupBadges.featured ?? 'Featured Event';
-const meetupHref = `/meetups/${meetup.slug}`;
+const meetupHref = `/meetups/${meetup.slug}/`;
 ---
 
 <article class:list={['card', featured && 'border-primary-300 border-2']}>
