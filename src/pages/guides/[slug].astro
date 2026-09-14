@@ -42,7 +42,7 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
     <section class="hero hero-pattern py-12">
       <div class="container-narrow">
         <nav class="mb-6">
-          <a href="/guides" class="transition-colors inline-flex items-center gap-2">
+          <a href="/guides/" class="transition-colors inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -117,7 +117,7 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
           <h3 class="text-xl font-semibold mb-6">{guidesDetail.relatedHeading}</h3>
           <div class="grid gap-4">
             {relatedGuides.map((related) => (
-              <a href={`/guides/${related.slug}`} class="card card-body flex items-center gap-4 hover:border-primary-300 transition-colors">
+              <a href={`/guides/${related.slug}/`} class="card card-body flex items-center gap-4 hover:border-primary-300 transition-colors">
                 <div class="flex-grow">
                   <h4 class="font-medium text-neutral-900">{related.data.title}</h4>
                   <p class="text-sm text-neutral-500 line-clamp-1">{related.data.description}</p>

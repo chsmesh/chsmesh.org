@@ -36,14 +36,14 @@ getInvolved:
       icon: calendar
       cta:
         label: View Meetups
-        href: /meetups
+        href: /meetups/
         variant: primary
     - title: Run a Node
       description: Expand network coverage by setting up your own node. Even a simple client helps the mesh!
       icon: radio
       cta:
         label: Get Hardware
-        href: /resources
+        href: /resources/
         variant: primary
 community:
   heading: Our Community

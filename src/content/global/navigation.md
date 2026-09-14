@@ -5,13 +5,13 @@ links:
   - label: Home
     href: /
   - label: Meetups
-    href: /meetups
+    href: /meetups/
   - label: Guides
-    href: /guides
+    href: /guides/
   - label: Resources
-    href: /resources
+    href: /resources/
   - label: Map
-    href: /map
+    href: /map/
   - label: About
-    href: /about
+    href: /about/
 ---

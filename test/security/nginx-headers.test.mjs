@@ -165,6 +165,24 @@ test('should redirect the legacy .md content URLs permanently', () => {
   }
 });
 
+test('should emit relative redirects so the container port never leaks', () => {
+  const nginxConfig = readFile(nginxConfigPath);
+  const servers = parseBlocks(nginxConfig);
+
+  assert.equal(servers.length, 1, 'this assertion assumes the single server block');
+
+  // nginx builds absolute redirects from its own scheme and `listen` port, so
+  // behind Traefik every directory redirect ("/about" -> "/about/") and every
+  // `permanent` rewrite above pointed at http://<host>:8080/, an unreachable
+  // URL. The nav links are slashless, so that broke every page but the home
+  // page. A relative Location keeps the edge's scheme, host and port.
+  assert.match(
+    servers[0],
+    /^\s*absolute_redirect\s+off\s*;/m,
+    'the server block must set `absolute_redirect off` so Location headers stay relative'
+  );
+});
+
 test('should scope the immutable one-year cache to hashed /_astro/ output', () => {
   const nginxConfig = readFile(nginxConfigPath);
   const locations = parseBlocks(nginxConfig).flatMap(parseLocations);

@@ -21,8 +21,14 @@ const siteEntry = await getEntry('global', 'site');
 const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
 const footerEntry = await getEntry('global', 'footer');
 const footer = footerEntry?.data?.type === 'footer' ? footerEntry.data : undefined;
-const navigationLinks = (navigation?.links ?? []) as { label: string; href: string; external?: boolean }[];
 const resolveHref = (href: string) => resolveLink(href, site?.links);
+// The nav previously rendered `link.href` raw, so it was the one link list on
+// the site that could neither resolve an `@links.*` token nor pick up the
+// canonical trailing slash. It goes through the same resolver as the footer now.
+const navigationLinks = (navigation?.links ?? []).map((link) => ({
+  ...link,
+  href: resolveHref(link.href),
+})) as { label: string; href: string; external?: boolean }[];
 const footerQuickLinks = (footer?.quickLinks.links ?? []).map((link) => {
   const href = resolveHref(link.href);
   return {

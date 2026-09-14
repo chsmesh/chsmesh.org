@@ -8,10 +8,10 @@ hero:
   size: large
   ctas:
     - label: Get Started
-      href: /guides
+      href: /guides/
       variant: primary
     - label: Join a Meetup
-      href: /meetups
+      href: /meetups/
       variant: secondary
 intro:
   heading: What is Meshtastic?
@@ -33,22 +33,22 @@ meetupsSection:
   heading: Upcoming Meetups
   cta:
     label: View All
-    href: /meetups
+    href: /meetups/
     variant: outline
 guidesSection:
   heading: Getting Started
   cta:
     label: All Guides
-    href: /guides
+    href: /guides/
     variant: outline
 cta:
   heading: Ready to Join the Network?
   body: Whether you're a seasoned radio enthusiast or completely new to mesh networking, we'd love to have you. Join our community and help us build something amazing.
   ctas:
     - label: Browse Devices
-      href: /resources
+      href: /resources/
       variant: primary
     - label: Learn More
-      href: /about
+      href: /about/
       variant: secondary
 ---

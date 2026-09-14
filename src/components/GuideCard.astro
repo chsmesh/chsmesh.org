@@ -18,7 +18,7 @@ const difficultyColors = {
 const labels = await getTaxonomyLabels();
 const difficultyLabel = labels.guideDifficulties[difficulty] ?? difficulty;
 const categoryLabel = labels.guideCategories[category] ?? category;
-const guideHref = `/guides/${guide.slug}`;
+const guideHref = `/guides/${guide.slug}/`;
 ---
 
 <article class="card hover:border-primary-300 transition-colors">
