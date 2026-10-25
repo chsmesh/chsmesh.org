@@ -27,6 +27,107 @@ const URL_RE = /^https?:\/\/[^\s]+$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/;
+const LOCAL_RE = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/;
+
+// Meetups happen in Charleston. The form's datetime-local input sends a wall
+// clock time with no offset, so the service pins it to this zone before
+// writing it; the site displays dates in the same zone.
+export const SITE_TIME_ZONE = 'America/New_York';
+
+// ---------------------------------------------------------------------------
+// Time zones. Intl knows the tz database, so the offset of any IANA zone at
+// any instant can be read back from formatToParts without a date library.
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const zoneFormatters = new Map();
+
+function wallClock(epochMs, timeZone) {
+  let formatter = zoneFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    zoneFormatters.set(timeZone, formatter);
+  }
+  const parts = Object.fromEntries(formatter.formatToParts(new Date(epochMs)).map((part) => [part.type, part.value]));
+  return { year: +parts.year, month: +parts.month, day: +parts.day, hour: +parts.hour, minute: +parts.minute, second: +parts.second };
+}
+
+const utcFromFields = ({ year, month, day, hour, minute, second }) => {
+  const date = new Date(Date.UTC(2000, month - 1, day, hour, minute, second));
+  date.setUTCFullYear(year); // Date.UTC maps years 0-99 to 1900-1999
+  return date.getTime();
+};
+
+/** Offset of `timeZone` from UTC at `epochMs`, in minutes (e.g. -240 for EDT). */
+export function zoneOffsetMinutes(epochMs, timeZone) {
+  const whole = Math.floor(epochMs / 1000) * 1000;
+  return Math.round((utcFromFields(wallClock(whole, timeZone)) - whole) / 60000);
+}
+
+const pad = (value, width = 2) => String(value).padStart(width, '0');
+
+function formatOffset(minutes) {
+  const sign = minutes < 0 ? '-' : '+';
+  const abs = Math.abs(minutes);
+  return `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+}
+
+function formatZoned(epochMs, timeZone) {
+  const f = wallClock(epochMs, timeZone);
+  const date = `${pad(f.year, 4)}-${pad(f.month)}-${pad(f.day)}`;
+  return `${date}T${pad(f.hour)}:${pad(f.minute)}:${pad(f.second)}${formatOffset(zoneOffsetMinutes(epochMs, timeZone))}`;
+}
+
+/**
+ * Pin a zone-less ISO 8601 date or date-time (as a datetime-local input sends
+ * it) to `timeZone`. Returns `{ value, note }`, where `value` is the same wall
+ * clock time with its UTC offset appended (`2026-10-03T18:00:00-04:00`), or
+ * `null` if the input is not a real local date-time. A date on its own is
+ * taken as midnight. Fractional seconds are dropped.
+ *
+ * DST edges follow the same rule as Temporal's default ("compatible"):
+ * - a time that occurs twice (clocks fall back) resolves to the first
+ *   occurrence, still on daylight time;
+ * - a time that never occurs (clocks spring forward) moves forward by the
+ *   length of the gap, so 02:30 on the spring-forward night becomes 03:30.
+ * Either case sets `note` so a reviewer can confirm what was meant.
+ */
+export function zonedDateTime(input, timeZone = SITE_TIME_ZONE) {
+  const match = LOCAL_RE.exec(String(input));
+  if (!match) return null;
+  const [year, month, day, hour = 0, minute = 0, second = 0] = match.slice(1).map((part) => (part === undefined ? undefined : Number(part)));
+  const fields = { year, month, day, hour, minute, second };
+  if (hour > 23 || minute > 59 || second > 59) return null;
+  const wall = utcFromFields(fields);
+  // Reject dates the calendar does not have (2026-02-30 would roll to March).
+  const check = new Date(wall);
+  if (check.getUTCMonth() + 1 !== month || check.getUTCDate() !== day) return null;
+
+  // US transitions are months apart, so the offsets a day either side of the
+  // wall time are the only ones that can apply to it.
+  const offsetBefore = zoneOffsetMinutes(wall - DAY_MS, timeZone);
+  const offsetAfter = zoneOffsetMinutes(wall + DAY_MS, timeZone);
+  const instants = [...new Set([offsetBefore, offsetAfter])]
+    .map((offset) => wall - offset * 60000)
+    .filter((instant) => zoneOffsetMinutes(instant, timeZone) * 60000 === wall - instant)
+    .sort((a, b) => a - b);
+
+  if (instants.length === 1) return { value: formatZoned(instants[0], timeZone), note: null };
+  if (instants.length > 1) {
+    const value = formatZoned(instants[0], timeZone);
+    return { value, note: `${input} happens twice in ${timeZone} (clocks fall back); stored the first occurrence, ${value}` };
+  }
+  const value = formatZoned(wall - offsetBefore * 60000, timeZone);
+  return { value, note: `${input} does not exist in ${timeZone} (clocks spring forward); stored as ${value}` };
+}
 
 const string = (max = 200, extra = {}) => ({ type: 'string', max, ...extra });
 const text = (max = 20000, extra = {}) => ({ type: 'string', max, ...extra });
@@ -66,8 +167,8 @@ export const SPECS = {
       title: string(120, { required: true }),
       description: text(1000, { required: true }),
       content: text(20000),
-      date: { type: 'datetime', required: true },
-      endDate: { type: 'datetime' },
+      date: { type: 'datetime', timeZone: SITE_TIME_ZONE, required: true },
+      endDate: { type: 'datetime', timeZone: SITE_TIME_ZONE },
       location: string(160, { required: true }),
       address: string(200),
       coordinates: { type: 'coords' },
@@ -95,7 +196,7 @@ export const SPECS = {
 
 export const KINDS = Object.keys(SPECS);
 
-function checkField(name, spec, raw, errors) {
+function checkField(name, spec, raw, errors, notes) {
   if (raw === undefined || raw === null || raw === '') {
     if (spec.required) errors.push(`${name} is required`);
     return undefined;
@@ -127,11 +228,17 @@ function checkField(name, spec, raw, errors) {
     case 'url':
       if (typeof raw !== 'string' || raw.length > 2000 || !URL_RE.test(raw.trim())) return void errors.push(`${name} must be an http(s) URL`);
       return raw.trim();
-    case 'datetime':
+    case 'datetime': {
       if (typeof raw !== 'string' || !(DATETIME_RE.test(raw) || DATE_RE.test(raw)) || Number.isNaN(Date.parse(raw))) {
         return void errors.push(`${name} must be an ISO 8601 date or date-time`);
       }
-      return raw;
+      // A value that already carries Z or an offset is unambiguous; keep it.
+      if (!spec.timeZone || !LOCAL_RE.test(raw)) return raw;
+      const zoned = zonedDateTime(raw, spec.timeZone);
+      if (!zoned) return void errors.push(`${name} must be a real date and time`);
+      if (zoned.note) notes.push(`${name}: ${zoned.note}`);
+      return zoned.value;
+    }
     case 'coords': {
       if (!isPlainObject(raw)) return void errors.push(`${name} must be an object with lat and lng`);
       const lat = Number(raw.lat);
@@ -180,20 +287,22 @@ function checkField(name, spec, raw, errors) {
 }
 
 /**
- * Validate a raw JSON payload for `kind`. Returns `{ ok, errors, data }` where
- * `data` contains only the recognised, normalised fields.
+ * Validate a raw JSON payload for `kind`. Returns `{ ok, errors, notes, data }`
+ * where `data` contains only the recognised, normalised fields and `notes`
+ * lists adjustments a reviewer should know about (DST edge cases).
  */
 export function validate(kind, payload) {
   const spec = SPECS[kind];
-  if (!spec) return { ok: false, errors: [`unknown submission kind: ${kind}`], data: null };
-  if (!isPlainObject(payload)) return { ok: false, errors: ['body must be a JSON object'], data: null };
+  if (!spec) return { ok: false, errors: [`unknown submission kind: ${kind}`], notes: [], data: null };
+  if (!isPlainObject(payload)) return { ok: false, errors: ['body must be a JSON object'], notes: [], data: null };
   const errors = [];
+  const notes = [];
   const data = {};
   for (const [name, fieldSpec] of Object.entries(spec.fields)) {
-    const value = checkField(name, fieldSpec, payload[name], errors);
+    const value = checkField(name, fieldSpec, payload[name], errors, notes);
     if (value !== undefined) data[name] = value;
   }
-  return { ok: errors.length === 0, errors, data: errors.length === 0 ? data : null };
+  return { ok: errors.length === 0, errors, notes, data: errors.length === 0 ? data : null };
 }
 
 // ---------------------------------------------------------------------------
@@ -365,7 +474,7 @@ export function summarise(kind, data) {
   return rows;
 }
 
-export function pullRequestBody(kind, data, { path, hasContact }) {
+export function pullRequestBody(kind, data, { path, hasContact, notes = [] }) {
   const rows = summarise(kind, data)
     .map(([key, value]) => `| ${key} | ${value} |`)
     .join('\n');
@@ -380,11 +489,14 @@ export function pullRequestBody(kind, data, { path, hasContact }) {
     '| --- | --- |',
     rows,
     '',
+    ...(notes.length ? ['### Needs a look', '', ...notes.map((note) => `- ${note}`), ''] : []),
     '### Review checklist',
     '',
     '- [ ] Content is accurate, appropriate, and not a duplicate',
     '- [ ] Links resolve and point where they claim to',
-    kind === 'meetup' ? '- [ ] Date and time are correct for local time (the form value carries no timezone)' : null,
+    kind === 'meetup'
+      ? `- [ ] Date and time are right. The form asks for Charleston time; the service stored it with its ${SITE_TIME_ZONE} offset (-04:00 EDT, -05:00 EST)`
+      : null,
     kind === 'node' ? '- [ ] Coordinates are plausible and the owner consents to publication' : null,
     '- [ ] `npm run check` passes on this branch (CI runs it)',
     '',

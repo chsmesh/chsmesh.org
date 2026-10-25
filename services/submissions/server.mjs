@@ -178,7 +178,7 @@ async function notifyDiscord({ kind, title, email, prUrl }) {
 // ---------------------------------------------------------------------------
 // Submissions
 
-async function openPullRequest(kind, data) {
+async function openPullRequest(kind, data, notes = []) {
   const today = new Date().toISOString().slice(0, 10);
   const shortId = crypto.randomBytes(3).toString('hex');
   let slug = slugify(data.name ?? data.title);
@@ -211,7 +211,7 @@ async function openPullRequest(kind, data) {
       title: `${SPECS[kind].label} submission: ${file.title}`.slice(0, 250),
       head: branch,
       base: GITHUB_BASE_BRANCH,
-      body: pullRequestBody(kind, data, { path: file.path, hasContact: Boolean(DISCORD_WEBHOOK_URL) }),
+      body: pullRequestBody(kind, data, { path: file.path, hasContact: Boolean(DISCORD_WEBHOOK_URL), notes }),
     },
   });
   try {
@@ -251,11 +251,11 @@ async function handleSubmit(req, res, kind) {
     return send(res, 400, { ok: false, error: 'verification failed, please retry' });
   }
 
-  const { ok, errors, data } = validate(kind, payload);
+  const { ok, errors, notes, data } = validate(kind, payload);
   if (!ok) return send(res, 400, { ok: false, errors });
 
   try {
-    const pr = await openPullRequest(kind, data);
+    const pr = await openPullRequest(kind, data, notes);
     const notified = await notifyDiscord({ kind, title: pr.title, email: data.submitterEmail, prUrl: pr.url }).catch((error) => {
       console.error(`Discord notification failed: ${error.message}`);
       return false;

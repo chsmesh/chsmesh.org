@@ -241,12 +241,14 @@ export const meetupFormConfig: FormConfig = {
       label: 'Start Date',
       type: 'datetime-local',
       required: true,
+      helpText: 'Charleston (Eastern) time',
       gridCol: 2,
     },
     {
       name: 'endDate',
       label: 'End Date',
       type: 'datetime-local',
+      helpText: 'Charleston (Eastern) time',
       gridCol: 2,
     },
     {

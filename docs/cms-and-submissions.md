@@ -68,8 +68,11 @@ show the same branch.
 - **A draft can be saved with required fields empty.** The CI check on the
   pull request will fail until the entry is complete. That is expected and
   nothing reaches the live site until you publish.
-- **Meetup times have no timezone.** Enter them in Charleston local time.
-  They display exactly as typed.
+- **Meetup times are Charleston time.** The date picker uses Charleston
+  time even if your computer is set to another zone, and saves the value
+  with its UTC offset (`-04:00` in summer, `-05:00` in winter). The site
+  always shows meetup times in Charleston time. If you edit a meetup file by
+  hand, keep the offset; without one the time is not read as Charleston time.
 - **Public submissions appear as pull requests too**, on `submissions/`
   branches. You can review them on GitHub, or open the branch in the CMS to
   edit the entry before merging.
@@ -96,7 +99,11 @@ a pull request opened by the submissions service.
 
 1. Read the file in the pull request. Check the content is accurate, not a
    duplicate, and appropriate for the site. Follow every link.
-2. For meetups, confirm the date and time. The form value carries no timezone.
+2. For meetups, confirm the date and time. The form asks for Charleston time
+   and the service saves it with the Charleston offset for that date, so
+   check the wall-clock time is what the submitter meant. A time that falls
+   in a daylight saving change (it never happens, or happens twice) is
+   adjusted and listed under **Needs a look** in the pull request.
 3. For nodes, confirm the coordinates are plausible and the owner is happy
    for the location to be public.
 4. Edit the file on the branch if it needs changes. Small fixes are quicker
