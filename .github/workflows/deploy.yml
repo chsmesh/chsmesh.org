@@ -1,0 +1,52 @@
+name: Deploy
+
+# Releases chsmesh.org after CI passes on a push to main (including commits
+# the CMS makes). Komodo is only reachable on the private network, so this
+# calls an n8n webhook that runs the Komodo `chsmesh-release` Procedure and
+# waits for it; the job passes or fails with the release itself.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# One release at a time, and never cancelled midway: cancelling would only
+# stop this job waiting while Komodo carried on. GitHub keeps just the newest
+# pending run, which is fine because Komodo always builds the tip of main.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Release to chsmesh.org
+    # `event == 'push'` also keeps out pull requests from a fork's `main`,
+    # which the `branches` filter alone would let through.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Run the Komodo release through n8n
+        env:
+          DEPLOY_HOOK_TOKEN: ${{ secrets.N8N_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$DEPLOY_HOOK_TOKEN" ]; then
+            echo '::error::The N8N_DEPLOY_TOKEN secret is not set.'
+            exit 1
+          fi
+          # n8n answers when the release finishes: 200 released, 500 failed,
+          # 504 still running after 10 minutes, 502 Komodo refused the run.
+          status=$(curl -sS -o response.json -w '%{http_code}' --max-time 720 \
+            -X POST -H "X-Auth: $DEPLOY_HOOK_TOKEN" \
+            https://n8n.sendtrl.com/webhook/deploy/chsmesh) || status=000
+          cat response.json 2>/dev/null; echo
+          if [ "$status" != 200 ]; then
+            echo "::error::Release did not succeed (HTTP $status). Check the chsmesh-release Procedure in Komodo."
+            exit 1
+          fi

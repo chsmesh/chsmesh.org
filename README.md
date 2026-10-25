@@ -296,13 +296,16 @@ build args) and `chsmesh-submissions` (`services/submissions/Dockerfile`). The
 `docker-compose.komodo.yml`: the site joins the Docker network shared with
 Traefik, which terminates TLS, and the submissions service stays on the
 stack's private network. The stack's environment (secrets come from Komodo
-Variables) reaches the submissions service only. Komodo is reachable only on
-the private network, so releases are started from the Komodo UI rather than
-by a GitHub webhook.
+Variables) reaches the submissions service only.
 
-To release: merge to `main`, then run the `chsmesh-release` Procedure, which
-builds both images and redeploys the stack. The site container listens on
-port 8080 and the Traefik service label must point at that port.
+Releases are automatic. When CI passes on a push to `main` (including commits
+the CMS makes), `.github/workflows/deploy.yml` calls an n8n webhook, which
+runs the `chsmesh-release` Procedure over the private network Komodo lives on
+and waits for it: the Procedure builds both images and redeploys the stack,
+and the Deploy job passes or fails with it. To release by hand, run the Deploy
+workflow from the Actions tab or the `chsmesh-release` Procedure in Komodo.
+The site container listens on port 8080 and the Traefik service label must
+point at that port.
 
 ### Self-hosting without Komodo
 
