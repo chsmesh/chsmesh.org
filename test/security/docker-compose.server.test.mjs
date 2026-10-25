@@ -81,9 +81,12 @@ test('should configure a production healthcheck for the server compose service',
 
   assert.match(
     compose,
-    /healthcheck:\s*[\s\S]*test:\s*\["CMD-SHELL",\s*"wget -qO- http:\/\/localhost:8080\/ \|\| exit 1"\]/,
+    /healthcheck:\s*[\s\S]*test:\s*\["CMD-SHELL",\s*"wget -qO- http:\/\/127\.0\.0\.1:8080\/ \|\| exit 1"\]/,
     'server compose must define the production healthcheck command'
   );
+  // nginx listens on IPv4 only; `localhost` resolves to ::1 first in the
+  // container and busybox wget does not fall back, so the check never passes.
+  assert.doesNotMatch(compose, /localhost:8080/, 'the healthcheck must target 127.0.0.1, not localhost');
   assert.match(compose, /start_period:\s*10s/, 'server compose must allow the healthcheck a startup period');
 });
 
