@@ -136,7 +136,7 @@ rebuild and, in production, a new image digest.
 
 | Build argument | Purpose |
 | --- | --- |
-| `PUBLIC_SUBMIT_BASE` | Path prefix the forms POST to, as `<base>/<kind>`. Optional; defaults to `/api/submit`. Must start with `/`: the CSP `connect-src` is `'self'`, so the build refuses a cross-origin value. |
+| `PUBLIC_SUBMIT_BASE` | Path prefix the forms POST to, as `<base>/<kind>`. Optional; defaults to `/api/submit`. Must start with `/`: the CSP `connect-src` is `'self'`, so the build refuses a cross-origin value. nginx's `/api/` proxy and rate limit and the service's routes all assume `/api/submit`; change them together. |
 | `PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key. Empty disables the widget. |
 
 Runtime values are read by the submissions service when it starts.

@@ -4,8 +4,7 @@ import type { FormConfig } from './SubmissionForm.astro';
  * Submission form configurations.
  *
  * Each form POSTs to the same-origin submissions service at
- * `${PUBLIC_SUBMIT_BASE}/<kind>` (default `/api/submit/<kind>`), where the kind
- * comes from the form id. That endpoint is public and callable by anyone, so
+ * `${PUBLIC_SUBMIT_BASE}/<kind>` (default `/api/submit/<kind>`). That endpoint is public and callable by anyone, so
  * the service (services/submissions) is the only trust boundary: it validates
  * input, rate limits and verifies Turnstile. Nothing the browser does here -
  * required attributes, zod schemas, the honeypot-free form markup - is a
@@ -16,6 +15,7 @@ import type { FormConfig } from './SubmissionForm.astro';
 // Node Form Configuration
 export const nodeFormConfig: FormConfig = {
   id: 'node-form',
+  kind: 'node',
   title: 'Submit Your Node',
   description: 'Add your Meshtastic node to the community map.',
   fields: [
@@ -116,6 +116,7 @@ export const nodeFormConfig: FormConfig = {
 // Guide Form Configuration
 export const guideFormConfig: FormConfig = {
   id: 'guide-form',
+  kind: 'guide',
   title: 'Submit a Guide',
   description: 'Share your Meshtastic knowledge with the community.',
   fields: [
@@ -207,6 +208,7 @@ export const guideFormConfig: FormConfig = {
 // Meetup Form Configuration
 export const meetupFormConfig: FormConfig = {
   id: 'meetup-form',
+  kind: 'meetup',
   title: 'Submit a Meetup',
   description: 'Host or propose a community meetup.',
   fields: [
@@ -326,6 +328,7 @@ export const meetupFormConfig: FormConfig = {
 // Resource Form Configuration
 export const resourceFormConfig: FormConfig = {
   id: 'resource-form',
+  kind: 'resource',
   title: 'Submit a Resource',
   description: 'Recommend a device, accessory, app, or community resource.',
   fields: [

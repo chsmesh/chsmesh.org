@@ -37,6 +37,7 @@ export interface PayloadRule {
 
 export interface FormConfig {
   id: string;
+  kind: 'node' | 'guide' | 'meetup' | 'resource'; // Submissions service route and Turnstile action
   title: string;
   description: string;
   fields: FormField[];
@@ -47,14 +48,13 @@ export interface FormConfig {
 }
 
 const { config } = Astro.props;
-// Kind this form submits, derived from its id ("node-form" -> "node"). It
-// names both the submissions service route and the Turnstile action.
-const kind = config.id.replace(/-form$/, '');
+const { kind } = config;
 // Forms POST to the same-origin submissions service behind nginx's /api/
 // location. The CSP connect-src is 'self' only, so a cross-origin base would be
 // blocked by the browser; refuse it at build time instead.
-const submitBase = (import.meta.env.PUBLIC_SUBMIT_BASE || '/api/submit').trim().replace(/\/+$/, '');
-if (!submitBase.startsWith('/') || submitBase.startsWith('//')) {
+// A backslash is rejected because browsers treat "/\host" like "//host".
+const submitBase = (import.meta.env.PUBLIC_SUBMIT_BASE ?? '').trim().replace(/\/+$/, '') || '/api/submit';
+if (!submitBase.startsWith('/') || submitBase.startsWith('//') || submitBase.includes('\\')) {
   throw new Error(`PUBLIC_SUBMIT_BASE must be a same-origin path starting with "/", got: ${submitBase}`);
 }
 const submitUrl = `${submitBase}/${kind}`;

@@ -75,7 +75,7 @@ for that service, the CMS at `/admin/`, and their configuration.
 
 | Variable | Used by |
 | --- | --- |
-| `PUBLIC_SUBMIT_BASE` | Path prefix the forms POST to. Optional; defaults to `/api/submit`. Must be a same-origin path. |
+| `PUBLIC_SUBMIT_BASE` | Path prefix the forms POST to. Optional; defaults to `/api/submit`. Must be a same-origin path that nginx and the submissions service route. |
 | `PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile widget on the forms. Empty disables it. |
 
 **Local development**: copy the template and fill in the values you need.
