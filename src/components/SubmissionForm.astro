@@ -39,8 +39,6 @@ export interface FormConfig {
   id: string;
   title: string;
   description: string;
-  webhookEnvVar: string;
-  webhookPlaceholder: string;
   fields: FormField[];
   transformRules?: TransformRule[]; // Serializable transformation rules
   payloadRules?: PayloadRule; // Serializable payload building rules
@@ -49,7 +47,17 @@ export interface FormConfig {
 }
 
 const { config } = Astro.props;
-const webhookUrl = import.meta.env[config.webhookEnvVar];
+// Kind this form submits, derived from its id ("node-form" -> "node"). It
+// names both the submissions service route and the Turnstile action.
+const kind = config.id.replace(/-form$/, '');
+// Forms POST to the same-origin submissions service behind nginx's /api/
+// location. The CSP connect-src is 'self' only, so a cross-origin base would be
+// blocked by the browser; refuse it at build time instead.
+const submitBase = (import.meta.env.PUBLIC_SUBMIT_BASE || '/api/submit').trim().replace(/\/+$/, '');
+if (!submitBase.startsWith('/') || submitBase.startsWith('//')) {
+  throw new Error(`PUBLIC_SUBMIT_BASE must be a same-origin path starting with "/", got: ${submitBase}`);
+}
+const submitUrl = `${submitBase}/${kind}`;
 // Cloudflare Turnstile site key (public by design). When set, Layout.astro
 // loads the Turnstile script and the form renders a widget whose token the
 // submissions service verifies with TURNSTILE_SECRET. Empty = no widget.
@@ -57,7 +65,7 @@ const turnstileSiteKey = (import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '').trim(
 // Stable action name Cloudflare echoes back from siteverify; the service
 // requires it to match `submit-<kind>` so a token minted for one form (or
 // another site using the same key) cannot be replayed against another.
-const turnstileAction = `submit-${config.id.replace(/-form$/, '')}`;
+const turnstileAction = `submit-${kind}`;
 
 // The form config is handed to the client through an inert
 // `<script type="application/json">` data block rather than `define:vars`.
@@ -68,7 +76,7 @@ const turnstileAction = `submit-${config.id.replace(/-form$/, '')}`;
 // "<" is escaped so no value in the config can close this tag early.
 const formConfigJson = JSON.stringify({
   config,
-  webhookUrl: webhookUrl ?? '',
+  submitUrl,
   turnstileSiteKey,
   turnstileAction,
 }).replace(/</g, '\\u003c');
@@ -315,8 +323,6 @@ const formConfigJson = JSON.stringify({
 
   type ClientFormConfig = {
     id: string;
-    webhookEnvVar: string;
-    webhookPlaceholder: string;
     successMessage: string;
     fields: ClientFormField[];
     transformRules?: { field: string; type: string; optional?: boolean }[];
@@ -349,7 +355,7 @@ const formConfigJson = JSON.stringify({
 
   function initForm(
     config: ClientFormConfig,
-    WEBHOOK_URL: string,
+    SUBMIT_URL: string,
     turnstile: { siteKey: string; action: string }
   ) {
     const formNode = document.getElementById(config.id);
@@ -517,11 +523,6 @@ const formConfigJson = JSON.stringify({
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      if (!WEBHOOK_URL || WEBHOOK_URL === config.webhookPlaceholder) {
-        showError(`Form submission is not configured. Please set ${config.webhookEnvVar} in .env file.`);
-        return;
-      }
-
       errorMessage.classList.add('hidden');
       successMessage.classList.add('hidden');
 
@@ -676,7 +677,7 @@ const formConfigJson = JSON.stringify({
         payload.submittedAt = new Date().toISOString();
         if (turnstileToken) payload.turnstileToken = turnstileToken;
 
-        const response = await fetch(WEBHOOK_URL, {
+        const response = await fetch(SUBMIT_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -743,7 +744,7 @@ const formConfigJson = JSON.stringify({
         return;
       }
       if (!parsed || !parsed.config) return;
-      initForm(parsed.config, parsed.webhookUrl || '', {
+      initForm(parsed.config, parsed.submitUrl || '', {
         siteKey: parsed.turnstileSiteKey || '',
         action: parsed.turnstileAction || '',
       });

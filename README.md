@@ -69,19 +69,16 @@ origin. `public/robots.txt` allows all crawlers and points at that index.
 
 ## Environment variables
 
-The submission forms POST to the URLs below. Point them at `/api/submit/<kind>`
-to use the built-in submissions service; see
-[docs/cms-and-submissions.md](docs/cms-and-submissions.md) for that service,
-the CMS at `/admin/`, and their configuration.
+The submission forms POST to the same-origin submissions service at
+`/api/submit/<kind>`; see [docs/cms-and-submissions.md](docs/cms-and-submissions.md)
+for that service, the CMS at `/admin/`, and their configuration.
 
 | Variable | Used by |
 | --- | --- |
-| `PUBLIC_N8N_WEBHOOK_URL` | Node submission form (also derives the CSP `connect-src` origin) |
-| `PUBLIC_N8N_GUIDES_WEBHOOK_URL` | Guide submission form |
-| `PUBLIC_N8N_MEETUPS_WEBHOOK_URL` | Meetup submission form |
-| `PUBLIC_N8N_RESOURCES_WEBHOOK_URL` | Resource submission form |
+| `PUBLIC_SUBMIT_BASE` | Path prefix the forms POST to. Optional; defaults to `/api/submit`. Must be a same-origin path. |
+| `PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile widget on the forms. Empty disables it. |
 
-**Local development**: copy the template and fill in your own webhook URLs.
+**Local development**: copy the template and fill in the values you need.
 
 ```bash
 cp .env.example .env
@@ -89,18 +86,13 @@ npm run dev
 ```
 
 **Docker**: the variables are `ARG`s in the `Dockerfile`, so pass them at build
-time with `--build-arg`, or via `build.args` in `docker-compose.yml`:
-
-```bash
-docker build --build-arg PUBLIC_N8N_WEBHOOK_URL="https://n8n.example.com/webhook/submit-node" ... -t chsmesh .
-```
+time with `--build-arg`, or via `build.args` in `docker-compose.yml`.
 
 Because the site is static, these values are **baked into the generated HTML/JS
 at build time**. They are public by design — never put a secret in a `PUBLIC_*`
-variable. Rotating a webhook URL therefore requires a rebuild and, for
-production, a new image digest in `docker-compose.server.yml`; changing the
-running container's environment has no effect. The nginx CSP `connect-src` is
-derived from `PUBLIC_N8N_WEBHOOK_URL` at build time for the same reason.
+variable. Changing one therefore requires a rebuild and, for production, a new
+image digest in `docker-compose.server.yml`; changing the running container's
+environment has no effect.
 
 ## Project Structure
 
@@ -184,12 +176,7 @@ exists, kept by a `.gitkeep`; it simply has no entries yet):
 A multi-stage Dockerfile is included for containerized builds:
 
 ```bash
-docker build \
-  --build-arg PUBLIC_N8N_WEBHOOK_URL="https://n8n.example.com/webhook/submit-node" \
-  --build-arg PUBLIC_N8N_GUIDES_WEBHOOK_URL="https://n8n.example.com/webhook/submit-guide" \
-  --build-arg PUBLIC_N8N_MEETUPS_WEBHOOK_URL="https://n8n.example.com/webhook/submit-meetup" \
-  --build-arg PUBLIC_N8N_RESOURCES_WEBHOOK_URL="https://n8n.example.com/webhook/submit-resource" \
-  -t chsmesh .
+docker build -t chsmesh .
 docker run --read-only \
   --tmpfs /var/cache/nginx --tmpfs /var/run --tmpfs /tmp \
   -p 8080:8080 chsmesh
@@ -240,11 +227,8 @@ Two related behaviours worth knowing:
   `map` on `$http_x_forwarded_proto` and is empty unless the TLS edge forwards
   `X-Forwarded-Proto: https`. A plain HTTP request straight to the container
   correctly gets no HSTS header — that is not a missing header.
-- **The CSP `connect-src` is baked at build time.** `security-headers.conf`
-  ships a `__N8N_ORIGIN__` placeholder; the Dockerfile builder stage derives
-  `scheme://host` from `PUBLIC_N8N_WEBHOOK_URL` and substitutes it. With no
-  build arg the placeholder collapses to nothing, `connect-src` stays `'self'`,
-  and the browser blocks form submissions.
+- **The CSP `connect-src` is `'self'`.** The forms only POST to the
+  same-origin `/api/` path, so no extra origin is allowed outside `/admin/`.
 
 ### Legacy `.md` URL redirects
 

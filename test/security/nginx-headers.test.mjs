@@ -213,34 +213,17 @@ test('should deny dotfiles before the static asset regex location', () => {
   assert.match(locations[dotfileIndex].body, /deny\s+all\s*;/);
 });
 
-test('should build the CSP connect-src from the n8n webhook origin at image build time', () => {
+test('should keep the CSP connect-src same-origin with no build-time substitution', () => {
   const headers = readFile(securityHeadersPath);
   const dockerfile = readFile(dockerfilePath);
 
   assert.match(
     headers,
-    /connect-src\s+'self'\s+__N8N_ORIGIN__/,
-    "connect-src must be 'self' plus the build-time n8n origin placeholder"
+    /connect-src\s+'self'\s+\$csp_admin_connect;/,
+    "connect-src must be 'self' plus the /admin/-only map variable"
   );
-  assert.match(
-    dockerfile,
-    /sed\s+-i\s+"s#__N8N_ORIGIN__#\$\{origins?\}#g"/,
-    'the builder stage must substitute the derived origin list into the placeholder'
-  );
-  for (const arg of [
-    'PUBLIC_N8N_WEBHOOK_URL',
-    'PUBLIC_N8N_GUIDES_WEBHOOK_URL',
-    'PUBLIC_N8N_MEETUPS_WEBHOOK_URL',
-    'PUBLIC_N8N_RESOURCES_WEBHOOK_URL',
-  ]) {
-    assert.match(
-      dockerfile,
-      new RegExp(`for url in[^;]*\\$\\{${arg}:-\\}`),
-      `the origin list must be derived from ${arg}`
-    );
-  }
-  assert.match(dockerfile, /WARNING: PUBLIC_N8N_WEBHOOK_URL is unset/, 'an empty ARG must emit a build warning');
-  assert.match(dockerfile, /ERROR: webhook URL is not a plain http\(s\)/, 'a malformed webhook URL must fail the build');
+  assert.doesNotMatch(headers, /__[A-Z0-9_]+__/, 'security-headers.conf must not contain build-time placeholders');
+  assert.doesNotMatch(dockerfile, /sed\s+-i[^\n]*security-headers\.conf/, 'the build must not rewrite security-headers.conf');
   assert.match(dockerfile, /^RUN nginx -t\b/m, 'the runtime stage must validate the nginx config at build time');
   // `nginx -t` runs as root and creates the pid file and temp dirs named in
   // nginx.conf; left behind, the unprivileged runtime user cannot open the
@@ -258,7 +241,7 @@ test('should ship the security header include into the runtime image', () => {
 
   assert.match(
     dockerfile,
-    /^COPY\s+--from=builder\s+\/app\/security-headers\.conf\s+\/etc\/nginx\/security-headers\.conf$/m,
+    /^COPY\s+security-headers\.conf\s+\/etc\/nginx\/security-headers\.conf$/m,
     'the runtime stage must COPY security-headers.conf to /etc/nginx/'
   );
   assert.match(
@@ -278,17 +261,12 @@ test('should pin both Dockerfile base images by digest', () => {
   }
 });
 
-test('should forward every PUBLIC_N8N build arg from the local compose build', () => {
+test('should forward every PUBLIC_ build arg from the local compose build', () => {
   const compose = readFile(composePath);
 
   assert.match(compose, /build:\s*[\s\S]*?\bargs:/, 'docker-compose.yml build must declare args');
 
-  for (const key of [
-    'PUBLIC_N8N_WEBHOOK_URL',
-    'PUBLIC_N8N_GUIDES_WEBHOOK_URL',
-    'PUBLIC_N8N_MEETUPS_WEBHOOK_URL',
-    'PUBLIC_N8N_RESOURCES_WEBHOOK_URL',
-  ]) {
+  for (const key of ['PUBLIC_SUBMIT_BASE', 'PUBLIC_TURNSTILE_SITE_KEY']) {
     assert.match(
       compose,
       new RegExp(`^\\s*${key}:\\s*\\$\\{${key}(:-)?[^}]*\\}`, 'm'),

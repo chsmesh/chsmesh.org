@@ -27,47 +27,13 @@ ENV PATH="/app/node_modules/.bin:$PATH"
 COPY . .
 
 # Public env vars for Astro build (baked into static output)
-ARG PUBLIC_N8N_WEBHOOK_URL
-ARG PUBLIC_N8N_GUIDES_WEBHOOK_URL
-ARG PUBLIC_N8N_MEETUPS_WEBHOOK_URL
-ARG PUBLIC_N8N_RESOURCES_WEBHOOK_URL
+# Same-origin path the forms POST to; empty means the default /api/submit.
+ARG PUBLIC_SUBMIT_BASE
 # Cloudflare Turnstile site key; empty disables the widget.
 ARG PUBLIC_TURNSTILE_SITE_KEY
 
+ENV PUBLIC_SUBMIT_BASE=$PUBLIC_SUBMIT_BASE
 ENV PUBLIC_TURNSTILE_SITE_KEY=$PUBLIC_TURNSTILE_SITE_KEY
-ENV PUBLIC_N8N_WEBHOOK_URL=$PUBLIC_N8N_WEBHOOK_URL
-ENV PUBLIC_N8N_GUIDES_WEBHOOK_URL=$PUBLIC_N8N_GUIDES_WEBHOOK_URL
-ENV PUBLIC_N8N_MEETUPS_WEBHOOK_URL=$PUBLIC_N8N_MEETUPS_WEBHOOK_URL
-ENV PUBLIC_N8N_RESOURCES_WEBHOOK_URL=$PUBLIC_N8N_RESOURCES_WEBHOOK_URL
-
-# The forms POST to the webhook URLs, which are only known at build time. A
-# value starting with "/" is a same-origin path (the submissions service behind
-# nginx's /api/ location) and is already covered by connect-src 'self'. Derive scheme://host[:port] from every PUBLIC_N8N_*_WEBHOOK_URL,
-# dedupe, and bake the list into the CSP connect-src placeholder. A URL that is
-# not a plain http(s) URL fails the build here rather than producing an image
-# whose CSP header is malformed. With no ARGs set, the placeholder collapses to
-# nothing and connect-src stays 'self'.
-RUN set -eu; \
-    origins=""; any_url=""; \
-    for url in "${PUBLIC_N8N_WEBHOOK_URL:-}" "${PUBLIC_N8N_GUIDES_WEBHOOK_URL:-}" \
-               "${PUBLIC_N8N_MEETUPS_WEBHOOK_URL:-}" "${PUBLIC_N8N_RESOURCES_WEBHOOK_URL:-}"; do \
-        [ -n "$url" ] || continue; \
-        any_url=1; \
-        case "$url" in /*) echo "Same-origin submission path (covered by connect-src 'self'): $url"; continue ;; esac; \
-        origin=$(printf '%s\n' "$url" | sed -nE 's%^(https?://[A-Za-z0-9.-]+(:[0-9]+)?)([/?#].*)?$%\1%p'); \
-        if [ -z "$origin" ]; then \
-            echo "ERROR: webhook URL is not a plain http(s)://host[:port]/... URL: $url" >&2; \
-            exit 1; \
-        fi; \
-        case " $origins " in *" $origin "*) ;; *) origins="$origins $origin" ;; esac; \
-    done; \
-    origins="${origins# }"; \
-    if [ -z "$any_url" ]; then \
-        echo "WARNING: PUBLIC_N8N_WEBHOOK_URL is unset (as are the other PUBLIC_N8N_*_WEBHOOK_URL args); CSP connect-src will stay 'self' and form submissions will be blocked by the browser." >&2; \
-    elif [ -n "$origins" ]; then \
-        echo "CSP connect-src will allow: $origins"; \
-    fi; \
-    sed -i "s#__N8N_ORIGIN__#${origins}#g" /app/security-headers.conf
 
 # Build the static site
 RUN npm run build
@@ -77,7 +43,7 @@ FROM nginx:alpine@sha256:72ba65eb42c10344912a84ff42408db7d34f2feb642204570ab8fc5
 
 # Copy custom nginx config plus the shared security header include
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY --from=builder /app/security-headers.conf /etc/nginx/security-headers.conf
+COPY security-headers.conf /etc/nginx/security-headers.conf
 
 # Copy built static files
 COPY --from=builder /app/dist /usr/share/nginx/html
