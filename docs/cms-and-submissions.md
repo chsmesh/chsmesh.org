@@ -173,7 +173,7 @@ Runtime values are read by the submissions service when it starts.
    The service tolerates missing labels, but the queue is easier to filter
    with them. The CMS creates its own `cms/` labels.
 4. **Branch protection on `main`.** Require a pull request before merging,
-   require the CI status check, and require at least one approval. The CMS
+   require the `ci-ok` CI status check, and require at least one approval. The CMS
    editorial workflow and the service both work through pull requests, and
    this makes sure nothing else does.
 5. **Editors** need write access to the repository. They sign in to the CMS

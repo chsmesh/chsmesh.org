@@ -81,9 +81,10 @@ their consent.
 7. Add screenshots for UI changes
 8. Wait for feedback and review
 
-CI (`.github/workflows/ci.yml`) runs `npm test`, `npm run build` and
-`npm run check` on every pull request, then builds the Docker image and smoke
-tests the served site. Running all three locally first saves a round trip.
+CI (`.github/workflows/ci.yml`) runs the tests, `npm run build` and
+`npm run check` on every pull request. When the pull request changes anything
+outside the content paths, it also builds the Docker images and smoke tests
+the served site. Running all three locally first saves a round trip.
 
 ## Code of Conduct
 
