@@ -40,10 +40,20 @@ jobs:
             echo '::error::The N8N_DEPLOY_TOKEN secret is not set.'
             exit 1
           fi
+          # n8n stores request headers with each execution, so send a JWT
+          # (HS256, signed with the shared secret) that expires in two
+          # minutes rather than the secret itself.
+          b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          header=$(printf '{"alg":"HS256","typ":"JWT"}' | b64url)
+          payload=$(printf '{"iss":"github-actions","sub":"%s","iat":%d,"exp":%d}' \
+            "$GITHUB_REPOSITORY" "$now" "$((now + 120))" | b64url)
+          signature=$(printf '%s.%s' "$header" "$payload" \
+            | openssl dgst -sha256 -hmac "$DEPLOY_HOOK_TOKEN" -binary | b64url)
           # n8n answers when the release finishes: 200 released, 500 failed,
           # 504 still running after 10 minutes, 502 Komodo refused the run.
           status=$(curl -sS -o response.json -w '%{http_code}' --max-time 720 \
-            -X POST -H "X-Auth: $DEPLOY_HOOK_TOKEN" \
+            -X POST -H "Authorization: Bearer $header.$payload.$signature" \
             https://n8n.sendtrl.com/webhook/deploy/chsmesh) || status=000
           cat response.json 2>/dev/null; echo
           if [ "$status" != 200 ]; then
