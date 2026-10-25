@@ -103,7 +103,10 @@ a pull request opened by the submissions service.
    and the service saves it with the Charleston offset for that date, so
    check the wall-clock time is what the submitter meant. A time that falls
    in a daylight saving change (it never happens, or happens twice) is
-   adjusted and listed under **Needs a look** in the pull request.
+   adjusted and listed under **Needs a look** in the pull request. So is a
+   time sent with some other offset (for example UTC): the service stores
+   the same moment in Charleston time, which may not be the clock time the
+   submitter typed.
 3. For nodes, confirm the coordinates are plausible and the owner is happy
    for the location to be public.
 4. Edit the file on the branch if it needs changes. Small fixes are quicker

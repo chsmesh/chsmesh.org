@@ -252,8 +252,8 @@ checking inbound links.
 `.github/workflows/ci.yml` runs on pull requests and on pushes to `main` and
 `release/**`, as separate jobs:
 
-- **`site`**: `npm ci`, `npm run test:site` (`test/site/` and
-  `test/security/`), `npm run build`, a check that `dist/` has no inline
+- **`site`**: `npm ci`, `npm run test:site` (every `*.test.mjs` outside
+  `test/submissions/`), `npm run build`, a check that `dist/` has no inline
   executable `<script>` tags (the CSP would block them), and `npm run check`.
 - **`submissions`**: the service tests in `test/submissions/` on Node 22, the
   service's runtime version (`npm run test:submissions`). Locally, `npm test`

@@ -197,6 +197,9 @@ test('zone-less meetup times are pinned to Charleston time with a DST-aware offs
   assert.equal(zonedDateTime('2026-02-30T10:00'), null);
   assert.equal(zonedDateTime('2026-10-03T24:00'), null);
   assert.equal(zonedDateTime('2026-10-03T18:00Z'), null);
+  // Local mean time offsets include seconds; dates that old are refused.
+  assert.equal(zonedDateTime('1850-06-01T10:00'), null);
+  assert.deepEqual(zonedDateTime('1900-06-01T10:00'), { value: '1900-06-01T10:00:00-05:00', note: null });
 });
 
 test('DST edges resolve like Temporal "compatible" and leave a note', () => {
@@ -216,7 +219,7 @@ test('DST edges resolve like Temporal "compatible" and leave a note', () => {
   assert.deepEqual(zonedDateTime('2026-11-01T00:59'), { value: '2026-11-01T00:59:00-04:00', note: null });
 });
 
-test('validate zones meetup dates, keeps explicit offsets, and surfaces DST notes in the PR', () => {
+test('validate zones meetup dates, rewrites other offsets, and surfaces DST notes in the PR', () => {
   const base = { title: 'T', description: 'D', location: 'L', submitterEmail: 'a@b.co' };
   const plain = validate('meetup', { ...base, date: '2026-12-05T10:00', endDate: '2026-12-05T12:00' });
   assert.equal(plain.ok, true, plain.errors.join('; '));
@@ -224,8 +227,21 @@ test('validate zones meetup dates, keeps explicit offsets, and surfaces DST note
   assert.equal(plain.data.endDate, '2026-12-05T12:00:00-05:00');
   assert.deepEqual(plain.notes, []);
 
-  for (const explicit of ['2026-12-05T15:00:00Z', '2026-12-05T10:00:00-05:00', '2026-12-05T08:00+00:00']) {
-    assert.equal(validate('meetup', { ...base, date: explicit }).data.date, explicit);
+  // A Charleston offset is kept; any other offset is rewritten as the same
+  // moment in Charleston time and flagged for the reviewer.
+  const same = validate('meetup', { ...base, date: '2026-12-05T10:00:00-05:00' });
+  assert.equal(same.data.date, '2026-12-05T10:00:00-05:00');
+  assert.deepEqual(same.notes, []);
+  for (const explicit of ['2026-12-05T15:00:00Z', '2026-12-05T15:00:00.123Z', '2026-12-05T16:00+01:00']) {
+    const result = validate('meetup', { ...base, date: explicit });
+    assert.equal(result.ok, true, result.errors.join('; '));
+    assert.equal(result.data.date, '2026-12-05T10:00:00-05:00');
+    assert.equal(result.notes.length, 1);
+    assert.match(result.notes[0], /^date: .* different UTC offset/);
+  }
+  assert.equal(validate('meetup', { ...base, date: '2026-12-05T10:00:00-04:00' }).notes.length, 1);
+  for (const bad of ['2026-02-30T10:00Z', '2026-12-05T10:00+19:00', '2026-12-05T25:00Z', '1850-06-01T10:00', 'tomorrow']) {
+    assert.equal(validate('meetup', { ...base, date: bad }).ok, false, bad);
   }
 
   const impossible = validate('meetup', { ...base, date: '2026-02-30T10:00' });
@@ -239,6 +255,6 @@ test('validate zones meetup dates, keeps explicit offsets, and surfaces DST note
 
   const body = pullRequestBody('meetup', edge.data, { path: 'x', hasContact: true, notes: edge.notes });
   assert.match(body, /### Needs a look\n\n- date: 2026-03-08T02:30 does not exist/);
-  assert.match(body, /Charleston time.*America\/New_York offset/);
+  assert.match(body, /Charleston time.*America\/New_York time/);
   assert.ok(!pullRequestBody('meetup', plain.data, { path: 'x', hasContact: true }).includes('Needs a look'));
 });

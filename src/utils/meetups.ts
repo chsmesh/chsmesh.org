@@ -1,10 +1,12 @@
+import { SITE_TIME_ZONE } from '../../services/submissions/time-zone.mjs';
+
 /**
  * Meetups happen in Charleston, so their dates and times are shown in
  * Charleston time whatever zone the build machine or visitor is in. Stored
  * values carry an offset (the submissions service and the CMS both write
  * one), so this only changes how the instant is presented.
  */
-export const MEETUP_TIME_ZONE = 'America/New_York';
+export const MEETUP_TIME_ZONE = SITE_TIME_ZONE;
 
 export const formatMeetupDate = (date: Date): string =>
   date.toLocaleDateString('en-US', {
