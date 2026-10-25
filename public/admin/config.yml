@@ -55,10 +55,11 @@ collections:
     sortable_fields: [date, title]
     fields:
       - { name: title, label: Title, widget: string }
-      # Saved as YYYY-MM-DDTHH:mm:ss with no offset; the build parses it as UTC,
-      # so the site reads it as a naive local time. See the doc for the caveat.
-      - { name: date, label: Start, widget: datetime }
-      - { name: endDate, label: End, widget: datetime, required: false }
+      # The picker works in Charleston time whatever the editor's own zone, and
+      # the value is saved with its offset (2026-10-03T18:00:00-04:00), so the
+      # build reads the right instant. The site displays it in the same zone.
+      - { name: date, label: Start, widget: datetime, input_timezone: America/New_York, hint: Charleston time }
+      - { name: endDate, label: End, widget: datetime, input_timezone: America/New_York, hint: Charleston time, required: false }
       - { name: location, label: Location name, widget: string }
       - { name: address, label: Street address, widget: string, required: false }
       - { name: description, label: Description, widget: text }

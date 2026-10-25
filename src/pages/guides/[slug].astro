@@ -71,7 +71,7 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
             {author && <span>By {author}</span>}
             {lastUpdated && (
               <span>
-                Updated {lastUpdated.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                Updated {lastUpdated.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
               </span>
             )}
           </div>

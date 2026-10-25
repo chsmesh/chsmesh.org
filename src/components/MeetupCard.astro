@@ -1,7 +1,7 @@
 ---
 import type { CollectionEntry } from 'astro:content';
 import { getTaxonomyLabels } from '../utils/taxonomy';
-import { isPastMeetup } from '../utils/meetups';
+import { formatMeetupDate, formatMeetupTime, isPastMeetup } from '../utils/meetups';
 
 interface Props {
   meetup: CollectionEntry<'meetups'>;
@@ -12,16 +12,8 @@ const { meetup, featured = false } = Astro.props;
 const { title, date, location, description, rsvpLink, address } = meetup.data;
 
 const isPast = isPastMeetup(meetup.data);
-const formattedDate = date.toLocaleDateString('en-US', {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-});
-const formattedTime = date.toLocaleTimeString('en-US', {
-  hour: 'numeric',
-  minute: '2-digit',
-});
+const formattedDate = formatMeetupDate(date);
+const formattedTime = formatMeetupTime(date);
 
 const labels = await getTaxonomyLabels();
 const statusLabel = isPast

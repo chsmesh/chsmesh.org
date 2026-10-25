@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import { getCollection, render } from 'astro:content';
 import { getTaxonomyLabels } from '../../utils/taxonomy';
 import { getGlobal } from '../../utils/global';
-import { isPastMeetup } from '../../utils/meetups';
+import { formatMeetupDate, formatMeetupTime, isPastMeetup } from '../../utils/meetups';
 
 export async function getStaticPaths() {
   const meetups = await getCollection('meetups');
@@ -20,16 +20,8 @@ const meetupsDetail = await getGlobal('meetups-detail', 'meetups-detail');
 const labels = await getTaxonomyLabels();
 
 const isPast = isPastMeetup(meetup.data);
-const formattedDate = date.toLocaleDateString('en-US', {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-});
-const formattedTime = date.toLocaleTimeString('en-US', {
-  hour: 'numeric',
-  minute: '2-digit',
-});
+const formattedDate = formatMeetupDate(date);
+const formattedTime = formatMeetupTime(date);
 
 const statusLabel = isPast
   ? labels.meetupStatuses.past ?? 'Past Event'
@@ -90,7 +82,7 @@ const mapsUrl = coordinates
             <p class="text-neutral-600">{formattedTime}</p>
             {endDate && (
               <p class="text-sm text-neutral-500 mt-1">
-                Until {endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                Until {formatMeetupTime(endDate)}
               </p>
             )}
             {recurring && (
