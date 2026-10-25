@@ -62,7 +62,7 @@ services:
       - "traefik.http.routers.chsmesh.tls.certresolver=letsencrypt"
       - "traefik.http.services.chsmesh.loadbalancer.server.port=8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
