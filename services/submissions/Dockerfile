@@ -1,7 +1,7 @@
 # Submissions service for chsmesh.org (see docs/cms-and-submissions.md).
-# Before production use, pin this image by digest like the main Dockerfile:
-#   docker buildx imagetools inspect node:22-alpine
-FROM node:22-alpine
+# Base image pinned by digest like the main Dockerfile. To update:
+#   docker pull node:22-alpine && docker image inspect --format '{{index .RepoDigests 0}}' node:22-alpine
+FROM node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
 
 WORKDIR /app
 COPY package.json server.mjs lib.mjs ./

@@ -1,7 +1,7 @@
 services:
   # Same-origin form submissions and CMS sign-in (services/submissions).
   # Not published on a host port: nginx proxies /api/ to it on the compose
-  # network. Point PUBLIC_N8N_*_WEBHOOK_URL at /api/submit/<kind> to use it.
+  # network; the public forms POST to /api/submit/<kind>.
   submissions:
     build:
       context: ./services/submissions
@@ -31,16 +31,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # Forwarded from the shell environment or .env so a documented
-      # `docker compose build` produces working submission forms and a CSP
-      # connect-src that allows the n8n webhook host. These are PUBLIC_ values
-      # baked into the static output at build time - rotating them requires a
+      # Forwarded from the shell environment or .env. These are PUBLIC_ values
+      # baked into the static output at build time - changing them requires a
       # rebuild, not just a restart.
       args:
-        PUBLIC_N8N_WEBHOOK_URL: ${PUBLIC_N8N_WEBHOOK_URL:-}
-        PUBLIC_N8N_GUIDES_WEBHOOK_URL: ${PUBLIC_N8N_GUIDES_WEBHOOK_URL:-}
-        PUBLIC_N8N_MEETUPS_WEBHOOK_URL: ${PUBLIC_N8N_MEETUPS_WEBHOOK_URL:-}
-        PUBLIC_N8N_RESOURCES_WEBHOOK_URL: ${PUBLIC_N8N_RESOURCES_WEBHOOK_URL:-}
+        PUBLIC_SUBMIT_BASE: ${PUBLIC_SUBMIT_BASE:-}
         PUBLIC_TURNSTILE_SITE_KEY: ${PUBLIC_TURNSTILE_SITE_KEY:-}
     user: "101:101"
     ports:

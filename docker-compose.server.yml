@@ -1,5 +1,13 @@
-# chsmesh.org production deployment
-# Run this on your server.
+# chsmesh.org production deployment without Komodo.
+# Run this on your server from a checkout of the repository, behind a reverse
+# proxy that terminates TLS (see "Self-hosting" in README.md).
+#
+#   cp .env.example .env    # then fill it in
+#   scripts/server-update.sh
+#
+# Both images are built from this checkout, so a fork can be hosted without
+# access to any registry. Base images are pinned by digest in each Dockerfile,
+# so a given commit always builds from the same bases.
 #
 # Security note:
 # Automatic in-container updaters that mount /var/run/docker.sock
@@ -7,10 +15,41 @@
 # scripts/server-update.sh (or equivalent CI/CD deploy job).
 
 services:
+  # Same-origin form submissions and CMS sign-in (services/submissions).
+  # Not published on a host port: nginx proxies /api/ to it on the compose
+  # network as http://submissions:3000.
+  submissions:
+    build:
+      context: ./services/submissions
+    env_file:
+      - path: .env
+        required: true
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   chsmesh:
-    # Pin to immutable digest to prevent supply-chain drift from mutable tags.
-    # Update this digest only through the documented, reviewed release workflow.
-    image: ghcr.io/cstarlea/chsmesh@sha256:8b58f8f68af6b7f0c4f5443f7f6b9a95d6f2e0040df4f44e934e8c731f0a4e3c
+    depends_on:
+      - submissions
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Read from .env. These are PUBLIC_ values baked into the static output
+      # at build time - changing them requires a rebuild, not just a restart.
+      args:
+        PUBLIC_SUBMIT_BASE: ${PUBLIC_SUBMIT_BASE:-}
+        PUBLIC_TURNSTILE_SITE_KEY: ${PUBLIC_TURNSTILE_SITE_KEY:-}
     container_name: chsmesh
     user: "101:101"
     ports:

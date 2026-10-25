@@ -136,15 +136,8 @@ rebuild and, in production, a new image digest.
 
 | Build argument | Purpose |
 | --- | --- |
-| `PUBLIC_N8N_WEBHOOK_URL` | Where the node form posts. Set to `/api/submit/node`. |
-| `PUBLIC_N8N_GUIDES_WEBHOOK_URL` | Where the guide form posts. Set to `/api/submit/guide`. |
-| `PUBLIC_N8N_MEETUPS_WEBHOOK_URL` | Where the meetup form posts. Set to `/api/submit/meetup`. |
-| `PUBLIC_N8N_RESOURCES_WEBHOOK_URL` | Where the resource form posts. Set to `/api/submit/resource`. |
+| `PUBLIC_SUBMIT_BASE` | Path prefix the forms POST to, as `<base>/<kind>`. Optional; defaults to `/api/submit`. Must start with `/`: the CSP `connect-src` is `'self'`, so the build refuses a cross-origin value. nginx's `/api/` proxy and rate limit and the service's routes all assume `/api/submit`; change them together. |
 | `PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key. Empty disables the widget. |
-
-The `PUBLIC_N8N_*` names date from the previous n8n integration and are kept
-so the cutover is a configuration change only. A value starting with `/` is a
-same-origin path and needs no change to the Content Security Policy.
 
 Runtime values are read by the submissions service when it starts.
 
@@ -212,9 +205,9 @@ reference for the production configuration. The `submissions` container:
   `http://submissions:3000`;
 - answers `GET /healthz` for the container health check.
 
-For production, add the same service to `docker-compose.server.yml` with a
-digest-pinned image, provide the runtime variables on the host, and update
-`scripts/server-update.sh` to pull both images. The nginx container works
+`docker-compose.server.yml` runs the same two containers for production
+without Komodo, built from the checkout, and requires `.env` on the host (see
+"Self-hosting without Komodo" in the README). The nginx container works
 without the service present (`/api/` returns 502), so the two can be rolled
 out independently.
 
@@ -245,7 +238,6 @@ policy.
 ### Local development
 
 1. Copy `.env.example` to `.env` and set:
-   - the four `PUBLIC_N8N_*` variables to `/api/submit/<kind>`;
    - `SITE_ORIGIN=http://localhost:8081`;
    - a `GITHUB_TOKEN` if you want submissions to open real pull requests
      (leave it empty and the form gets a 503 after validation);

@@ -15,13 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Dummy build-time webhook URLs. Real values are injected by the deployment
-  # pipeline; CI only needs syntactically valid URLs so that the forms and the
-  # CSP connect-src derived from PUBLIC_N8N_WEBHOOK_URL have something to bake in.
-  PUBLIC_N8N_WEBHOOK_URL: https://example.invalid/webhook/submit-node
-  PUBLIC_N8N_GUIDES_WEBHOOK_URL: https://example.invalid/webhook/submit-guide
-  PUBLIC_N8N_MEETUPS_WEBHOOK_URL: https://example.invalid/webhook/submit-meetup
-  PUBLIC_N8N_RESOURCES_WEBHOOK_URL: https://example.invalid/webhook/submit-resource
   # Cloudflare's documented "always passes" test site key, so the build
   # exercises the Turnstile path (script tag, widget slot) without a real widget.
   PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
@@ -70,10 +63,6 @@ jobs:
       - name: Build container image
         run: |
           docker build \
-            --build-arg PUBLIC_N8N_WEBHOOK_URL="$PUBLIC_N8N_WEBHOOK_URL" \
-            --build-arg PUBLIC_N8N_GUIDES_WEBHOOK_URL="$PUBLIC_N8N_GUIDES_WEBHOOK_URL" \
-            --build-arg PUBLIC_N8N_MEETUPS_WEBHOOK_URL="$PUBLIC_N8N_MEETUPS_WEBHOOK_URL" \
-            --build-arg PUBLIC_N8N_RESOURCES_WEBHOOK_URL="$PUBLIC_N8N_RESOURCES_WEBHOOK_URL" \
             --build-arg PUBLIC_TURNSTILE_SITE_KEY="$PUBLIC_TURNSTILE_SITE_KEY" \
             -t chsmesh:ci .
 

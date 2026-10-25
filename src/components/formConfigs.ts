@@ -3,29 +3,21 @@ import type { FormConfig } from './SubmissionForm.astro';
 /**
  * Submission form configurations.
  *
- * SECURITY NOTE on `FormConfig.webhookEnvVar`:
- *
- * Every webhook URL below is read from a `PUBLIC_`-prefixed environment
- * variable, and that is intentional. This is a static site with no server of
- * its own: Astro inlines `PUBLIC_*` values into the client bundle at build
- * time, so the webhook URLs are visible to anyone who views source. They are
- * endpoint addresses, not credentials, and must never be treated as secrets.
- *
- * Because the endpoints are public and callable by anyone, the n8n workflow
- * behind each webhook is the only trust boundary. All input validation,
- * spam filtering and rate limiting MUST happen in n8n. Nothing the browser
- * does here - required attributes, zod schemas, the honeypot-free form markup -
- * is a security control; it is only user-experience polish that an attacker
- * skips by POSTing to the webhook directly.
+ * Each form POSTs to the same-origin submissions service at
+ * `${PUBLIC_SUBMIT_BASE}/<kind>` (default `/api/submit/<kind>`). That endpoint is public and callable by anyone, so
+ * the service (services/submissions) is the only trust boundary: it validates
+ * input, rate limits and verifies Turnstile. Nothing the browser does here -
+ * required attributes, zod schemas, the honeypot-free form markup - is a
+ * security control; it is only user-experience polish that an attacker skips
+ * by POSTing to the endpoint directly.
  */
 
 // Node Form Configuration
 export const nodeFormConfig: FormConfig = {
   id: 'node-form',
+  kind: 'node',
   title: 'Submit Your Node',
   description: 'Add your Meshtastic node to the community map.',
-  webhookEnvVar: 'PUBLIC_N8N_WEBHOOK_URL',
-  webhookPlaceholder: 'https://your-n8n-instance.com/webhook/submit-node',
   fields: [
     {
       name: 'name',
@@ -124,10 +116,9 @@ export const nodeFormConfig: FormConfig = {
 // Guide Form Configuration
 export const guideFormConfig: FormConfig = {
   id: 'guide-form',
+  kind: 'guide',
   title: 'Submit a Guide',
   description: 'Share your Meshtastic knowledge with the community.',
-  webhookEnvVar: 'PUBLIC_N8N_GUIDES_WEBHOOK_URL',
-  webhookPlaceholder: 'https://your-n8n-instance.com/webhook/submit-guide',
   fields: [
     {
       name: 'title',
@@ -217,10 +208,9 @@ export const guideFormConfig: FormConfig = {
 // Meetup Form Configuration
 export const meetupFormConfig: FormConfig = {
   id: 'meetup-form',
+  kind: 'meetup',
   title: 'Submit a Meetup',
   description: 'Host or propose a community meetup.',
-  webhookEnvVar: 'PUBLIC_N8N_MEETUPS_WEBHOOK_URL',
-  webhookPlaceholder: 'https://your-n8n-instance.com/webhook/submit-meetup',
   fields: [
     {
       name: 'title',
@@ -338,10 +328,9 @@ export const meetupFormConfig: FormConfig = {
 // Resource Form Configuration
 export const resourceFormConfig: FormConfig = {
   id: 'resource-form',
+  kind: 'resource',
   title: 'Submit a Resource',
   description: 'Recommend a device, accessory, app, or community resource.',
-  webhookEnvVar: 'PUBLIC_N8N_RESOURCES_WEBHOOK_URL',
-  webhookPlaceholder: 'https://your-n8n-instance.com/webhook/submit-resource',
   fields: [
     {
       name: 'title',
