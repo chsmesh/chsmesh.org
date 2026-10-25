@@ -13,7 +13,9 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
-    "test": "node --test"
+    "test": "node --test",
+    "test:site": "node --test test/site/*.test.mjs test/security/*.test.mjs",
+    "test:submissions": "node --test test/submissions/*.test.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
