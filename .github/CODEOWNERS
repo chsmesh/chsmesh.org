@@ -1,0 +1,16 @@
+# Infrastructure, deployment, and security-sensitive files need a maintainer's
+# review. Content under src/content/ is deliberately unowned so any member of
+# site-editors can approve a content pull request.
+
+/.github/               @cstarlea
+/Dockerfile             @cstarlea
+/.dockerignore          @cstarlea
+/docker-compose*.yml    @cstarlea
+/nginx.conf             @cstarlea
+/security-headers.conf  @cstarlea
+/astro.config.mjs       @cstarlea
+/package.json           @cstarlea
+/package-lock.json      @cstarlea
+/scripts/               @cstarlea
+/services/              @cstarlea
+/public/admin/          @cstarlea
