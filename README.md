@@ -289,16 +289,19 @@ this repository.
 ### Release and deploy (Komodo)
 
 Image build/publish and production deployment live in [Komodo](https://komo.do),
-outside this repository. Two Komodo Builds clone `main` and push to the
-registry: `chsmesh` (this Dockerfile, with the production `PUBLIC_*` build
-args) and `chsmesh-submissions` (`services/submissions/Dockerfile`). Each has
-a Deployment on the production host, on the Docker network shared with
-Traefik, which terminates TLS; the deployments redeploy automatically when
-their build finishes. Komodo is reachable only on the private network, so
-builds are started from the Komodo UI rather than by a GitHub webhook.
+outside this repository. Two Komodo Builds clone `main` and push to
+`ghcr.io/chsmesh`: `chsmesh` (this Dockerfile, with the production `PUBLIC_*`
+build args) and `chsmesh-submissions` (`services/submissions/Dockerfile`). The
+`chsmesh` Komodo Stack runs both images on the production host from
+`docker-compose.komodo.yml`: the site joins the Docker network shared with
+Traefik, which terminates TLS, and the submissions service stays on the
+stack's private network. The stack's environment (secrets come from Komodo
+Variables) reaches the submissions service only. Komodo is reachable only on
+the private network, so releases are started from the Komodo UI rather than
+by a GitHub webhook.
 
-To release: merge to `main`, run the `chsmesh-submissions` build if the
-service changed, then run the `chsmesh` build. The site container listens on
+To release: merge to `main`, then run the `chsmesh-release` Procedure, which
+builds both images and redeploys the stack. The site container listens on
 port 8080 and the Traefik service label must point at that port.
 
 ### Self-hosting without Komodo

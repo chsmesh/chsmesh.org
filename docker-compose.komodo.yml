@@ -1,0 +1,76 @@
+# chsmesh.org production deployment as a Komodo Stack.
+#
+# The Komodo Builds `chsmesh` and `chsmesh-submissions` push these images; the
+# `chsmesh-release` Procedure runs both builds and then redeploys this stack
+# (see "Release and deploy (Komodo)" in README.md). The stack's environment,
+# with secrets interpolated from Komodo Variables, is written to .env next to
+# this file and passed to the submissions service only.
+#
+# Only the site joins the shared `proxy` network that Traefik watches. The
+# submissions service sits on the stack's private network, where nginx reaches
+# it as http://submissions:3000, so no other app on `proxy` can resolve or
+# call it.
+
+services:
+  submissions:
+    image: ghcr.io/chsmesh/chsmesh-submissions:latest
+    env_file:
+      - path: .env
+        required: true
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  chsmesh:
+    image: ghcr.io/chsmesh/chsmesh:latest
+    depends_on:
+      - submissions
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - proxy
+      - internal
+    labels:
+      - "traefik.enable=true"
+      # The container is on two networks; route over the one Traefik shares.
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.chsmesh.rule=Host(`chsmesh.org`)"
+      - "traefik.http.routers.chsmesh.entrypoints=websecure"
+      - "traefik.http.routers.chsmesh.tls=true"
+      - "traefik.http.routers.chsmesh.tls.certresolver=letsencrypt"
+      - "traefik.http.services.chsmesh.loadbalancer.server.port=8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  proxy:
+    external: true
+  # Not `internal: true`: submissions needs outbound access to the GitHub,
+  # Turnstile and Discord APIs.
+  internal: {}
