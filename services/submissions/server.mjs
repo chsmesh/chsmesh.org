@@ -16,7 +16,7 @@
 
 import http from 'node:http';
 import crypto from 'node:crypto';
-import { KINDS, SPECS, validate, buildFile, slugify, pullRequestBody, turnstileVerdict } from './lib.mjs';
+import { KINDS, SPECS, validate, buildFile, slugify, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch } from './lib.mjs';
 
 const env = (name, fallback = '') => (process.env[name] ?? fallback).trim();
 
@@ -118,7 +118,7 @@ async function github(path, { method = 'GET', body } = {}) {
   if (res.status === 404 && method === 'GET') return null;
   if (!res.ok) {
     const text = (await res.text()).slice(0, 300);
-    throw new Error(`GitHub ${method} ${path} responded ${res.status}: ${text}`);
+    throw Object.assign(new Error(`GitHub ${method} ${path} responded ${res.status}: ${text}`), { status: res.status });
   }
   return res.status === 204 ? null : res.json();
 }
@@ -153,7 +153,7 @@ async function verifyTurnstile(token, ip, kind) {
   return verdict.ok;
 }
 
-async function notifyDiscord({ kind, title, email, prUrl }) {
+async function notifyDiscord({ kind, title, email, prUrl, labelled }) {
   if (!DISCORD_WEBHOOK_URL) return false;
   const res = await fetch(DISCORD_WEBHOOK_URL, {
     method: 'POST',
@@ -166,6 +166,9 @@ async function notifyDiscord({ kind, title, email, prUrl }) {
           fields: [
             { name: 'Pull request', value: prUrl },
             { name: 'Submitter email', value: email },
+            ...(labelled
+              ? []
+              : [{ name: 'Not in the CMS', value: `Labelling failed. Add the \`${pullRequestLabels(kind)[0]}\` label on GitHub to show it under In review.` }]),
           ],
         },
       ],
@@ -183,43 +186,73 @@ async function openPullRequest(kind, data, notes = []) {
   const shortId = crypto.randomBytes(3).toString('hex');
   let slug = slugify(data.name ?? data.title);
 
+  // The CMS ties a branch to its entry by slug, so the slug must be free both
+  // on the base branch and among open workflow branches (another pending
+  // submission or CMS draft with the same title).
   const probe = buildFile(kind, data, { slug, today });
-  const existing = await github(`/repos/${GITHUB_REPO}/contents/${probe.path}?ref=${encodeURIComponent(GITHUB_BASE_BRANCH)}`);
-  if (existing) slug = `${slug}-${shortId}`;
+  const [existingFile, existingBranch, base] = await Promise.all([
+    github(`/repos/${GITHUB_REPO}/contents/${probe.path}?ref=${encodeURIComponent(GITHUB_BASE_BRANCH)}`),
+    github(`/repos/${GITHUB_REPO}/git/ref/heads/${workflowBranch(kind, slug)}`),
+    github(`/repos/${GITHUB_REPO}/git/ref/heads/${encodeURIComponent(GITHUB_BASE_BRANCH)}`),
+  ]);
+  if (!base) throw new Error(`base branch ${GITHUB_BASE_BRANCH} not found`);
+  if (existingFile || existingBranch) slug = `${slug}-${shortId}`;
+
+  const createBranch = (name) =>
+    github(`/repos/${GITHUB_REPO}/git/refs`, { method: 'POST', body: { ref: `refs/heads/${name}`, sha: base.object.sha } });
+  try {
+    await createBranch(workflowBranch(kind, slug));
+  } catch (error) {
+    // 422: a simultaneous submission with the same title took the slug
+    // between the probe and now.
+    if (error.status !== 422 || slug.endsWith(`-${shortId}`)) throw error;
+    slug = `${slug}-${shortId}`;
+    await createBranch(workflowBranch(kind, slug));
+  }
 
   const file = buildFile(kind, data, { slug, today });
-  const branch = `submissions/${kind}/${slug}-${shortId}`;
+  const branch = workflowBranch(kind, slug);
 
-  const base = await github(`/repos/${GITHUB_REPO}/git/ref/heads/${encodeURIComponent(GITHUB_BASE_BRANCH)}`);
-  if (!base) throw new Error(`base branch ${GITHUB_BASE_BRANCH} not found`);
-
-  await github(`/repos/${GITHUB_REPO}/git/refs`, {
-    method: 'POST',
-    body: { ref: `refs/heads/${branch}`, sha: base.object.sha },
-  });
-  await github(`/repos/${GITHUB_REPO}/contents/${file.path}`, {
-    method: 'PUT',
-    body: {
-      message: `content(${kind}s): add ${slug} from public submission`,
-      content: Buffer.from(file.content, 'utf8').toString('base64'),
-      branch,
-    },
-  });
-  const pr = await github(`/repos/${GITHUB_REPO}/pulls`, {
-    method: 'POST',
-    body: {
-      title: `${SPECS[kind].label} submission: ${file.title}`.slice(0, 250),
-      head: branch,
-      base: GITHUB_BASE_BRANCH,
-      body: pullRequestBody(kind, data, { path: file.path, hasContact: Boolean(DISCORD_WEBHOOK_URL), notes }),
-    },
-  });
+  let pr;
   try {
-    await github(`/repos/${GITHUB_REPO}/issues/${pr.number}/labels`, { method: 'POST', body: { labels: ['submission', kind] } });
+    await github(`/repos/${GITHUB_REPO}/contents/${file.path}`, {
+      method: 'PUT',
+      body: {
+        message: `content(${SPECS[kind].collection}): add ${slug} from public submission`,
+        content: Buffer.from(file.content, 'utf8').toString('base64'),
+        branch,
+      },
+    });
+    pr = await github(`/repos/${GITHUB_REPO}/pulls`, {
+      method: 'POST',
+      body: {
+        title: `${SPECS[kind].label} submission: ${file.title}`.slice(0, 250),
+        head: branch,
+        base: GITHUB_BASE_BRANCH,
+        body: pullRequestBody(kind, data, { path: file.path, hasContact: Boolean(DISCORD_WEBHOOK_URL), notes }),
+      },
+    });
   } catch (error) {
-    console.warn(`Could not label PR #${pr.number}: ${error.message}`);
+    // Don't leave a branch without a pull request in the CMS's namespace; it
+    // would reserve the slug and could collide with an editor's draft.
+    await github(`/repos/${GITHUB_REPO}/git/refs/heads/${branch}`, { method: 'DELETE' }).catch((cleanup) =>
+      console.error(`Could not delete orphaned branch ${branch}: ${cleanup.message}`)
+    );
+    throw error;
   }
-  return { url: pr.html_url, number: pr.number, title: file.title };
+
+  // The status label is what puts the entry in the CMS Workflow view, so one
+  // transient failure is worth a retry.
+  let labelled = false;
+  for (let attempt = 1; attempt <= 2 && !labelled; attempt++) {
+    try {
+      await github(`/repos/${GITHUB_REPO}/issues/${pr.number}/labels`, { method: 'POST', body: { labels: pullRequestLabels(kind) } });
+      labelled = true;
+    } catch (error) {
+      console.error(`Could not label PR #${pr.number} (attempt ${attempt}); it will not appear in the CMS Workflow view: ${error.message}`);
+    }
+  }
+  return { url: pr.html_url, number: pr.number, title: file.title, labelled };
 }
 
 async function handleSubmit(req, res, kind) {
@@ -256,7 +289,7 @@ async function handleSubmit(req, res, kind) {
 
   try {
     const pr = await openPullRequest(kind, data, notes);
-    const notified = await notifyDiscord({ kind, title: pr.title, email: data.submitterEmail, prUrl: pr.url }).catch((error) => {
+    const notified = await notifyDiscord({ kind, title: pr.title, email: data.submitterEmail, prUrl: pr.url, labelled: pr.labelled }).catch((error) => {
       console.error(`Discord notification failed: ${error.message}`);
       return false;
     });

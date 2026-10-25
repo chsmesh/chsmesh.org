@@ -8,7 +8,7 @@ who made it.
 | Who | How | GitHub account needed | What it produces |
 | --- | --- | --- | --- |
 | Maintainers and trusted contributors | The CMS at `https://chsmesh.org/admin/` | Yes, with write access to the repository | A pull request on a `cms/<collection>/<slug>` branch, published from inside the CMS |
-| Anyone | The submission forms on the public site | No | A pull request on a `submissions/<kind>/<slug>-<id>` branch, labelled `submission`, plus a notice in the moderators' Discord channel |
+| Anyone | The submission forms on the public site | No | A pull request on a `cms/<collection>/<slug>` branch, labelled `submission` and `cms/pending_review`, plus a notice in the moderators' Discord channel. It appears in the CMS under **In review** |
 
 This guide covers the three audiences involved:
 
@@ -73,22 +73,28 @@ show the same branch.
   with its UTC offset (`-04:00` in summer, `-05:00` in winter). The site
   always shows meetup times in Charleston time. If you edit a meetup file by
   hand, keep the offset; without one the time is not read as Charleston time.
-- **Public submissions appear as pull requests too**, on `submissions/`
-  branches. You can review them on GitHub, or open the branch in the CMS to
-  edit the entry before merging.
+- **Public submissions appear in the Workflow view** under **In review**,
+  alongside editors' own drafts. Open one to edit it, then move it to
+  **Ready** and publish, exactly as for your own entries. They are also
+  labelled `submission` on GitHub.
 
 ## Reviewing public submissions
 
 The submission forms on the site (add a node, submit a guide, suggest a
 meetup, share a resource) do not require an account. Each submission becomes
-a pull request opened by the submissions service.
+a pull request opened by the submissions service, in the same shape the CMS
+uses for its own drafts, so you can review it either in the CMS Workflow view
+or on GitHub.
 
 ### What a submission looks like
 
-- **Branch** `submissions/<kind>/<slug>-<id>`, one file under `src/content/`.
+- **Branch** `cms/<collection>/<slug>`, one file under `src/content/`
+  named `<slug>`. If that slug is already taken on `main` or by another open
+  workflow branch, a short random suffix is added.
 - **Title** `<Kind> submission: <entry title>`.
-- **Labels** `submission` and the kind (`node`, `guide`, `meetup` or
-  `resource`). Filter the queue with `label:submission`.
+- **Labels** `cms/pending_review`, `submission` and the kind (`node`,
+  `guide`, `meetup` or `resource`). The `cms/` label is what puts the entry in
+  the CMS Workflow view. Filter the GitHub queue with `label:submission`.
 - **Body** shows the file path, a table of the submitted fields, and a review
   checklist.
 - **Contact details** are never in the pull request. The submitter's email
@@ -109,12 +115,14 @@ a pull request opened by the submissions service.
    submitter typed.
 3. For nodes, confirm the coordinates are plausible and the owner is happy
    for the location to be public.
-4. Edit the file on the branch if it needs changes. Small fixes are quicker
-   than a round trip with the submitter.
+4. Edit the entry if it needs changes, either in the CMS (open it from
+   **In review**) or on the branch in GitHub. Small fixes are quicker than a
+   round trip with the submitter.
 5. Wait for the CI check. It runs the content schema validation, so a green
    check means the entry will build.
-6. Merge to publish, or close the pull request to reject. Delete the branch
-   either way.
+6. To publish, move the entry to **Ready** and choose **Publish** in the CMS,
+   or merge the pull request on GitHub. To reject, delete the entry from the
+   Workflow view or close the pull request and delete the branch.
 
 Submissions are validated before the pull request is opened. The service only
 accepts the fields each form sends and drops anything else, so a pull request
@@ -180,8 +188,12 @@ Runtime values are read by the submissions service when it starts.
    callback URL per app, so local testing needs a second app (see
    [Local development](#local-development)).
 3. **Labels.** Create `submission`, `node`, `guide`, `meetup` and `resource`.
-   The service tolerates missing labels, but the queue is easier to filter
-   with them. The CMS creates its own `cms/` labels.
+   GitHub creates any missing label the first time the service applies it, so
+   this is only for colours and descriptions. The service also applies
+   `cms/pending_review`; the CMS manages the `cms/` labels from then on. If
+   labelling fails twice the pull request is still opened and the Discord
+   notice says so, but it will not appear in the CMS until someone adds
+   `cms/pending_review` by hand.
 4. **Branch protection on `main`.** Require a pull request before merging,
    require the `ci-ok` CI status check, and require at least one approval. The CMS
    editorial workflow and the service both work through pull requests, and
@@ -295,6 +307,7 @@ Submission responses:
 | Forms fail and `/api/` returns 502 | nginx cannot reach the service. Check that the `submissions` container is running and healthy. |
 | Form says verification failed | Turnstile rejected the token. The service log names the reason. A hostname mismatch means the widget's hostnames do not include this site. |
 | The CI check on a CMS pull request is red | Usually a draft with empty required fields. Finish the entry; it will go green. |
+| A submission pull request exists but is not in the CMS Workflow view | It is missing the `cms/pending_review` label (the Discord notice flags this and the service log says why), or its branch was renamed. Add the label on GitHub; the branch must stay `cms/<collection>/<slug>`. |
 | The CMS page is blank or a request is blocked | Check the browser console for a Content Security Policy message and adjust the `$csp_admin_*` maps. |
 
 ### Why it is built this way
