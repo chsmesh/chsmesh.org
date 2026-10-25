@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 const composePath = path.resolve(__dirname, '../../docker-compose.server.yml');
 const localComposePath = path.resolve(__dirname, '../../docker-compose.yml');
 const dockerfilePath = path.resolve(__dirname, '../../Dockerfile');
+const submissionsDockerfilePath = path.resolve(__dirname, '../../services/submissions/Dockerfile');
 const nginxConfigPath = path.resolve(__dirname, '../../nginx.conf');
 const securityHeadersPath = path.resolve(__dirname, '../../security-headers.conf');
 const serverUpdateScriptPath = path.resolve(__dirname, '../../scripts/server-update.sh');
@@ -47,30 +48,32 @@ test('should enforce non-root and hardened runtime controls in compose files', (
   }
 });
 
-test('should pin production container images to immutable digests', () => {
+test('should build production images from the checkout on digest-pinned bases', () => {
   const compose = readFile(composePath);
-  const imageLines = compose
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith('image:'));
 
-  assert.ok(imageLines.length > 0, 'server compose should define at least one image');
+  // Images come from this repository, not a registry, so a fork can host the
+  // site; reproducibility comes from pinning every FROM by digest instead.
+  assert.doesNotMatch(compose, /^\s*image:/m, 'server compose must build its images, not pull them');
+  assert.match(compose, /^  submissions:\n\s+build:\n\s+context: \.\/services\/submissions$/m, 'server compose must build the submissions service');
+  assert.match(compose, /^  chsmesh:[\s\S]*?build:\n\s+context: \.$/m, 'server compose must build the site image');
 
-  for (const line of imageLines) {
-    const imageRef = line.replace(/^image:\s*/, '').trim();
-
-    assert.match(
-      imageRef,
-      /@sha256:[a-f0-9]{64}$/,
-      `image must be pinned by digest: ${imageRef}`
-    );
-
-    assert.equal(
-      /:latest$/.test(imageRef),
-      false,
-      `mutable :latest tag is not allowed in production image references: ${imageRef}`
-    );
+  for (const filePath of [dockerfilePath, submissionsDockerfilePath]) {
+    for (const line of readFile(filePath).split('\n').filter((l) => /^FROM\s/.test(l))) {
+      assert.match(line, /@sha256:[a-f0-9]{64}/, `base image must be digest pinned: ${line}`);
+    }
   }
+});
+
+test('should run the hardened submissions service in production', () => {
+  const compose = readFile(composePath);
+  const service = compose.slice(compose.indexOf('\n  submissions:'), compose.indexOf('\n  chsmesh:'));
+
+  assert.match(service, /path: \.env\n\s+required: true/, 'production must require .env for the service secrets');
+  assert.match(service, /user:\s*"1000:1000"/);
+  assert.match(service, /read_only:\s*true/);
+  assert.match(service, /cap_drop:\s*\n\s*-\s*ALL/);
+  assert.match(service, /no-new-privileges:true/);
+  assert.doesNotMatch(service, /^\s*ports:/m, 'the service must only be reachable through nginx');
 });
 
 test('should configure a production healthcheck for the server compose service', () => {
@@ -91,19 +94,17 @@ test('should reject root nginx runtime in Dockerfile', () => {
   assert.match(dockerfile, /^EXPOSE\s+8080$/m, 'Dockerfile runtime stage should expose unprivileged port 8080');
 });
 
-test('should validate the pulled production image before restarting the container', () => {
+test('should rebuild from the checkout and stop on failure before restarting', () => {
   const serverUpdateScript = readFile(serverUpdateScriptPath);
 
+  assert.match(serverUpdateScript, /\[\[ ! -f \.env \]\]/, 'server update script must refuse to run without .env');
+  assert.match(serverUpdateScript, /git pull --ff-only/, 'server update script must only fast-forward the checkout');
   assert.match(
     serverUpdateScript,
-    /if ! docker compose -f "\$COMPOSE_FILE" pull chsmesh; then/,
-    'server update script must stop when the image pull fails'
+    /if ! docker compose -f "\$COMPOSE_FILE" build; then/,
+    'server update script must stop when the build fails'
   );
-  assert.match(
-    serverUpdateScript,
-    /docker image inspect "\$image_ref" >/,
-    'server update script must verify the pulled image exists locally before restarting'
-  );
+  assert.match(serverUpdateScript, /up -d --remove-orphans/);
 });
 
 test('should reject unsafe-inline scripts, allow current inline styles, and require HSTS preload policy in nginx', () => {

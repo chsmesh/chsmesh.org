@@ -91,8 +91,8 @@ time with `--build-arg`, or via `build.args` in `docker-compose.yml`.
 Because the site is static, these values are **baked into the generated HTML/JS
 at build time**. They are public by design — never put a secret in a `PUBLIC_*`
 variable. Changing one therefore requires a rebuild and, for production, a new
-image digest in `docker-compose.server.yml`; changing the running container's
-environment has no effect.
+rebuild and redeploy; changing the running container's environment has no
+effect.
 
 ## Project Structure
 
@@ -279,8 +279,28 @@ To release: merge to `main`, run the `chsmesh-submissions` build if the
 service changed, then run the `chsmesh` build. The site container listens on
 port 8080 and the Traefik service label must point at that port.
 
-`docker-compose.server.yml` and `scripts/server-update.sh` are a standalone
-alternative for running the pinned site image on a host without Komodo.
+### Self-hosting without Komodo
+
+`docker-compose.server.yml` runs the whole site on any Docker host from a
+checkout of this repository: it builds the nginx site image and the
+submissions service from source (base images are pinned by digest) and needs
+no registry, so a fork can be hosted the same way.
+
+```bash
+git clone https://github.com/chsmesh/chsmesh.org.git && cd chsmesh.org
+cp .env.example .env      # set SITE_ORIGIN, GITHUB_TOKEN and the rest
+scripts/server-update.sh  # build both images and start them
+```
+
+Rerun `scripts/server-update.sh` to update: it fast-forwards the checkout,
+rebuilds, and restarts what changed (`SKIP_GIT_PULL=1` deploys the checkout as
+it is). See [docs/cms-and-submissions.md](docs/cms-and-submissions.md) for the
+`.env` values, the GitHub token and the OAuth App.
+
+The site listens on host port 8081 over plain HTTP. Put a reverse proxy that
+terminates TLS in front of it (Caddy, Traefik, nginx) and have it send
+`X-Forwarded-Proto: https`, which turns on HSTS, and `X-Forwarded-For`, which
+nginx trusts from private addresses for per-visitor rate limits.
 
 ## Contributing
 

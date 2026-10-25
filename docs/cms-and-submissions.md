@@ -205,9 +205,9 @@ reference for the production configuration. The `submissions` container:
   `http://submissions:3000`;
 - answers `GET /healthz` for the container health check.
 
-For production, add the same service to `docker-compose.server.yml` with a
-digest-pinned image, provide the runtime variables on the host, and update
-`scripts/server-update.sh` to pull both images. The nginx container works
+`docker-compose.server.yml` runs the same two containers for production
+without Komodo, built from the checkout, and requires `.env` on the host (see
+"Self-hosting without Komodo" in the README). The nginx container works
 without the service present (`/api/` returns 502), so the two can be rolled
 out independently.
 
