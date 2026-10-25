@@ -20,10 +20,39 @@ env:
   PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
 
 jobs:
-  build-and-smoke-test:
-    name: Build, test, and smoke test the container
+  changes:
+    name: Detect changed paths
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # Pushes to main and release/** always run every job; pull requests run
+      # the image build and container jobs only when something outside the
+      # content paths changed.
+      container: ${{ github.event_name != 'pull_request' || steps.filter.outputs.container == 'true' }}
+
+    steps:
+      - name: Filter changed paths
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
+        with:
+          # `every`: a file counts only if it matches all the negated
+          # patterns, i.e. it lies outside every content path. A pull request
+          # that touches only content therefore leaves `container` false.
+          predicate-quantifier: every
+          filters: |
+            container:
+              - '!src/content/**'
+              - '!public/images/**'
+              - '!docs/**/*.md'
+
+  site:
+    name: Site - test, build, and check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -38,8 +67,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - name: Run site tests
+        # test/submissions/ runs in the submissions job, on the service's own
+        # Node version. Locally, `npm test` still runs every suite.
+        run: npm run test:site
 
       - name: Build site
         run: npm run build
@@ -60,6 +91,76 @@ jobs:
       - name: Type and content schema check
         run: npm run check
 
+  submissions:
+    name: Submissions service - tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # The service has no dependencies and targets Node 22 (its package.json
+      # engines and Dockerfile base image), so there is no npm ci here.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run submissions service tests
+        run: npm run test:submissions
+
+  submissions-image:
+    name: Submissions service - image build
+    needs: changes
+    if: needs.changes.outputs.container == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build service image
+        run: docker build -t chsmesh-submissions:ci services/submissions
+
+      - name: Smoke test - service starts and answers /healthz
+        run: |
+          # With no environment the service logs warnings and starts anyway;
+          # /healthz needs no configuration.
+          docker run -d --name submissions-ci --read-only \
+            -p 3000:3000 chsmesh-submissions:ci
+          for _ in $(seq 1 15); do
+            if curl -fsS http://127.0.0.1:3000/healthz; then
+              echo
+              echo 'Submissions service is answering /healthz.'
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'Submissions service did not answer /healthz within 30s.' >&2
+          docker logs submissions-ci >&2 || true
+          exit 1
+
+      - name: Container logs
+        if: always()
+        run: docker logs submissions-ci || true
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f submissions-ci || true
+
+  container:
+    name: Container - build and smoke test
+    needs: changes
+    if: needs.changes.outputs.container == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
       - name: Build container image
         run: |
           docker build \
@@ -72,7 +173,14 @@ jobs:
           # files under /tmp, so /tmp must be writable; the other two tmpfs
           # mounts match docker-compose*.yml. --read-only mirrors the
           # production hardening so the smoke test exercises it.
+          # A user-defined network, like compose and the production host
+          # network, provides Docker's embedded DNS at 127.0.0.11, which the
+          # /api/ resolver in nginx.conf relies on. On the default bridge
+          # nothing answers there and /api/ hangs for the 30s resolver
+          # timeout before its 502.
+          docker network create chsmesh-ci
           docker run -d --name chsmesh-ci --read-only \
+            --network chsmesh-ci \
             --tmpfs /var/cache/nginx --tmpfs /var/run --tmpfs /tmp \
             -p 8080:8080 chsmesh:ci
           for _ in $(seq 1 30); do
@@ -166,12 +274,14 @@ jobs:
         run: |
           # /_astro/ assets come from a `location ^~ /_astro/` block with its own
           # add_header lines, so it too must re-include security-headers.conf.
-          css=$(find dist/_astro -name '*.css' | head -n 1)
-          if [ -z "$css" ]; then
-            echo 'No CSS asset found in dist/_astro/' >&2
+          # This job does not build dist/ on the runner, so use the
+          # stylesheet the home page links to.
+          path=$(curl -fsS http://127.0.0.1:8080/ \
+            | grep -oE '/_astro/[A-Za-z0-9._-]+\.css' | head -n 1)
+          if [ -z "$path" ]; then
+            echo 'No /_astro/*.css stylesheet linked from /' >&2
             exit 1
           fi
-          path="/_astro/$(basename "$css")"
           headers=$(curl -sS -D - -o /dev/null "http://127.0.0.1:8080$path")
           printf '%s\n' "$headers"
           status_line=$(printf '%s\n' "$headers" | head -n 1)
@@ -183,6 +293,32 @@ jobs:
             || { echo "Missing Content-Security-Policy header on $path" >&2; exit 1; }
           printf '%s\n' "$headers" | grep -qi '^cache-control:.*immutable' \
             || { echo "Expected an immutable Cache-Control on $path" >&2; exit 1; }
+
+      - name: Smoke test - /api/ returns 502 with security headers when no upstream
+        run: |
+          # nginx.conf proxies /api/ through a variable and Docker's DNS
+          # resolver, so the image starts and serves the site with no
+          # submissions container present. Assert that case is a 502 that
+          # still carries the server-level security headers (the location
+          # declares no add_header of its own, so it inherits them), and that
+          # nginx keeps serving afterwards. The 10s cap fails fast if name
+          # resolution hangs instead of failing immediately.
+          headers=$(curl -sS -D - -o /dev/null --max-time 10 \
+            -H 'X-Forwarded-Proto: https' \
+            http://127.0.0.1:8080/api/healthz)
+          printf '%s\n' "$headers"
+          status_line=$(printf '%s\n' "$headers" | head -n 1)
+          case "$status_line" in
+            *' 502'*) ;;
+            *) echo "Expected 502 for /api/healthz with no upstream, got: $status_line" >&2; exit 1 ;;
+          esac
+          for header in content-security-policy strict-transport-security \
+            x-frame-options x-content-type-options referrer-policy permissions-policy; do
+            printf '%s\n' "$headers" | grep -qi "^$header:" \
+              || { echo "Missing $header header on the /api/healthz 502" >&2; exit 1; }
+          done
+          curl -fsS -o /dev/null http://127.0.0.1:8080/ \
+            || { echo 'Container stopped serving / after the /api/ request' >&2; exit 1; }
 
       - name: Smoke test - image also starts with no mounts at all
         run: |
@@ -209,4 +345,29 @@ jobs:
 
       - name: Stop containers
         if: always()
-        run: docker rm -f chsmesh-ci chsmesh-ci-plain || true
+        run: |
+          docker rm -f chsmesh-ci chsmesh-ci-plain || true
+          docker network rm chsmesh-ci || true
+
+  ci-ok:
+    # The single required status check. It always runs, fails if any job it
+    # needs failed or was cancelled, and passes when the image build and
+    # container jobs were skipped for a content-only pull request.
+    name: ci-ok
+    needs: [changes, site, submissions, submissions-image, container]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check job results
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          printf '%s\n' "$RESULTS"
+          if [ "$FAILED" = 'true' ]; then
+            echo 'One or more CI jobs failed or were cancelled.' >&2
+            exit 1
+          fi
+          echo 'All CI jobs passed or were skipped.'

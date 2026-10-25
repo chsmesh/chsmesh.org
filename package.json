@@ -13,7 +13,9 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
-    "test": "node --test"
+    "test": "node --test",
+    "test:site": "node --test $(find . \\( -name node_modules -o -name dist -o -name '.?*' -o -path ./test/submissions \\) -prune -o -name '*.test.mjs' -print)",
+    "test:submissions": "node --test test/submissions/*.test.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

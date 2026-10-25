@@ -2,6 +2,10 @@
 // serialising an accepted submission into the content file the Astro
 // collections expect. No I/O here so it can be unit tested directly.
 
+import { SITE_TIME_ZONE, zonedDateTime, inTimeZone } from './time-zone.mjs';
+
+export { SITE_TIME_ZONE, zonedDateTime, inTimeZone, zoneOffsetMinutes } from './time-zone.mjs';
+
 const SLUG_MAX = 60;
 
 export function slugify(input) {
@@ -66,8 +70,8 @@ export const SPECS = {
       title: string(120, { required: true }),
       description: text(1000, { required: true }),
       content: text(20000),
-      date: { type: 'datetime', required: true },
-      endDate: { type: 'datetime' },
+      date: { type: 'datetime', timeZone: SITE_TIME_ZONE, required: true },
+      endDate: { type: 'datetime', timeZone: SITE_TIME_ZONE },
       location: string(160, { required: true }),
       address: string(200),
       coordinates: { type: 'coords' },
@@ -95,7 +99,7 @@ export const SPECS = {
 
 export const KINDS = Object.keys(SPECS);
 
-function checkField(name, spec, raw, errors) {
+function checkField(name, spec, raw, errors, notes) {
   if (raw === undefined || raw === null || raw === '') {
     if (spec.required) errors.push(`${name} is required`);
     return undefined;
@@ -127,11 +131,22 @@ function checkField(name, spec, raw, errors) {
     case 'url':
       if (typeof raw !== 'string' || raw.length > 2000 || !URL_RE.test(raw.trim())) return void errors.push(`${name} must be an http(s) URL`);
       return raw.trim();
-    case 'datetime':
-      if (typeof raw !== 'string' || !(DATETIME_RE.test(raw) || DATE_RE.test(raw)) || Number.isNaN(Date.parse(raw))) {
-        return void errors.push(`${name} must be an ISO 8601 date or date-time`);
+    case 'datetime': {
+      if (typeof raw !== 'string') return void errors.push(`${name} must be an ISO 8601 date or date-time`);
+      if (!spec.timeZone) {
+        if (!(DATETIME_RE.test(raw) || DATE_RE.test(raw)) || Number.isNaN(Date.parse(raw))) {
+          return void errors.push(`${name} must be an ISO 8601 date or date-time`);
+        }
+        return raw;
       }
-      return raw;
+      // Zone-less values are pinned to the zone; values with Z or an offset
+      // are rewritten as the same instant in it, so every stored time reads
+      // as the zone's wall clock.
+      const zoned = zonedDateTime(raw, spec.timeZone) ?? inTimeZone(raw, spec.timeZone);
+      if (!zoned) return void errors.push(`${name} must be a real ISO 8601 date or date-time`);
+      if (zoned.note) notes.push(`${name}: ${zoned.note}`);
+      return zoned.value;
+    }
     case 'coords': {
       if (!isPlainObject(raw)) return void errors.push(`${name} must be an object with lat and lng`);
       const lat = Number(raw.lat);
@@ -180,20 +195,22 @@ function checkField(name, spec, raw, errors) {
 }
 
 /**
- * Validate a raw JSON payload for `kind`. Returns `{ ok, errors, data }` where
- * `data` contains only the recognised, normalised fields.
+ * Validate a raw JSON payload for `kind`. Returns `{ ok, errors, notes, data }`
+ * where `data` contains only the recognised, normalised fields and `notes`
+ * lists adjustments a reviewer should know about (DST edge cases).
  */
 export function validate(kind, payload) {
   const spec = SPECS[kind];
-  if (!spec) return { ok: false, errors: [`unknown submission kind: ${kind}`], data: null };
-  if (!isPlainObject(payload)) return { ok: false, errors: ['body must be a JSON object'], data: null };
+  if (!spec) return { ok: false, errors: [`unknown submission kind: ${kind}`], notes: [], data: null };
+  if (!isPlainObject(payload)) return { ok: false, errors: ['body must be a JSON object'], notes: [], data: null };
   const errors = [];
+  const notes = [];
   const data = {};
   for (const [name, fieldSpec] of Object.entries(spec.fields)) {
-    const value = checkField(name, fieldSpec, payload[name], errors);
+    const value = checkField(name, fieldSpec, payload[name], errors, notes);
     if (value !== undefined) data[name] = value;
   }
-  return { ok: errors.length === 0, errors, data: errors.length === 0 ? data : null };
+  return { ok: errors.length === 0, errors, notes, data: errors.length === 0 ? data : null };
 }
 
 // ---------------------------------------------------------------------------
@@ -365,7 +382,7 @@ export function summarise(kind, data) {
   return rows;
 }
 
-export function pullRequestBody(kind, data, { path, hasContact }) {
+export function pullRequestBody(kind, data, { path, hasContact, notes = [] }) {
   const rows = summarise(kind, data)
     .map(([key, value]) => `| ${key} | ${value} |`)
     .join('\n');
@@ -380,11 +397,14 @@ export function pullRequestBody(kind, data, { path, hasContact }) {
     '| --- | --- |',
     rows,
     '',
+    ...(notes.length ? ['### Needs a look', '', ...notes.map((note) => `- ${note}`), ''] : []),
     '### Review checklist',
     '',
     '- [ ] Content is accurate, appropriate, and not a duplicate',
     '- [ ] Links resolve and point where they claim to',
-    kind === 'meetup' ? '- [ ] Date and time are correct for local time (the form value carries no timezone)' : null,
+    kind === 'meetup'
+      ? `- [ ] Date and time are right. The form asks for Charleston time; the service stored it as ${SITE_TIME_ZONE} time with that date's UTC offset`
+      : null,
     kind === 'node' ? '- [ ] Coordinates are plausible and the owner consents to publication' : null,
     '- [ ] `npm run check` passes on this branch (CI runs it)',
     '',

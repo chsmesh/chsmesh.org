@@ -1,6 +1,8 @@
 node_modules
 dist
 services
+# The site imports the shared meetup time zone (src/utils/meetups.ts).
+!services/submissions/time-zone.mjs
 docs
 .git
 .env

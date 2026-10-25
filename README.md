@@ -250,16 +250,38 @@ checking inbound links.
 ### Continuous integration
 
 `.github/workflows/ci.yml` runs on pull requests and on pushes to `main` and
-`release/**`. It installs dependencies with `npm ci`, runs `npm test`,
-`npm run build`, and `npm run check`, then builds the Docker image and smoke
-tests the running container:
+`release/**`, as separate jobs:
 
-- `/` returns 200 with `Content-Security-Policy` and `Strict-Transport-Security`
-  headers (the request is sent with `X-Forwarded-Proto: https` so HSTS applies)
-- `/guides/what-is-meshtastic/` returns 200
-- `/guides/what-is-meshtastic.md/` returns **301** to
-  `/guides/what-is-meshtastic/`, covering the legacy redirects above
-- an unknown URL returns a real 404
+- **`site`**: `npm ci`, `npm run test:site` (every `*.test.mjs` outside
+  `test/submissions/`), `npm run build`, a check that `dist/` has no inline
+  executable `<script>` tags (the CSP would block them), and `npm run check`.
+- **`submissions`**: the service tests in `test/submissions/` on Node 22, the
+  service's runtime version (`npm run test:submissions`). Locally, `npm test`
+  still runs both suites.
+- **`submissions-image`**: builds `services/submissions/Dockerfile` and checks
+  that the container answers `/healthz`.
+- **`container`**: builds the site's Docker image and smoke tests the running
+  container:
+  - `/` returns 200 with `Content-Security-Policy` and
+    `Strict-Transport-Security` headers (the request is sent with
+    `X-Forwarded-Proto: https` so HSTS applies)
+  - `/guides/what-is-meshtastic/` returns 200
+  - `/guides/what-is-meshtastic.md/` returns **301** to
+    `/guides/what-is-meshtastic/`, covering the legacy redirects above
+  - an unknown URL returns a real 404, and a hashed `/_astro/` asset is
+    served immutable, both with the security headers
+  - `/api/healthz` returns **502** with the security headers when no
+    submissions container is running, and nginx keeps serving the site
+  - the image also starts under a plain `docker run` with no tmpfs mounts
+- **`ci-ok`**: always runs and fails if any other job failed or was
+  cancelled. This is the one required status check on `main`.
+
+On pull requests, `submissions-image` and `container` run only when the pull
+request changes a file outside the content paths (`src/content/**`,
+`public/images/**`, and `docs/**/*.md`). A content-only pull request, such as
+a CMS draft, runs `site` and `submissions` and skips the image builds; a
+skipped job counts as passing in `ci-ok`. Pushes to `main` and `release/**`
+always run every job.
 
 CI does **not** build, push, or deploy images. There is no release workflow in
 this repository.

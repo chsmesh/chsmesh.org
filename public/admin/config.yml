@@ -55,10 +55,11 @@ collections:
     sortable_fields: [date, title]
     fields:
       - { name: title, label: Title, widget: string }
-      # Saved as YYYY-MM-DDTHH:mm:ss with no offset; the build parses it as UTC,
-      # so the site reads it as a naive local time. See the doc for the caveat.
-      - { name: date, label: Start, widget: datetime }
-      - { name: endDate, label: End, widget: datetime, required: false }
+      # The picker works in Charleston time whatever the editor's own zone, and
+      # the value is saved with its offset (2026-10-03T18:00:00-04:00), so the
+      # build reads the right instant. The site displays it in the same zone.
+      - { name: date, label: Start, widget: datetime, input_timezone: America/New_York, hint: Charleston time }
+      - { name: endDate, label: End, widget: datetime, input_timezone: America/New_York, hint: Charleston time, required: false }
       - { name: location, label: Location name, widget: string }
       - { name: address, label: Street address, widget: string, required: false }
       - { name: description, label: Description, widget: text }
@@ -234,10 +235,10 @@ collections:
               - { name: description, label: Description, widget: string, required: false }
               - { name: icon, label: Icon, widget: string, required: false }
 
-  # Site-wide copy lives in src/content/global as one file per page. The three
-  # most-edited files are wired up here; add the page files (home, about, map,
-  # guides, meetups, resources, guides-detail, meetups-detail) the same way,
-  # mirroring their branch of the discriminated union in src/content/config.ts.
+  # Site-wide copy lives in src/content/global as one file per page. Each entry
+  # mirrors its branch of the discriminated union in src/content/config.ts; the
+  # hidden `type` field writes the discriminator. Arrays with .default([]) are
+  # `required: false` so an emptied list is omitted and zod fills in [].
   - name: global
     label: Site settings
     editor: { preview: false }
@@ -308,3 +309,447 @@ collections:
             fields:
               - { name: copyright, label: Copyright, widget: string }
               - { name: trademark, label: Trademark notice, widget: string }
+      - name: home
+        label: Home page
+        file: src/content/global/home.md
+        fields:
+          - { name: type, widget: hidden, default: home }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+              - name: ctas
+                label: Buttons
+                widget: list
+                required: false
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: stats
+            label: Stats
+            widget: list
+            required: false
+            summary: "{{fields.value}} {{fields.label}}"
+            fields:
+              - { name: value, label: Value, widget: string }
+              - { name: label, label: Label, widget: string }
+          - name: intro
+            label: Intro
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: features
+            label: Features
+            widget: list
+            required: false
+            summary: "{{fields.title}}"
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: description, label: Description, widget: text }
+              - { name: icon, label: Icon, widget: string }
+          - name: meetupsSection
+            label: Meetups section
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: guidesSection
+            label: Guides section
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: cta
+            label: Call to action
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: ctas
+                label: Buttons
+                widget: list
+                required: false
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+      - name: meetups
+        label: Meetups page
+        file: src/content/global/meetups.md
+        fields:
+          - { name: type, widget: hidden, default: meetups }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: upcomingHeading, label: Upcoming heading, widget: string }
+          - { name: pastHeading, label: Past heading, widget: string }
+          - name: empty
+            label: Empty state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: host
+            label: Host a meetup
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+      - name: meetups-detail
+        label: Meetup detail page
+        file: src/content/global/meetups-detail.md
+        fields:
+          - { name: type, widget: hidden, default: meetups-detail }
+          - { name: backLabel, label: Back link label, widget: string }
+          - { name: dateTimeHeading, label: Date and time heading, widget: string }
+          - { name: locationHeading, label: Location heading, widget: string }
+          - { name: openMapsLabel, label: Open in maps label, widget: string }
+          - { name: rsvpLabel, label: RSVP label, widget: string }
+          - { name: maxAttendeesLabel, label: Max attendees label, widget: string, hint: "{count} is replaced with the limit" }
+          - { name: recurringLabel, label: Recurring label, widget: string }
+          - { name: mapHeading, label: Map heading, widget: string }
+          - { name: mapBody, label: Map body, widget: text }
+          - { name: mapCtaLabel, label: Map button label, widget: string }
+      - name: guides
+        label: Guides page
+        file: src/content/global/guides.md
+        fields:
+          - { name: type, widget: hidden, default: guides }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - name: empty
+            label: Empty state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: contribute
+            label: Contribute
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+      - name: guides-detail
+        label: Guide detail page
+        file: src/content/global/guides-detail.md
+        fields:
+          - { name: type, widget: hidden, default: guides-detail }
+          - { name: backLabel, label: Back link label, widget: string }
+          - { name: prerequisitesHeading, label: Prerequisites heading, widget: string }
+          - { name: relatedHeading, label: Related guides heading, widget: string }
+          - name: feedback
+            label: Feedback
+            widget: object
+            fields:
+              - { name: question, label: Question, widget: string }
+              - { name: reportLabel, label: Report label, widget: string }
+              - { name: reportUrlTemplate, label: Report URL template, widget: string, hint: "{title} is replaced with the guide title" }
+              - { name: improveLabel, label: Improve label, widget: string }
+              - { name: improveUrl, label: Improve URL, widget: string }
+      - name: resources
+        label: Resources page
+        file: src/content/global/resources.md
+        fields:
+          - { name: type, widget: hidden, default: resources }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - name: empty
+            label: Empty state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: quickStart
+            label: Quick start
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: disclaimer
+            label: Disclaimer
+            widget: object
+            fields:
+              - { name: body, label: Body, widget: text }
+      - name: map
+        label: Map page
+        file: src/content/global/map.md
+        fields:
+          - { name: type, widget: hidden, default: map }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - name: stats
+            label: Stats
+            widget: list
+            required: false
+            summary: "{{fields.label}} ({{fields.key}})"
+            fields:
+              - { name: key, label: Node type, widget: select, options: [total, relay, router, solar, client] }
+              - { name: label, label: Label, widget: string }
+              - { name: colorClass, label: Color class, widget: string, required: false, hint: "Tailwind text color, e.g. text-blue-600" }
+          - name: map
+            label: Map
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: empty
+            label: Empty state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: legend
+            label: Legend
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: items
+                label: Items
+                widget: list
+                required: false
+                summary: "{{fields.label}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: description, label: Description, widget: string }
+                  - { name: colorClass, label: Color class, widget: string, hint: "Tailwind background color, e.g. bg-blue-500" }
+          - name: addNode
+            label: Add a node
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: coverage
+            label: Coverage
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: locations
+                label: Locations
+                widget: list
+                required: false
+                summary: "{{fields.label}} ({{fields.status}})"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - name: status
+                    label: Status
+                    widget: select
+                    options:
+                      - { label: Complete, value: complete }
+                      - { label: In progress, value: progress }
+                      - { label: Planned, value: planned }
+          - name: externalMaps
+            label: External maps
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: links
+                label: Links
+                widget: list
+                required: false
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: external, label: Opens in new tab, widget: boolean, required: false }
+          - name: registeredNodes
+            label: Registered nodes
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: table
+                label: Table column headings
+                widget: object
+                fields:
+                  - { name: name, label: Name, widget: string }
+                  - { name: type, label: Type, widget: string }
+                  - { name: elevation, label: Elevation, widget: string }
+                  - { name: lastSeen, label: Last seen, widget: string }
+      - name: about
+        label: About page
+        file: src/content/global/about.md
+        fields:
+          - { name: type, widget: hidden, default: about }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - name: mission
+            label: Mission
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: intro, label: Intro, widget: text }
+              - { name: leadIn, label: Lead-in, widget: string }
+              - name: bullets
+                label: Bullets
+                widget: list
+                required: false
+                summary: "{{fields.title}}"
+                fields:
+                  - { name: title, label: Title, widget: string }
+                  - { name: description, label: Description, widget: text }
+              - { name: outro, label: Outro, widget: text }
+          - name: getInvolved
+            label: Get involved
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: cards
+                label: Cards
+                widget: list
+                required: false
+                summary: "{{fields.title}}"
+                fields:
+                  - { name: title, label: Title, widget: string }
+                  - { name: description, label: Description, widget: text }
+                  - { name: icon, label: Icon, widget: string, required: false }
+                  - name: cta
+                    label: Button
+                    widget: object
+                    fields:
+                      - { name: label, label: Label, widget: string }
+                      - { name: href, label: Href, widget: string }
+                      - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: community
+            label: Community
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: intro, label: Intro, widget: text }
+              - name: roles
+                label: Roles
+                widget: list
+                required: false
+                summary: "{{fields.name}}"
+                fields:
+                  - { name: name, label: Name, widget: string }
+                  - { name: description, label: Description, widget: text }
+              - { name: ctaText, label: Call-to-action text, widget: string }
+              - { name: ctaLabel, label: Call-to-action link label, widget: string }
+              - { name: ctaHref, label: Call-to-action href, widget: string }
+          - name: faqs
+            label: FAQs
+            widget: list
+            required: false
+            summary: "{{fields.question}}"
+            fields:
+              - { name: question, label: Question, widget: string }
+              - { name: answer, label: Answer, widget: text }
+          - name: contactCta
+            label: Contact call to action
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: ctas
+                label: Buttons
+                widget: list
+                required: false
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
