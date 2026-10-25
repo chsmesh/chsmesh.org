@@ -41,6 +41,7 @@ const stringList = (maxItems = 20, maxLen = 200, extra = {}) => ({ type: 'string
 export const SPECS = {
   node: {
     label: 'Node',
+    collection: 'nodes',
     fields: {
       name: string(80, { required: true }),
       description: text(2000),
@@ -53,6 +54,7 @@ export const SPECS = {
   },
   guide: {
     label: 'Guide',
+    collection: 'guides',
     fields: {
       title: string(120, { required: true }),
       description: text(500, { required: true }),
@@ -66,6 +68,7 @@ export const SPECS = {
   },
   meetup: {
     label: 'Meetup',
+    collection: 'meetups',
     fields: {
       title: string(120, { required: true }),
       description: text(1000, { required: true }),
@@ -82,6 +85,7 @@ export const SPECS = {
   },
   resource: {
     label: 'Resource',
+    collection: 'resources',
     fields: {
       title: string(120, { required: true }),
       description: text(1000, { required: true }),
@@ -98,6 +102,21 @@ export const SPECS = {
 };
 
 export const KINDS = Object.keys(SPECS);
+
+// Sveltia CMS lists a pull request in its Workflow view only when the head
+// branch is `cms/<collection>/<slug>`, with the slug equal to the file name,
+// and the PR carries a `<cms_label_prefix><status>` label. Keep these in step
+// with `cms_label_prefix` in public/admin/config.yml.
+export const CMS_LABEL_PREFIX = 'cms/';
+export const SUBMISSION_STATUS = 'pending_review';
+
+export function workflowBranch(kind, slug) {
+  return `cms/${SPECS[kind].collection}/${slug}`;
+}
+
+export function pullRequestLabels(kind) {
+  return [`${CMS_LABEL_PREFIX}${SUBMISSION_STATUS}`, 'submission', kind];
+}
 
 function checkField(name, spec, raw, errors, notes) {
   if (raw === undefined || raw === null || raw === '') {
@@ -389,7 +408,7 @@ export function pullRequestBody(kind, data, { path, hasContact, notes = [] }) {
   return [
     `## ${SPECS[kind].label} submission`,
     '',
-    'Submitted through the public form on chsmesh.org. Review the file below, edit it as needed, and merge to publish.',
+    'Submitted through the public form on chsmesh.org. Review the file below, edit it here or under **In review** in the CMS Workflow view, and merge or publish from the CMS to make it live.',
     '',
     `File: \`${path}\``,
     '',

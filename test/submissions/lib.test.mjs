@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slugify, validate, buildFile, yamlLines, renderMarkdown, pullRequestBody, turnstileVerdict, zonedDateTime, zoneOffsetMinutes, KINDS } from '../../services/submissions/lib.mjs';
+import fs from 'node:fs';
+import { slugify, validate, buildFile, yamlLines, renderMarkdown, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch, zonedDateTime, zoneOffsetMinutes, CMS_LABEL_PREFIX, SUBMISSION_STATUS, KINDS } from '../../services/submissions/lib.mjs';
 
 test('turnstile verdict requires success, matching hostname and action', () => {
   const expected = { hostname: 'chsmesh.org', action: 'submit-node' };
@@ -257,4 +258,28 @@ test('validate zones meetup dates, rewrites other offsets, and surfaces DST note
   assert.match(body, /### Needs a look\n\n- date: 2026-03-08T02:30 does not exist/);
   assert.match(body, /Charleston time.*America\/New_York time/);
   assert.ok(!pullRequestBody('meetup', plain.data, { path: 'x', hasContact: true }).includes('Needs a look'));
+});
+
+test('submission branches and labels are ones the CMS workflow recognises', () => {
+  const config = fs.readFileSync(new URL('../../public/admin/config.yml', import.meta.url), 'utf8');
+  const prefix = config.match(/^\s*cms_label_prefix:\s*"([^"]+)"/m)?.[1];
+  assert.equal(prefix, CMS_LABEL_PREFIX, 'CMS_LABEL_PREFIX must match cms_label_prefix in config.yml');
+
+  // Top-level collections are `  - name:` at two spaces; their own `folder:`
+  // sits at four spaces before the next collection starts.
+  const collectionFolders = new Map(
+    config
+      .split(/^ {2}- name: /m)
+      .slice(1)
+      .map((block) => [block.match(/^\S+/)[0], block.match(/^ {4}folder: (\S+)$/m)?.[1]])
+  );
+
+  for (const kind of KINDS) {
+    const { path } = buildFile(kind, { title: 'T', name: 'N' }, { slug: 'my-entry', today: '2026-01-01' });
+    const [, folder, file] = path.match(/^(.*)\/([^/]+)\.\w+$/);
+    const [, collection, slug] = workflowBranch(kind, 'my-entry').match(/^cms\/([^/]+)\/(.+)$/);
+    assert.equal(slug, file, `${kind} branch slug must equal the file name`);
+    assert.equal(collectionFolders.get(collection), folder, `${kind} collection ${collection} must own ${folder}`);
+    assert.ok(pullRequestLabels(kind).includes(`${prefix}${SUBMISSION_STATUS}`), `${kind} PR needs a workflow status label`);
+  }
 });
