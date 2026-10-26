@@ -1,0 +1,13 @@
+{
+  "name": "leafyclient",
+  "description": "Indoor node (for now)",
+  "coordinates": {
+    "lat": 32.69,
+    "lng": -79.96
+  },
+  "type": "client",
+  "elevation": 30,
+  "active": true,
+  "owner": "Chris Starleaf",
+  "lastSeen": "2026-10-26"
+}
