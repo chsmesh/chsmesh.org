@@ -43,7 +43,8 @@ export const nodeFormConfig: FormConfig = {
       step: '0.0001',
       min: -90,
       max: 90,
-      placeholder: '32.7765',
+      placeholder: '32.78',
+      helpText: 'Published exactly as entered',
     },
     {
       name: 'lng',
@@ -54,7 +55,8 @@ export const nodeFormConfig: FormConfig = {
       step: '0.0001',
       min: -180,
       max: 180,
-      placeholder: '-80.0298',
+      placeholder: '-80.03',
+      helpText: 'Up to 4 decimals: 2 ≈ 1 km, 3 ≈ 100 m, 4 ≈ 10 m',
     },
     {
       name: 'type',

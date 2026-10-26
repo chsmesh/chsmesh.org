@@ -41,7 +41,7 @@ const activeNodes = nodes.filter((n) => n.data.active);
 
 ## Best Practices
 
-1. **Round residential coordinates** - Node JSON is published verbatim on a public site and stays in git history. For nodes at a home address, round `lat`/`lng` to about 3 decimal places (roughly 100 m) or use a nearby landmark; that is precise enough for coverage mapping. Full precision is fine only for public or infrastructure sites, and never publish someone else's home location without consent.
+1. **Keep submitted coordinate precision** - Node JSON is published verbatim on a public site and stays in git history. Submitters choose how precise to be (the node form explains roughly what 2, 3 and 4 decimal places reveal), so store `lat`/`lng` exactly as submitted: don't add precision, and don't round someone's entry without asking them. Never publish someone else's home location without consent.
 2. **Use valid `type` values** - `relay`, `router`, `solar`, `client` only.
 3. **Track `active` status** - Map stats rely on active nodes.
 4. **Prefer JSON data** - Nodes are stored as data entries, not markdown.
