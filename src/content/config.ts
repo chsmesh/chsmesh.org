@@ -276,7 +276,6 @@ const global = defineCollection({
       map: z.object({
         heading: z.string(),
         body: z.string(),
-        cta: ctaSchema,
       }),
       empty: z.object({
         heading: z.string(),

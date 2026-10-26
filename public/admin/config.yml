@@ -575,13 +575,6 @@ collections:
             fields:
               - { name: heading, label: Heading, widget: string }
               - { name: body, label: Body, widget: text }
-              - name: cta
-                label: Button
-                widget: object
-                fields:
-                  - { name: label, label: Label, widget: string }
-                  - { name: href, label: Href, widget: string }
-                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
           - name: empty
             label: Empty state
             widget: object
