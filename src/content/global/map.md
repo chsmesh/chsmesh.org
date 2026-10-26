@@ -24,7 +24,7 @@ stats:
     colorClass: text-gray-600
 map:
   heading: Registered Nodes Map
-  body: Node locations are approximate.
+  body: Node locations may be approximate.
 empty:
   heading: No Nodes Registered
   body: Be the first to add your node to the map!
