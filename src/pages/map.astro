@@ -10,7 +10,6 @@ const activeNodes = nodes.filter((n) => n.data.active);
 const mapPage = await getGlobal('map', 'map');
 const site = await getGlobal('site', 'site');
 const resolveHref = (href: string) => resolveLink(href, site.links);
-const mapCta = { ...mapPage.map.cta, href: resolveHref(mapPage.map.cta.href) };
 
 // Group nodes by type for stats
 const nodesByType = {
@@ -95,26 +94,13 @@ const getStatValue = (key: string) => {
               aria-label={mapPage.map.heading}
               data-nodes={JSON.stringify(mapNodes)}
             ></div>
-            <div class="card-body border-t border-neutral-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h3 class="font-semibold text-neutral-700">
-                  {activeNodes.length > 0 ? mapPage.map.heading : mapPage.empty.heading}
-                </h3>
-                <p class="text-sm text-neutral-500">
-                  {activeNodes.length > 0 ? mapPage.map.body : mapPage.empty.body}
-                </p>
-              </div>
-              <a
-                href={mapCta.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="btn btn-secondary btn-sm shrink-0"
-              >
-                {mapCta.label}
-                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
+            <div class="card-body border-t border-neutral-200">
+              <h3 class="font-semibold text-neutral-700">
+                {activeNodes.length > 0 ? mapPage.map.heading : mapPage.empty.heading}
+              </h3>
+              <p class="text-sm text-neutral-500">
+                {activeNodes.length > 0 ? mapPage.map.body : mapPage.empty.body}
+              </p>
             </div>
           </div>
         </div>

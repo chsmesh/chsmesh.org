@@ -24,11 +24,7 @@ stats:
     colorClass: text-gray-600
 map:
   heading: Registered Nodes Map
-  body: Locations are approximate. For live position reports, see MeshMap.net.
-  cta:
-    label: View on MeshMap.net
-    href: https://meshmap.net/#14.5/32.7909/-79.9388
-    variant: primary
+  body: Node locations are approximate.
 empty:
   heading: No Nodes Registered
   body: Be the first to add your node to the map!
