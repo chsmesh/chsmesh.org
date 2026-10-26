@@ -23,8 +23,8 @@ stats:
     label: Clients
     colorClass: text-gray-600
 map:
-  heading: Interactive Map Coming Soon
-  body: We're working on an interactive map showing all registered nodes in the Charleston area.
+  heading: Registered Nodes Map
+  body: Locations are approximate. For live position reports, see MeshMap.net.
   cta:
     label: View on MeshMap.net
     href: https://meshmap.net/#14.5/32.7909/-79.9388
