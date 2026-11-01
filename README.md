@@ -227,8 +227,10 @@ Two related behaviours worth knowing:
   `map` on `$http_x_forwarded_proto` and is empty unless the TLS edge forwards
   `X-Forwarded-Proto: https`. A plain HTTP request straight to the container
   correctly gets no HSTS header — that is not a missing header.
-- **The CSP `connect-src` is `'self'`.** The forms only POST to the
-  same-origin `/api/` path, so no extra origin is allowed outside `/admin/`.
+- **The CSP `connect-src` is `'self'` plus `https://stats.sendtrl.com`.** The
+  forms only POST to the same-origin `/api/` path; the one extra origin outside
+  `/admin/` is the self-hosted Umami analytics instance, which also appears in
+  `script-src` so its tracker can load.
 
 ### Legacy `.md` URL redirects
 
