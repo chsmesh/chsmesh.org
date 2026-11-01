@@ -90,6 +90,9 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     {turnstileEnabled && (
       <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
     )}
+
+    <!-- Umami analytics (self-hosted, cookieless; allowed in the CSP script-src and connect-src) -->
+    <script is:inline defer src="https://stats.sendtrl.com/s.js" data-website-id="cb56023c-10d8-4a6f-9975-d45737f9e58c"></script>
   </head>
   <body class="min-h-screen flex flex-col">
     <!-- Navigation -->

@@ -213,14 +213,14 @@ test('should deny dotfiles before the static asset regex location', () => {
   assert.match(locations[dotfileIndex].body, /deny\s+all\s*;/);
 });
 
-test('should keep the CSP connect-src same-origin with no build-time substitution', () => {
+test('should keep the CSP connect-src to self, the analytics origin and the admin map', () => {
   const headers = readFile(securityHeadersPath);
   const dockerfile = readFile(dockerfilePath);
 
   assert.match(
     headers,
-    /connect-src\s+'self'\s+\$csp_admin_connect;/,
-    "connect-src must be 'self' plus the /admin/-only map variable"
+    /connect-src\s+'self'\s+https:\/\/stats\.sendtrl\.com\s+\$csp_admin_connect;/,
+    "connect-src must be 'self', the Umami analytics origin and the /admin/-only map variable"
   );
   assert.doesNotMatch(headers, /__[A-Z0-9_]+__/, 'security-headers.conf must not contain build-time placeholders');
   assert.doesNotMatch(dockerfile, /sed\s+-i[^\n]*security-headers\.conf/, 'the build must not rewrite security-headers.conf');
