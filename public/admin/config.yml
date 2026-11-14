@@ -610,6 +610,12 @@ collections:
             fields:
               - { name: heading, label: Heading, widget: string }
               - { name: body, label: Body, widget: text }
+          - name: paused
+            label: Paused state (no uploads arriving)
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
       - name: map
         label: Map page
         file: src/content/global/map.md

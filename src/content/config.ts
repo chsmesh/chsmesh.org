@@ -349,6 +349,8 @@ const global = defineCollection({
       gateways: z.object({ heading: z.string(), body: z.string() }),
       nodes: z.object({ heading: z.string() }),
       unavailable: z.object({ heading: z.string(), body: z.string() }),
+      // Shown when the service answers but is not receiving uploads.
+      paused: z.object({ heading: z.string(), body: z.string() }),
     }),
     z.object({
       type: z.literal('guides'),

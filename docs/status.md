@@ -37,7 +37,8 @@ nodes on the mesh ── RF ──► gateways (members' nodes with MQTT uplink)
 ## Privacy
 
 - Only **LongFast** is decoded, with the public default key. Every other channel
-  (LoCo-Chat, private channels) is counted by name only.
+  (LoCo-Chat, private channels) is only counted, and channel names are never
+  published.
 - **Message text is never stored or published**, only counted.
 - Positions are rounded to about 1 km before they are stored.
   `infrastructure.json` never lists coordinates; a site appears on the map only

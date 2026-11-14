@@ -210,7 +210,16 @@ export class MqttSubscriber extends EventEmitter {
     } else if (type === TYPE.SUBACK) {
       if (body[body.length - 1] === 0x80) this.emit('error', new Error(`subscription to ${this.topic} was refused`));
     } else if (type === TYPE.PUBLISH) {
-      const msg = parsePublish(flags, body);
+      let msg;
+      try {
+        msg = parsePublish(flags, body);
+      } catch (err) {
+        // A PUBLISH too short for its own header: drop the connection and
+        // reconnect instead of throwing out of the socket's data handler.
+        this.emit('error', new Error(`malformed PUBLISH from broker: ${err.message}`));
+        socket.destroy();
+        return;
+      }
       if (msg.qos === 1) socket.write(Buffer.from([TYPE.PUBACK << 4, 2, msg.packetId >> 8, msg.packetId & 0xff]));
       this.messages++;
       this.emit('message', msg.topic, msg.payload);

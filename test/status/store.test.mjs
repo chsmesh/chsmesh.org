@@ -86,12 +86,13 @@ test('store builds node, gateway and infrastructure state without keeping messag
 
   assert.equal(s.totals.packets24h, 5, 'nodeinfo, position, telemetry, one text, one LoCo-Chat');
   assert.equal(s.totals.textMessages24h, 1, 'LongFast text counted once; LoCo-Chat is not readable');
-  assert.deepEqual(s.channels, { LongFast: 4, 'LoCo-Chat': 1 });
+  assert.equal(s.channels, undefined, 'per-channel counts are not published');
   assert.equal(s.totals.channelUtilizationMedian, 4.3);
   assert.equal(s.totals.gatewaysOnline, 2);
 
   const json = JSON.stringify(s);
-  for (const secret of ['secret hello', 'private chat', '32.7765432', '-79.9312345']) {
+  // 'LoCo-Chat' stands for any private channel name: counted, never published.
+  for (const secret of ['secret hello', 'private chat', '32.7765432', '-79.9312345', 'LoCo-Chat']) {
     assert.equal(json.includes(secret), false, `snapshot must not contain ${secret}`);
   }
 
@@ -135,6 +136,26 @@ test('status ages from up to stale to down and old data is pruned', () => {
   store.prune();
   assert.equal(store.size.hours, 0);
   assert.equal(store.size.gateways, 0);
+});
+
+test('fewest hops is forgotten once that observation leaves the active window', () => {
+  const now = clockAt('2026-11-14T15:00:00Z');
+  const store = createStore({ infrastructure: INFRA, root: ROOT, now });
+  let id = 1;
+  const heard = (hopLimit) =>
+    store.ingest(topic('LongFast'), { gatewayId: '', packet: { from: 0x0a0b0c0d, id: id++, hopStart: 3, hopLimit, decoded: null, encrypted: null } });
+  const hops = () => store.snapshot().nodes.find((n) => n.id === '!0a0b0c0d').hops;
+
+  heard(3); // direct, once
+  now.advance(12 * 3600_000);
+  heard(0); // three relays from here on
+  assert.equal(hops(), 0, 'the direct path is still inside the 24 h window');
+  now.advance(13 * 3600_000);
+  heard(0);
+  assert.equal(hops(), 3, 'the direct path was last seen 25 h ago');
+  now.advance(3600_000);
+  heard(2); // one relay
+  assert.equal(hops(), 1, 'a better count replaces the current one straight away');
 });
 
 test('state survives a serialize/load round trip', () => {

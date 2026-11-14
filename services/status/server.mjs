@@ -116,7 +116,14 @@ function send(res, status, body, headers = {}) {
 }
 
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url, 'http://localhost');
+  // A request target such as `//[` is not a parseable URL; answer 400 rather
+  // than letting the throw take the process down.
+  let url;
+  try {
+    url = new URL(req.url, 'http://localhost');
+  } catch {
+    return send(res, 400, { error: 'bad request' }, { 'cache-control': 'no-store' });
+  }
   if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'method not allowed' }, { allow: 'GET, HEAD' });
 
   if (url.pathname === '/healthz') {

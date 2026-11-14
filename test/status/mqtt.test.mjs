@@ -79,6 +79,37 @@ test('subscriber connects, subscribes and delivers messages from a broker', asyn
   assert.equal(sub.messages, 1);
 });
 
+test('a malformed PUBLISH is reported and the connection retried rather than thrown', async () => {
+  let connects = 0;
+  const server = net.createServer((sock) => {
+    sock.on('error', () => {});
+    sock.on('data', (chunk) => {
+      const type = chunk[0] >> 4;
+      if (type === 1) {
+        connects++;
+        sock.write(Buffer.from([0x20, 0x02, 0x00, 0x00]));
+      } else if (type === 8) {
+        sock.write(Buffer.from([0x90, 0x03, chunk[2], chunk[3], 0x00]));
+        sock.write(Buffer.from([0x30, 0x01, 0x00])); // PUBLISH too short for its topic length
+      }
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const { port } = server.address();
+  const sub = new MqttSubscriber({ url: `mqtt://127.0.0.1:${port}`, topic: 't/#', minBackoffMs: 20, maxBackoffMs: 40 });
+  const errors = [];
+  let messages = 0;
+  sub.on('error', (e) => errors.push(e.message));
+  sub.on('message', () => messages++);
+  sub.start();
+  await new Promise((r) => setTimeout(r, 300));
+  sub.stop();
+  server.close();
+  assert.ok(errors.some((m) => /malformed PUBLISH/.test(m)));
+  assert.equal(messages, 0);
+  assert.ok(connects >= 2, 'it reconnects after dropping the connection');
+});
+
 test('a refused login is reported and retried rather than thrown', async () => {
   let attempts = 0;
   const server = net.createServer((sock) => {

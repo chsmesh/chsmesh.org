@@ -35,6 +35,11 @@ const stats = page.stats as { key: string; label: string }[];
         <p class="text-sm text-neutral-600">{page.unavailable.body}</p>
       </div>
 
+      <div class="card card-body bg-primary-50 border-primary-200 hidden" data-status="paused" role="status">
+        <h3 class="font-semibold mb-2">{page.paused.heading}</h3>
+        <p class="text-sm text-neutral-600">{page.paused.body}</p>
+      </div>
+
       <p class="text-sm text-neutral-500">{page.scope}</p>
 
       <!-- Infrastructure -->
@@ -141,6 +146,7 @@ const stats = page.stats as { key: string; label: string }[];
   };
   type Summary = {
     generatedAt: string; lastMessageAt: string | null;
+    collector?: { mqtt: 'connected' | 'connecting' | 'disabled' };
     totals: { activeNodes: number; infrastructureUp: number; infrastructureTotal: number; gatewaysOnline: number; packets24h: number; channelUtilizationMedian: number | null };
     hops: number[]; hourly: { hour: string; packets: number }[]; blockHours: number;
     infrastructure: Infra[]; gateways: { id: string; name: string; online: boolean; lastUpload: string; uploads24h: number }[]; nodes: Node[];
@@ -318,14 +324,25 @@ const stats = page.stats as { key: string; label: string }[];
     }
   }
 
+  // The service can answer while it is cut off from the MQTT server. Its
+  // snapshot then ages into "stale" and "down" on its own, so say that the gap
+  // is in the data. Both times come from the service, so a wrong clock on the
+  // visitor's device does not matter.
+  const PAUSED_AFTER_MS = 30 * 60_000;
+  const isPaused = (s: Summary) =>
+    s.collector?.mqtt !== 'connected' ||
+    (s.lastMessageAt !== null && Date.parse(s.generatedAt) - Date.parse(s.lastMessageAt) > PAUSED_AFTER_MS);
+
   async function refresh() {
     const updated = $('updated');
     const unavailable = $('unavailable');
+    const paused = $('paused');
     try {
       const res = await fetch('/api/status/summary', { headers: { accept: 'application/json' } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const s: Summary = await res.json();
       unavailable?.classList.add('hidden');
+      paused?.classList.toggle('hidden', !isPaused(s));
       renderStats(s);
       renderInfrastructure(s);
       renderHourly(s);
@@ -340,6 +357,7 @@ const stats = page.stats as { key: string; label: string }[];
       }
     } catch {
       unavailable?.classList.remove('hidden');
+      paused?.classList.add('hidden');
       if (updated) updated.textContent = 'Live status unavailable';
     }
   }

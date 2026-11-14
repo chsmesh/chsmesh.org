@@ -53,7 +53,8 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
   const infra = new Map(infrastructure.map((s) => [s.id.toLowerCase(), s]));
 
   // node id -> { id, longName, shortName, role, hw, firstHeard, lastHeard, pos, telemetry,
-  //              heardBy: {gw: { at, hops }} } (hops = fewest relays that gateway last saw)
+  //              heardBy: {gw: { at, hops, hopsAt }} } (hops = fewest relays that gateway saw
+  //              in the active window, hopsAt = when it saw that count)
   const nodes = new Map();
   // gateway id -> { lastUpload, uploads: {hourStart: n} }
   const gateways = new Map();
@@ -173,11 +174,14 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
 
     const hops = p.hopStart > 0 && p.hopStart >= p.hopLimit ? Math.min(p.hopStart - p.hopLimit, 7) : null;
     if (gw) {
-      // Keep the fewest hops this gateway saw within the active window.
+      // Keep the fewest hops this gateway saw, but only while that best
+      // observation (hopsAt) is itself inside the active window. Once it ages
+      // out the current count replaces it, so a path that no longer exists
+      // stops being reported.
       const prev = n.heardBy[gw];
-      const fresh = prev && typeof prev === 'object' && t - prev.at < opt.activeHours * HOUR;
-      const best = fresh && prev.hops !== null && (hops === null || prev.hops < hops) ? prev.hops : hops;
-      n.heardBy[gw] = { at: t, hops: best };
+      const prevHopsAt = prev && typeof prev === 'object' ? prev.hopsAt ?? prev.at : null;
+      const keep = prevHopsAt !== null && prev.hops !== null && t - prevHopsAt < opt.activeHours * HOUR && (hops === null || prev.hops < hops);
+      n.heardBy[gw] = keep ? { at: t, hops: prev.hops, hopsAt: prevHopsAt } : { at: t, hops, hopsAt: t };
     }
 
     // The relay byte names whoever transmitted the copy the gateway heard.
@@ -246,12 +250,10 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       hourly.push({ hour: new Date(k).toISOString(), packets: h?.packets ?? 0, text: h?.text ?? 0 });
     }
     const day = [...hours.entries()].filter(([k]) => k >= hourStart(t) - 23 * HOUR).map(([, h]) => h);
-    const channels = {};
+    // Per-channel counts stay internal: a private channel's name is its
+    // owner's business and is never published.
     const hops = [0, 0, 0, 0, 0, 0, 0, 0];
-    for (const h of day) {
-      for (const [c, v] of Object.entries(h.channels)) channels[c] = (channels[c] ?? 0) + v;
-      h.hops.forEach((v, i) => (hops[i] += v));
-    }
+    for (const h of day) h.hops.forEach((v, i) => (hops[i] += v));
 
     const blocks = (7 * 24) / BLOCK_HOURS;
     const firstBlock = blockStart(t) - (blocks - 1) * BLOCK_HOURS * HOUR;
@@ -329,7 +331,6 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
         channelUtilizationMedian: round1(median(recentUtil)),
       },
       roles,
-      channels,
       hops,
       hourly,
       blockHours: BLOCK_HOURS,

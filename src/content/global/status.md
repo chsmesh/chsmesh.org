@@ -42,4 +42,7 @@ nodes:
 unavailable:
   heading: Status data is unavailable
   body: The status service is not answering right now. The rest of the site is unaffected; try again in a few minutes.
+paused:
+  heading: Live data is paused
+  body: The status service is not receiving uploads from the LoCoMesh MQTT server right now, so this page shows the last picture it had. Nodes may read as stale or down until uploads resume; that reflects the gap in our data, not necessarily the mesh.
 ---
