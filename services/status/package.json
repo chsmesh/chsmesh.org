@@ -1,0 +1,12 @@
+{
+  "name": "chsmesh-status",
+  "private": true,
+  "type": "module",
+  "description": "LoCoMesh network status collector for chsmesh.org/status",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
