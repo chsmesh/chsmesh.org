@@ -1,7 +1,8 @@
 # chsmesh.org production deployment as a Komodo Stack.
 #
-# The Komodo Builds `chsmesh` and `chsmesh-submissions` push these images; the
-# `chsmesh-release` Procedure runs both builds and then redeploys this stack
+# The Komodo Builds `chsmesh`, `chsmesh-submissions` and `chsmesh-status` push
+# these images; the `chsmesh-release` Procedure runs the builds and then
+# redeploys this stack
 # (see "Release and deploy (Komodo)" in README.md). The stack's environment,
 # with secrets interpolated from Komodo Variables, is written to .env next to
 # this file and passed to the submissions service only.
@@ -68,9 +69,41 @@ services:
       retries: 3
       start_period: 10s
 
+  # Network status collector for /status (services/status). Private network
+  # only, like submissions; nginx proxies /api/status/ to it. Its MQTT
+  # password comes from the Komodo Variable STATUS_MQTT_PASSWORD via .env
+  # interpolation, and only these variables are passed to it.
+  status:
+    image: ghcr.io/chsmesh/chsmesh-status:latest
+    environment:
+      STATUS_MQTT_URL: ${STATUS_MQTT_URL:-mqtts://mqtt.locomesh.cc:8883}
+      STATUS_MQTT_USERNAME: ${STATUS_MQTT_USERNAME:-chsmesh-status}
+      STATUS_MQTT_PASSWORD: ${STATUS_MQTT_PASSWORD:-}
+    user: "1000:1000"
+    read_only: true
+    volumes:
+      - status-data:/data
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
 networks:
   proxy:
     external: true
   # Not `internal: true`: submissions needs outbound access to the GitHub,
-  # Turnstile and Discord APIs.
+  # Turnstile and Discord APIs, and status to the LoCoMesh MQTT server.
   internal: {}
+
+volumes:
+  status-data: {}

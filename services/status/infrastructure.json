@@ -1,0 +1,12 @@
+{
+  "$comment": "LoCoMesh fixed infrastructure shown on /status. id is the Meshtastic node ID; name and area are public labels. Positions are never listed here: the page only shows a site if the node broadcasts its own position, rounded to about 1 km.",
+  "sites": [
+    { "id": "!e20c4c89", "name": "LoCoMT-DT1", "area": "Downtown", "role": "ROUTER" },
+    { "id": "!d268ab09", "name": "LoCoMT-DT2", "area": "Downtown / Neck", "role": "ROUTER" },
+    { "id": "!e87a08a7", "name": "LoWatt 4105", "area": "North Charleston", "role": "ROUTER" },
+    { "id": "!7ec8f5f1", "name": "LoCoMT-DI1", "area": "Daniel Island", "role": "ROUTER" },
+    { "id": "!fb5105a5", "name": "LoCoMT-MtP1", "area": "Mount Pleasant", "role": "ROUTER" },
+    { "id": "!a0021c09", "name": "LoCoMT-WA1", "area": "West Ashley", "role": "ROUTER" },
+    { "id": "!3d506c26", "name": "LoWattMT-WA1", "area": "West Ashley", "role": "CLIENT_BASE" }
+  ]
+}

@@ -325,6 +325,32 @@ const global = defineCollection({
       }),
     }),
     z.object({
+      type: z.literal('status'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      scope: z.string(),
+      stats: z
+        .array(
+          z.object({
+            key: z.enum(['activeNodes', 'infrastructure', 'gatewaysOnline', 'packets24h', 'channelUtilization']),
+            label: z.string(),
+          })
+        )
+        .default([]),
+      infrastructure: z.object({ heading: z.string(), body: z.string() }),
+      activity: z.object({ heading: z.string(), body: z.string() }),
+      hops: z.object({ heading: z.string(), body: z.string() }),
+      map: z.object({ heading: z.string(), body: z.string() }),
+      gateways: z.object({ heading: z.string(), body: z.string() }),
+      nodes: z.object({ heading: z.string() }),
+      unavailable: z.object({ heading: z.string(), body: z.string() }),
+    }),
+    z.object({
       type: z.literal('guides'),
       pageTitle: z.string(),
       pageDescription: z.string(),

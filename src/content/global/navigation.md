@@ -12,6 +12,8 @@ links:
     href: /resources/
   - label: Map
     href: /map/
+  - label: Status
+    href: /status/
   - label: About
     href: /about/
 ---

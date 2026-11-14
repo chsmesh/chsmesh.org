@@ -546,6 +546,70 @@ collections:
             widget: object
             fields:
               - { name: body, label: Body, widget: text }
+      - name: status
+        label: Status page
+        file: src/content/global/status.md
+        fields:
+          - { name: type, widget: hidden, default: status }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: scope, label: What the page covers, widget: text }
+          - name: stats
+            label: Stats
+            widget: list
+            required: false
+            summary: "{{fields.label}} ({{fields.key}})"
+            fields:
+              - { name: key, label: Stat, widget: select, options: [activeNodes, infrastructure, gatewaysOnline, packets24h, channelUtilization] }
+              - { name: label, label: Label, widget: string }
+          - name: infrastructure
+            label: Infrastructure
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: activity
+            label: Activity
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: hops
+            label: Hops
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: map
+            label: Map
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: gateways
+            label: Gateways
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: nodes
+            label: Node list
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+          - name: unavailable
+            label: Unavailable state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
       - name: map
         label: Map page
         file: src/content/global/map.md

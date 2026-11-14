@@ -12,6 +12,7 @@ CHS Mesh promotes off-grid communication resilience and community collaboration 
 - **Community Meetups**: Scheduled gatherings for testing, learning, and networking
 - **Educational Guides**: Beginner-to-advanced tutorials covering setup, hardware, and troubleshooting
 - **Hardware Resources**: Device specifications and software links for Meshtastic devices
+- **Network Status**: Live health of the LoCoMesh network at `/status` - infrastructure, gateways, activity and channel load - from the status service (see [docs/status.md](docs/status.md))
 
 ## Tech Stack
 
@@ -78,6 +79,9 @@ for that service, the CMS at `/admin/`, and their configuration.
 | `PUBLIC_SUBMIT_BASE` | Path prefix the forms POST to. Optional; defaults to `/api/submit`. Must be a same-origin path that nginx and the submissions service route. |
 | `PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile widget on the forms. Empty disables it. |
 
+The status service (`services/status`) reads `STATUS_MQTT_PASSWORD` and a few
+optional `STATUS_*` variables at runtime; see [docs/status.md](docs/status.md).
+
 **Local development**: copy the template and fill in the values you need.
 
 ```bash
@@ -106,7 +110,7 @@ src/
 │   ├── nodes/          # Mesh network node definitions (JSON) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 11 Markdown files
+│   └── global/         # Site configuration and page copy — 12 Markdown files
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
 ├── styles/             # Global Tailwind CSS
@@ -122,9 +126,9 @@ Two collections are defined and routed but currently hold no entries:
   file; it just has no entries. Add the first `.json` file there. Until then
   `/map` counts zero nodes and renders its "No Nodes Registered" panel.
 
-The 11 files in `src/content/global/` are `site.md`, `navigation.md`,
-`footer.md`, `home.md`, `about.md`, `map.md`, `guides.md`, `guides-detail.md`,
-`meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
+The 12 files in `src/content/global/` are `site.md`, `navigation.md`,
+`footer.md`, `home.md`, `about.md`, `map.md`, `status.md`, `guides.md`,
+`guides-detail.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 
 ### Adding Content
@@ -262,6 +266,10 @@ checking inbound links.
   still runs both suites.
 - **`submissions-image`**: builds `services/submissions/Dockerfile` and checks
   that the container answers `/healthz`.
+- **`status`**: the status service tests in `test/status/` on Node 22
+  (`npm run test:status`).
+- **`status-image`**: builds `services/status/Dockerfile` and checks that the
+  container answers `/healthz` and serves an empty `/api/status/summary`.
 - **`container`**: builds the site's Docker image and smoke tests the running
   container:
   - `/` returns 200 with `Content-Security-Policy` and
@@ -278,7 +286,7 @@ checking inbound links.
 - **`ci-ok`**: always runs and fails if any other job failed or was
   cancelled. This is the one required status check on `main`.
 
-On pull requests, `submissions-image` and `container` run only when the pull
+On pull requests, `submissions-image`, `status-image` and `container` run only when the pull
 request changes a file outside the content paths (`src/content/**`,
 `public/images/**`, and `docs/**/*.md`). A content-only pull request, such as
 a CMS draft, runs `site` and `submissions` and skips the image builds; a
@@ -291,19 +299,22 @@ this repository.
 ### Release and deploy (Komodo)
 
 Image build/publish and production deployment live in [Komodo](https://komo.do),
-outside this repository. Two Komodo Builds clone `main` and push to
+outside this repository. Three Komodo Builds clone `main` and push to
 `ghcr.io/chsmesh`: `chsmesh` (this Dockerfile, with the production `PUBLIC_*`
-build args) and `chsmesh-submissions` (`services/submissions/Dockerfile`). The
-`chsmesh` Komodo Stack runs both images on the production host from
+build args), `chsmesh-submissions` (`services/submissions/Dockerfile`) and
+`chsmesh-status` (`services/status/Dockerfile`). The
+`chsmesh` Komodo Stack runs the images on the production host from
 `docker-compose.komodo.yml`: the site joins the Docker network shared with
 Traefik, which terminates TLS, and the submissions service stays on the
-stack's private network. The stack's environment (secrets come from Komodo
-Variables) reaches the submissions service only.
+stack's private network, as does the status service. The stack's environment
+(secrets come from Komodo Variables) reaches the submissions service; the
+status service receives only its own `STATUS_*` variables, including
+`STATUS_MQTT_PASSWORD`.
 
 Releases are automatic. When CI passes on a push to `main` (including commits
 the CMS makes), `.github/workflows/deploy.yml` calls an n8n webhook, which
 runs the `chsmesh-release` Procedure over the private network Komodo lives on
-and waits for it: the Procedure builds both images and redeploys the stack,
+and waits for it: the Procedure builds the images and redeploys the stack,
 and the Deploy job passes or fails with it. To release by hand, run the Deploy
 workflow from the Actions tab or the `chsmesh-release` Procedure in Komodo.
 The site container listens on port 8080 and the Traefik service label must
@@ -312,8 +323,8 @@ point at that port.
 ### Self-hosting without Komodo
 
 `docker-compose.server.yml` runs the whole site on any Docker host from a
-checkout of this repository: it builds the nginx site image and the
-submissions service from source (base images are pinned by digest) and needs
+checkout of this repository: it builds the nginx site image, the
+submissions service and the status service from source (base images are pinned by digest) and needs
 no registry, so a fork can be hosted the same way.
 
 ```bash

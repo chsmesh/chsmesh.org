@@ -70,3 +70,33 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  # Network status collector for /status (services/status). Read-only MQTT
+  # subscriber; nginx proxies /api/status/ to it on the compose network. Only
+  # its own variables are passed, not the whole .env.
+  status:
+    build:
+      context: ./services/status
+    environment:
+      STATUS_MQTT_URL: ${STATUS_MQTT_URL:-mqtts://mqtt.locomesh.cc:8883}
+      STATUS_MQTT_USERNAME: ${STATUS_MQTT_USERNAME:-chsmesh-status}
+      STATUS_MQTT_PASSWORD: ${STATUS_MQTT_PASSWORD:-}
+    user: "1000:1000"
+    read_only: true
+    volumes:
+      - status-data:/data
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  status-data: {}

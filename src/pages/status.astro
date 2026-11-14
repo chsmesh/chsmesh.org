@@ -1,0 +1,349 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import { getGlobal } from '../utils/global';
+
+// Page copy comes from src/content/global/status.md; the numbers come from the
+// status service (services/status) at runtime, so this page builds without it.
+const page = await getGlobal('status', 'status');
+const stats = page.stats as { key: string; label: string }[];
+---
+
+<Layout title={page.pageTitle} description={page.pageDescription}>
+  <Hero title={page.hero.title} subtitle={page.hero.subtitle} size={page.hero.size ?? 'small'}>
+    <p class="mt-4 text-sm text-white/80" data-status="updated" aria-live="polite">Loading live status…</p>
+  </Hero>
+
+  <!-- Stats Bar -->
+  <section class="bg-white border-b border-neutral-200">
+    <div class="container-wide" style="padding-top: 1rem; padding-bottom: 1rem;">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+        {stats.map((stat) => (
+          <div>
+            <div class="text-2xl font-bold text-primary-600" data-stat={stat.key}>–</div>
+            <div class="text-sm text-neutral-500">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container-wide space-y-8">
+      <div class="card card-body bg-primary-50 border-primary-200 hidden" data-status="unavailable" role="status">
+        <h3 class="font-semibold mb-2">{page.unavailable.heading}</h3>
+        <p class="text-sm text-neutral-600">{page.unavailable.body}</p>
+      </div>
+
+      <p class="text-sm text-neutral-500">{page.scope}</p>
+
+      <!-- Infrastructure -->
+      <div class="card overflow-hidden">
+        <div class="card-body border-b border-neutral-200">
+          <h2 class="text-xl font-semibold">{page.infrastructure.heading}</h2>
+          <p class="text-sm text-neutral-500">{page.infrastructure.body}</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-neutral-50 border-b border-neutral-200">
+              <tr>
+                <th class="text-left px-4 py-3 font-medium text-neutral-600">Node</th>
+                <th class="text-left px-4 py-3 font-medium text-neutral-600">Area</th>
+                <th class="text-left px-4 py-3 font-medium text-neutral-600">Status</th>
+                <th class="text-left px-4 py-3 font-medium text-neutral-600">Last heard</th>
+                <th class="text-left px-4 py-3 font-medium text-neutral-600">Channel busy</th>
+                <th class="text-left px-4 py-3 font-medium text-neutral-600">Last 7 days</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-neutral-100" data-status="infrastructure"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Activity -->
+        <div class="card card-body lg:col-span-2">
+          <h2 class="text-xl font-semibold">{page.activity.heading}</h2>
+          <p class="text-sm text-neutral-500 mb-4">{page.activity.body}</p>
+          <div class="flex items-end gap-1 h-40" data-status="hourly" role="img" aria-label="Packets per hour, last 24 hours"></div>
+          <div class="flex justify-between text-xs text-neutral-500 mt-2" data-status="hourly-axis"></div>
+        </div>
+
+        <!-- Hops -->
+        <div class="card card-body">
+          <h2 class="text-xl font-semibold">{page.hops.heading}</h2>
+          <p class="text-sm text-neutral-500 mb-4">{page.hops.body}</p>
+          <ul class="space-y-2 text-sm" data-status="hops"></ul>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Map -->
+        <div class="card overflow-hidden lg:col-span-2">
+          <div
+            id="status-map"
+            class="map-container bg-neutral-100 isolate"
+            style="border: 0; border-radius: 0;"
+            role="region"
+            aria-label={page.map.heading}
+          ></div>
+          <div class="card-body border-t border-neutral-200">
+            <h3 class="font-semibold text-neutral-700">{page.map.heading}</h3>
+            <p class="text-sm text-neutral-500">{page.map.body}</p>
+          </div>
+        </div>
+
+        <!-- Gateways -->
+        <div class="card card-body">
+          <h2 class="text-xl font-semibold">{page.gateways.heading}</h2>
+          <p class="text-sm text-neutral-500 mb-4">{page.gateways.body}</p>
+          <ul class="space-y-2 text-sm" data-status="gateways"></ul>
+        </div>
+      </div>
+
+      <!-- Nodes -->
+      <div>
+        <h2 class="text-xl font-semibold mb-4">{page.nodes.heading}</h2>
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-neutral-50 border-b border-neutral-200">
+                <tr>
+                  <th class="text-left px-4 py-3 font-medium text-neutral-600">Name</th>
+                  <th class="text-left px-4 py-3 font-medium text-neutral-600">Role</th>
+                  <th class="text-left px-4 py-3 font-medium text-neutral-600">Hardware</th>
+                  <th class="text-left px-4 py-3 font-medium text-neutral-600">Hops</th>
+                  <th class="text-left px-4 py-3 font-medium text-neutral-600">Gateways</th>
+                  <th class="text-left px-4 py-3 font-medium text-neutral-600">Last heard</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-100" data-status="nodes"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  import L from 'leaflet';
+  import 'leaflet/dist/leaflet.css';
+
+  type Infra = {
+    id: string; name: string; area: string | null; role: string | null; status: 'up' | 'stale' | 'down';
+    lastHeard: string | null; activity: number[]; activityPct: number; channelUtilization: number | null;
+    pos: { lat: number; lon: number } | null;
+  };
+  type Node = {
+    id: string; name: string | null; shortName: string | null; role: string | null; hw: string | null;
+    lastHeard: string; hops: number | null; gateways: number; pos: { lat: number; lon: number } | null; infrastructure: boolean;
+  };
+  type Summary = {
+    generatedAt: string; lastMessageAt: string | null;
+    totals: { activeNodes: number; infrastructureUp: number; infrastructureTotal: number; gatewaysOnline: number; packets24h: number; channelUtilizationMedian: number | null };
+    hops: number[]; hourly: { hour: string; packets: number }[]; blockHours: number;
+    infrastructure: Infra[]; gateways: { id: string; name: string; online: boolean; lastUpload: string; uploads24h: number }[]; nodes: Node[];
+  };
+
+  const $ = (sel: string) => document.querySelector<HTMLElement>(`[data-status="${sel}"]`);
+  const el = (tag: string, cls = '', text = '') => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  };
+
+  const ago = (iso: string | null) => {
+    if (!iso) return 'never';
+    const s = (Date.now() - Date.parse(iso)) / 1000;
+    if (s < 90) return 'just now';
+    if (s < 5400) return `${Math.round(s / 60)} min ago`;
+    if (s < 172800) return `${Math.round(s / 3600)} h ago`;
+    return `${Math.round(s / 86400)} days ago`;
+  };
+
+  const statusBadge: Record<Infra['status'], [string, string]> = {
+    up: ['bg-green-100 text-green-800', 'Up'],
+    stale: ['bg-yellow-100 text-yellow-800', 'Stale'],
+    down: ['bg-red-100 text-red-800', 'Down'],
+  };
+
+  function renderStats(s: Summary) {
+    const values: Record<string, string> = {
+      activeNodes: String(s.totals.activeNodes),
+      infrastructure: `${s.totals.infrastructureUp} / ${s.totals.infrastructureTotal}`,
+      gatewaysOnline: String(s.totals.gatewaysOnline),
+      packets24h: s.totals.packets24h.toLocaleString(),
+      channelUtilization: s.totals.channelUtilizationMedian === null ? '–' : `${s.totals.channelUtilizationMedian}%`,
+    };
+    document.querySelectorAll<HTMLElement>('[data-stat]').forEach((node) => {
+      node.textContent = values[node.dataset.stat ?? ''] ?? '–';
+    });
+  }
+
+  function renderInfrastructure(s: Summary) {
+    const body = $('infrastructure');
+    if (!body) return;
+    body.replaceChildren(
+      ...s.infrastructure.map((r) => {
+        const tr = el('tr', 'hover:bg-neutral-50');
+        const name = el('td', 'px-4 py-3 font-medium', r.name);
+        const area = el('td', 'px-4 py-3 text-neutral-600', r.area ?? '–');
+        const status = el('td', 'px-4 py-3');
+        const [cls, label] = statusBadge[r.status];
+        status.append(el('span', `inline-block px-2 py-0.5 rounded-full text-xs font-medium ${cls}`, label));
+        const heard = el('td', 'px-4 py-3 text-neutral-500', ago(r.lastHeard));
+        const util = el('td', 'px-4 py-3 text-neutral-600', r.channelUtilization === null ? '–' : `${r.channelUtilization}%`);
+        const bars = el('td', 'px-4 py-3');
+        const strip = el('div', 'flex gap-px');
+        strip.title = `Heard in ${r.activityPct}% of ${s.blockHours}-hour blocks`;
+        r.activity.forEach((v) => strip.append(el('span', `inline-block w-1.5 h-4 rounded-sm ${v ? 'bg-primary-500' : 'bg-neutral-200'}`)));
+        bars.append(strip);
+        tr.append(name, area, status, heard, util, bars);
+        return tr;
+      })
+    );
+  }
+
+  function renderHourly(s: Summary) {
+    const chart = $('hourly');
+    const axis = $('hourly-axis');
+    if (!chart || !axis) return;
+    const max = Math.max(1, ...s.hourly.map((h) => h.packets));
+    chart.replaceChildren(
+      ...s.hourly.map((h) => {
+        const bar = el('div', 'flex-1 bg-primary-500 rounded-t');
+        bar.style.height = `${Math.max(2, (h.packets / max) * 100)}%`;
+        bar.title = `${new Date(h.hour).toLocaleTimeString([], { hour: 'numeric' })}: ${h.packets} packets`;
+        return bar;
+      })
+    );
+    const label = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric' });
+    axis.replaceChildren(el('span', '', label(s.hourly[0].hour)), el('span', '', label(s.hourly[12].hour)), el('span', '', 'now'));
+  }
+
+  function renderHops(s: Summary) {
+    const list = $('hops');
+    if (!list) return;
+    const total = s.hops.reduce((a, b) => a + b, 0) || 1;
+    list.replaceChildren(
+      ...s.hops.map((n, i) => {
+        const li = el('li', 'flex items-center gap-2');
+        li.append(el('span', 'w-20 text-neutral-600', i === 0 ? 'Direct' : `${i} hop${i > 1 ? 's' : ''}`));
+        const track = el('span', 'flex-1 h-3 bg-neutral-100 rounded');
+        const fill = el('span', 'block h-3 bg-primary-500 rounded');
+        fill.style.width = `${(n / total) * 100}%`;
+        track.append(fill);
+        li.append(track, el('span', 'w-12 text-right text-neutral-500', `${Math.round((n / total) * 100)}%`));
+        return li;
+      })
+    );
+  }
+
+  function renderGateways(s: Summary) {
+    const list = $('gateways');
+    if (!list) return;
+    if (!s.gateways.length) {
+      list.replaceChildren(el('li', 'text-neutral-500', 'No gateways have uploaded in the last 24 hours.'));
+      return;
+    }
+    list.replaceChildren(
+      ...s.gateways.map((g) => {
+        const li = el('li', 'flex items-center justify-between gap-2');
+        const left = el('span', 'flex items-center gap-2');
+        left.append(el('span', `inline-block w-2 h-2 rounded-full ${g.online ? 'bg-green-500' : 'bg-neutral-300'}`), el('span', '', g.name));
+        li.append(left, el('span', 'text-neutral-500', `${g.uploads24h.toLocaleString()} uploads`));
+        li.title = `Last upload ${ago(g.lastUpload)}`;
+        return li;
+      })
+    );
+  }
+
+  function renderNodes(s: Summary) {
+    const body = $('nodes');
+    if (!body) return;
+    body.replaceChildren(
+      ...s.nodes.map((n) => {
+        const tr = el('tr', 'hover:bg-neutral-50');
+        const name = el('td', 'px-4 py-3');
+        name.append(el('span', 'font-medium', n.name ?? n.id));
+        if (n.name) name.append(el('span', 'ml-2 text-xs text-neutral-400', n.id));
+        tr.append(
+          name,
+          el('td', 'px-4 py-3 text-neutral-600', n.role ? n.role.replaceAll('_', ' ').toLowerCase() : '–'),
+          el('td', 'px-4 py-3 text-neutral-600', n.hw ?? '–'),
+          el('td', 'px-4 py-3 text-neutral-600', n.hops === null ? '–' : String(n.hops)),
+          el('td', 'px-4 py-3 text-neutral-600', String(n.gateways)),
+          el('td', 'px-4 py-3 text-neutral-500', ago(n.lastHeard))
+        );
+        return tr;
+      })
+    );
+  }
+
+  const mapEl = document.getElementById('status-map');
+  const map = mapEl ? L.map(mapEl, { scrollWheelZoom: false }).setView([32.84, -79.97], 10) : null;
+  const layer = map ? L.layerGroup().addTo(map) : null;
+  if (map) {
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+  }
+  let fitted = false;
+
+  function renderMap(s: Summary) {
+    if (!map || !layer) return;
+    layer.clearLayers();
+    const markers = s.nodes
+      .filter((n) => n.pos)
+      .map((n) => {
+        // Node names come from the mesh, so build the popup as text.
+        const popup = document.createElement('div');
+        popup.append(el('strong', '', n.name ?? n.id), el('div', '', `${n.role ?? 'unknown role'} · ${ago(n.lastHeard)}`));
+        return L.circleMarker([n.pos!.lat, n.pos!.lon], {
+          radius: n.infrastructure ? 8 : 6,
+          color: '#ffffff',
+          weight: 2,
+          fillColor: n.infrastructure ? '#3b82f6' : '#9ca3af',
+          fillOpacity: 0.9,
+        })
+          .bindPopup(popup)
+          .addTo(layer);
+      });
+    if (markers.length && !fitted) {
+      map.fitBounds(L.featureGroup(markers).getBounds(), { padding: [40, 40], maxZoom: 12 });
+      fitted = true;
+    }
+  }
+
+  async function refresh() {
+    const updated = $('updated');
+    const unavailable = $('unavailable');
+    try {
+      const res = await fetch('/api/status/summary', { headers: { accept: 'application/json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const s: Summary = await res.json();
+      unavailable?.classList.add('hidden');
+      renderStats(s);
+      renderInfrastructure(s);
+      renderHourly(s);
+      renderHops(s);
+      renderGateways(s);
+      renderNodes(s);
+      renderMap(s);
+      if (updated) {
+        updated.textContent = s.lastMessageAt
+          ? `Updated ${new Date(s.generatedAt).toLocaleTimeString()} · last upload ${ago(s.lastMessageAt)}`
+          : `Updated ${new Date(s.generatedAt).toLocaleTimeString()} · waiting for the first upload`;
+      }
+    } catch {
+      unavailable?.classList.remove('hidden');
+      if (updated) updated.textContent = 'Live status unavailable';
+    }
+  }
+
+  refresh();
+  setInterval(refresh, 60_000);
+</script>

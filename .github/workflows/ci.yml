@@ -68,8 +68,9 @@ jobs:
         run: npm ci
 
       - name: Run site tests
-        # test/submissions/ runs in the submissions job, on the service's own
-        # Node version. Locally, `npm test` still runs every suite.
+        # test/submissions/ and test/status/ run in their services' jobs, on
+        # the services' own Node version. Locally, `npm test` still runs every
+        # suite.
         run: npm run test:site
 
       - name: Build site
@@ -109,6 +110,70 @@ jobs:
 
       - name: Run submissions service tests
         run: npm run test:submissions
+
+  status:
+    name: Status service - tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Like submissions, the status service has no dependencies and targets
+      # Node 22, so there is no npm ci here.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run status service tests
+        run: npm run test:status
+
+  status-image:
+    name: Status service - image build
+    needs: changes
+    if: needs.changes.outputs.container == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build service image
+        run: docker build -t chsmesh-status:ci services/status
+
+      - name: Smoke test - service starts and serves an empty summary
+        run: |
+          # With no MQTT password the collector logs a warning, stays
+          # disconnected and still serves /healthz and an empty snapshot.
+          docker run -d --name status-ci --read-only --tmpfs /tmp \
+            -p 3001:3001 chsmesh-status:ci
+          for _ in $(seq 1 15); do
+            if curl -fsS http://127.0.0.1:3001/healthz; then
+              echo
+              summary=$(curl -fsS http://127.0.0.1:3001/api/status/summary)
+              printf '%s\n' "$summary" | head -c 400
+              echo
+              printf '%s\n' "$summary" | grep -q '"infrastructure"' \
+                || { echo 'Summary is missing the infrastructure list' >&2; exit 1; }
+              echo 'Status service is answering.'
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'Status service did not answer /healthz within 30s.' >&2
+          docker logs status-ci >&2 || true
+          exit 1
+
+      - name: Container logs
+        if: always()
+        run: docker logs status-ci || true
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f status-ci || true
 
   submissions-image:
     name: Submissions service - image build
@@ -354,7 +419,7 @@ jobs:
     # needs failed or was cancelled, and passes when the image build and
     # container jobs were skipped for a content-only pull request.
     name: ci-ok
-    needs: [changes, site, submissions, submissions-image, container]
+    needs: [changes, site, submissions, submissions-image, status, status-image, container]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
