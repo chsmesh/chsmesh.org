@@ -58,7 +58,8 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
   const nodes = new Map();
   // gateway id -> { lastUpload, uploads: {hourStart: n} }
   const gateways = new Map();
-  // hourStart -> { packets, channels: {name: n}, text, hops: [0..7] }
+  // hourStart -> { packets, text, hops: [0..7] }  (no per-channel counts: channel
+  // names, private ones included, are neither published nor kept on disk)
   const hours = new Map();
   // infra id -> Set(blockStart ms) of blocks the node was heard in
   const infraBlocks = new Map();
@@ -85,7 +86,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     const k = hourStart(t);
     let h = hours.get(k);
     if (!h) {
-      h = { packets: 0, channels: {}, text: 0, hops: [0, 0, 0, 0, 0, 0, 0, 0] };
+      h = { packets: 0, text: 0, hops: [0, 0, 0, 0, 0, 0, 0, 0] };
       hours.set(k, h);
     }
     return h;
@@ -196,7 +197,6 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       seen.set(key, t);
       const h = hour(t);
       h.packets++;
-      h.channels[where.channel] = (h.channels[where.channel] ?? 0) + 1;
       if (hops !== null) h.hops[Math.min(hops, 7)]++;
     }
 
@@ -250,8 +250,6 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       hourly.push({ hour: new Date(k).toISOString(), packets: h?.packets ?? 0, text: h?.text ?? 0 });
     }
     const day = [...hours.entries()].filter(([k]) => k >= hourStart(t) - 23 * HOUR).map(([, h]) => h);
-    // Per-channel counts stay internal: a private channel's name is its
-    // owner's business and is never published.
     const hops = [0, 0, 0, 0, 0, 0, 0, 0];
     for (const h of day) h.hops.forEach((v, i) => (hops[i] += v));
 
@@ -360,7 +358,8 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     lastMessageAt = state.lastMessageAt ?? null;
     for (const n of state.nodes ?? []) nodes.set(n.id, { heardBy: {}, ...n });
     for (const [id, g] of state.gateways ?? []) gateways.set(id, g);
-    for (const [k, h] of state.hours ?? []) hours.set(Number(k), h);
+    // Drop per-channel counts saved by earlier versions.
+    for (const [k, { channels, ...h }] of state.hours ?? []) hours.set(Number(k), h);
     for (const [id, list] of state.infraBlocks ?? []) infraBlocks.set(id, new Set(list));
     for (const [id, ms] of state.infraLast ?? []) infraLast.set(id, ms);
     prune();

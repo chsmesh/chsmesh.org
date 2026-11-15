@@ -172,6 +172,20 @@ test('state survives a serialize/load round trip', () => {
   assert.equal(b.load({ version: 99 }), false);
 });
 
+test('channel names are never kept in saved state', () => {
+  const now = clockAt('2026-11-14T15:00:00Z');
+  const a = createStore({ infrastructure: INFRA, root: ROOT, now });
+  a.ingest(topic('LoCo-Chat'), env('locoChat'));
+  assert.doesNotMatch(JSON.stringify(a.serialize()), /LoCo-Chat/);
+  // State written by earlier versions carried per-channel counts; loading drops them.
+  const old = JSON.parse(JSON.stringify(a.serialize()));
+  for (const [, h] of old.hours) h.channels = { 'LoCo-Chat': 1 };
+  const b = createStore({ infrastructure: INFRA, root: ROOT, now });
+  assert.equal(b.load(old), true);
+  assert.doesNotMatch(JSON.stringify(b.serialize()), /LoCo-Chat/);
+  assert.equal(b.snapshot().totals.packets24h, 1);
+});
+
 test('malformed payloads are counted but never throw out of ingest', () => {
   const now = clockAt('2026-11-14T15:00:00Z');
   const store = createStore({ infrastructure: INFRA, root: ROOT, now });
