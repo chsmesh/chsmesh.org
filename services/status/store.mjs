@@ -270,7 +270,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
         name: s.name ?? label(id),
         area: s.area ?? null,
         role: n?.role ?? s.role ?? null,
-        status: age <= opt.routerUpHours * HOUR ? 'up' : age <= DAY ? 'stale' : 'down',
+        status: lastSeen === null ? 'unseen' : age <= opt.routerUpHours * HOUR ? 'up' : age <= DAY ? 'stale' : 'down',
         lastHeard: lastSeen ? new Date(lastSeen).toISOString() : null,
         activity,
         activityPct: Math.round((activity.reduce((a, b) => a + b, 0) / blocks) * 100),
