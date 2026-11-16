@@ -99,7 +99,7 @@ test('store builds node, gateway and infrastructure state without keeping messag
   const infra = Object.fromEntries(s.infrastructure.map((r) => [r.id, r]));
   assert.equal(infra['!e20c4c89'].status, 'up');
   assert.equal(infra['!e20c4c89'].channelUtilization, 4.3);
-  assert.equal(infra['!fb5105a5'].status, 'down', 'never heard');
+  assert.equal(infra['!fb5105a5'].status, 'unseen', 'never heard is not down');
   assert.equal(infra['!fb5105a5'].lastHeard, null);
   assert.equal(infra['!e20c4c89'].activity.length, 56, '7 days of 3-hour blocks');
   assert.equal(infra['!e20c4c89'].activity.at(-1), 1);
@@ -117,7 +117,7 @@ test('relay bytes credit infrastructure only when unambiguous', () => {
   const now2 = clockAt('2026-11-14T15:00:00Z');
   const store2 = createStore({ infrastructure: [...INFRA, { id: '!00000089', name: 'Other' }], root: ROOT, now: now2 });
   store2.ingest(topic('LongFast'), env('text'));
-  assert.equal(store2.snapshot().infrastructure.find((r) => r.id === '!e20c4c89').status, 'down');
+  assert.equal(store2.snapshot().infrastructure.find((r) => r.id === '!e20c4c89').status, 'unseen');
 });
 
 test('status ages from up to stale to down and old data is pruned', () => {

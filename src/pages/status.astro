@@ -136,7 +136,7 @@ const stats = page.stats as { key: string; label: string }[];
   import 'leaflet/dist/leaflet.css';
 
   type Infra = {
-    id: string; name: string; area: string | null; role: string | null; status: 'up' | 'stale' | 'down';
+    id: string; name: string; area: string | null; role: string | null; status: 'up' | 'stale' | 'down' | 'unseen';
     lastHeard: string | null; activity: number[]; activityPct: number; channelUtilization: number | null;
     pos: { lat: number; lon: number } | null;
   };
@@ -173,6 +173,7 @@ const stats = page.stats as { key: string; label: string }[];
     up: ['bg-green-100 text-green-800', 'Up'],
     stale: ['bg-yellow-100 text-yellow-800', 'Stale'],
     down: ['bg-red-100 text-red-800', 'Down'],
+    unseen: ['bg-neutral-100 text-neutral-600', 'Not yet seen'],
   };
 
   function renderStats(s: Summary) {
