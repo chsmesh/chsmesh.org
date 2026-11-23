@@ -5,7 +5,7 @@ Thank you for your interest in contributing to CHS Mesh! We welcome contribution
 ## Ways to Contribute
 
 - **Add Meetups**: Document community gatherings and events
-- **Share Nodes**: Submit information about active mesh network nodes
+- **Nominate Infrastructure**: Suggest fixed routers and rooftop nodes for the Network Status page
 - **Write Guides**: Create tutorials and documentation
 - **Update Resources**: Add or update hardware device information
 - **Report Bugs**: Open issues for website problems
@@ -49,17 +49,12 @@ Thank you for your interest in contributing to CHS Mesh! We welcome contribution
 
 ### Network Nodes
 
-- Include the node name, location, and node type: `relay`, `router`, `client`, or `solar` (these are the only values the schema accepts; `type` defaults to `client`)
-- Required by the schema: `name` and `coordinates` (`lat`/`lng`)
-- Optional: `description`, `elevation` (feet), `active`, `owner`, `lastSeen`
-- Describe the node's role in the network
-- Keep information current
-
-**Privacy**: if a node sits at a home address, please round its coordinates to
-about 3 decimal places (roughly 100 m) before submitting, or use a nearby
-landmark instead. Node entries are published as static JSON on a public site and
-stay in git history forever. Never submit someone else's home location without
-their consent.
+There is no node directory to submit to. The [Network Status](https://chsmesh.org/status/)
+page lists every node a gateway hears, so a node appears there on its own once it
+is in range of a gateway. It shows on the map only if it also broadcasts a
+position on LongFast. To have a fixed router or rooftop node
+listed under Infrastructure, ask in the Discord or open a pull request against
+`services/status/infrastructure.json` (see `docs/status.md`).
 
 ### Resources
 

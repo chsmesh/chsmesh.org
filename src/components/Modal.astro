@@ -130,6 +130,8 @@ const sizeClasses = {
 </style>
 
 <script>
+  import { track } from '../utils/analytics.mjs';
+
   // Modal management
   const FOCUSABLE_SELECTOR = [
     'a[href]',
@@ -221,6 +223,9 @@ const sizeClasses = {
         const modal = modalId ? document.getElementById(modalId) : null;
         if (modal) {
           openModal(modal);
+          // Same id that SubmissionForm sends with form-submit, so the two match up.
+          const form = modal.querySelector('form');
+          if (form) track('form-open', { form: form.id });
         }
       });
     });

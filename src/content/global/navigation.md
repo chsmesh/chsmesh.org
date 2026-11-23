@@ -10,8 +10,6 @@ links:
     href: /guides/
   - label: Resources
     href: /resources/
-  - label: Map
-    href: /map/
   - label: Status
     href: /status/
   - label: About
