@@ -39,6 +39,7 @@ exactly `https://chsmesh.org/admin/` and not another hostname.
 | --- | --- | --- |
 | Meetups | `src/content/meetups/*.md` | Date, location, description |
 | Guides | `src/content/guides/*.md` | Markdown body, category, difficulty, prerequisites |
+| Glossary | `src/content/glossary/*.json` | Term, short definition (also the tooltip in guides), aliases, related terms. Terms and aliases are linked automatically at their first mention in each guide |
 | Resources | `src/content/resources/*.md` | Links to devices, software, firmware, communities |
 | Taxonomies | `src/content/taxonomies/*` | The allowed categories and difficulties |
 | Site settings | `src/content/global/*` | Site links, navigation, footer, and each page's copy, including the areas that need coverage on the relay sites page |

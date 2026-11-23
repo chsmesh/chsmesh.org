@@ -1,0 +1,13 @@
+{
+  "term": "Mesh network",
+  "definition": "A network with no central tower: every radio can pass messages along for its neighbours, so coverage grows as people join.",
+  "aliases": [
+    "mesh networking",
+    "mesh"
+  ],
+  "related": [
+    "node",
+    "hop",
+    "rebroadcast"
+  ]
+}

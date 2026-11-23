@@ -1,0 +1,11 @@
+{
+  "term": "ESP32",
+  "definition": "A family of microcontroller chips with Wi-Fi and Bluetooth, used in many low-cost Meshtastic boards. Capable, but power-hungry.",
+  "aliases": [
+    "ESP32-S3"
+  ],
+  "related": [
+    "nrf52",
+    "flashing"
+  ]
+}

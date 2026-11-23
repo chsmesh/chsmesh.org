@@ -1,0 +1,8 @@
+{
+  "term": "GPS",
+  "definition": "Satellite positioning. A node with a GPS receiver can share its location; one without can borrow your phone's position.",
+  "related": [
+    "telemetry",
+    "node"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "term": "RSSI",
+  "definition": "Received signal strength, in dBm. It is always negative, and closer to zero is stronger: -80 is strong, -120 is very weak.",
+  "explanation": "RSSI measures total received power, noise included, so read it together with SNR. A strong RSSI with a poor SNR usually points to local interference rather than distance.",
+  "aliases": [
+    "received signal strength"
+  ],
+  "related": [
+    "snr",
+    "dbm"
+  ]
+}

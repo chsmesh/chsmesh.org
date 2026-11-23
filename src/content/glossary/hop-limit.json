@@ -1,0 +1,14 @@
+{
+  "term": "Hop limit",
+  "definition": "The most times a message may be relayed before nodes stop passing it on. The default is 3 and the maximum is 7.",
+  "explanation": "Each node that relays a message lowers its remaining hop count by one; at zero, the message is no longer repeated. Raising the hop limit rarely helps and adds traffic for everyone, so leave it at 3 unless you have measured a reason to change it.",
+  "aliases": [
+    "hop count",
+    "max hops"
+  ],
+  "related": [
+    "hop",
+    "channel-utilization",
+    "traceroute"
+  ]
+}

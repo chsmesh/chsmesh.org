@@ -1,0 +1,11 @@
+{
+  "term": "Router",
+  "definition": "A device role for fixed, always-on nodes in excellent locations. A router always relays what it hears, ahead of other nodes.",
+  "explanation": "Use Router only for a permanently powered node with a commanding view, such as a rooftop or tower. One on a desk or in a car wins the relay race from a poor position and shortens how far messages travel.",
+  "related": [
+    "device-role",
+    "router-late",
+    "client",
+    "rebroadcast"
+  ]
+}

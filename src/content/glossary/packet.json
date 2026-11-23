@@ -1,0 +1,9 @@
+{
+  "term": "Packet",
+  "definition": "One radio transmission carrying a single piece of data: a text message, a position, or a telemetry report.",
+  "related": [
+    "telemetry",
+    "hop",
+    "rebroadcast"
+  ]
+}

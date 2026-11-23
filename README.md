@@ -105,11 +105,12 @@ src/
 ├── components/          # Reusable Astro components
 ├── content/
 │   ├── config.ts       # Zod schemas for every collection
+│   ├── glossary/       # Glossary terms (JSON, one per term) — auto-linked from guides
 │   ├── guides/         # Tutorial content (Markdown) — 4 entries
 │   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 12 Markdown files
+│   └── global/         # Site configuration and page copy — 13 Markdown files
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
 ├── styles/             # Global Tailwind CSS
@@ -126,9 +127,9 @@ There is no node directory to maintain: `/status` maps the nodes gateways
 actually hear, and `/map` redirects there. Fixed infrastructure is listed in
 `services/status/infrastructure.json` (see [docs/status.md](docs/status.md)).
 
-The 12 files in `src/content/global/` are `site.md`, `navigation.md`,
+The 13 files in `src/content/global/` are `site.md`, `navigation.md`,
 `footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `guides.md`,
-`guides-detail.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
+`guides-detail.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 
 ### Adding Content
@@ -157,6 +158,24 @@ coordinates:
   lng: -79.9311
 ---
 ```
+
+**Glossary terms**: Add a `.json` file to `src/content/glossary/`. The file name
+(lower-case, hyphenated) becomes the entry's anchor on `/glossary/`:
+```json
+{
+  "term": "Hop limit",
+  "definition": "One or two plain sentences, 200 characters at most.",
+  "explanation": "Optional longer text. Blank lines separate paragraphs.",
+  "aliases": ["hop count"],
+  "related": ["hop", "traceroute"]
+}
+```
+The first mention of each term or alias in a guide links to its entry
+automatically (`src/utils/rehypeGlossaryLinks.mjs`), with the short definition
+as a hover tooltip. Matching ignores case (except for an alias written in all capitals, which
+must match exactly) and accepts a plural "s"; headings, code and existing links
+are skipped. A file name starting with `_` is treated as a draft. Restart `npm run dev` after editing the
+glossary to see the links change in guides.
 
 ## Deployment
 
