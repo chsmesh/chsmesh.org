@@ -54,6 +54,28 @@ npm run preview   # serve dist/ locally
 
 `npm run check` is a separate gate, not part of `npm run build`; CI runs both.
 
+### Offline PDFs
+
+Every guide has a "Download PDF" link, and `/handbook/` bundles the guides
+marked `handbook: true` with the whole glossary into one field handbook. The
+PDFs are **not in git and not produced by `npm run build`**: a second step
+prints the built pages with headless Chromium into `dist/downloads/`.
+
+```bash
+npx playwright-core install chromium-headless-shell   # once
+npm run build && npm run build:pdf
+```
+
+The `Dockerfile` runs both, so the production image always has the PDFs; under
+`npm run dev` and after a plain `npm run build` the download links 404. Set
+`PDF_CHROMIUM_PATH` to print with an already-installed Chromium or Chrome
+instead of the downloaded one.
+
+The PDFs use the site's print stylesheet (the `@media print` block at the end
+of `src/styles/global.css`), which also makes the browser's own "Print / Save
+as PDF" clean on every page. Add the `no-print` class to anything that should
+stay off paper. File names and URLs live in `src/utils/downloads.mjs`.
+
 The build also emits a sitemap:
 [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/)
 is registered in `astro.config.mjs`, so `dist/` gets `sitemap-index.xml` and
@@ -67,6 +89,18 @@ origin. `public/robots.txt` allows all crawlers and points at that index.
 | `src/pages/404.astro` | Builds to `dist/404.html`; nginx serves it through `error_page 404` |
 | `public/robots.txt` | Crawler policy plus the `Sitemap:` pointer |
 | `public/og-image.png` | 1200×630 default Open Graph / Twitter card, used by `Layout.astro` when a page passes no `ogImage` |
+| `src/pages/og/` | Per-page 1200×630 share cards, built to `/og/guides/<slug>.png` and `/og/meetups/<slug>.png` and used as that page's `og:image` |
+
+Each guide and meetup gets its own share card, so a link pasted into Discord,
+Signal or Facebook shows the guide's title, difficulty and category, or the
+meetup's title, date and time (Charleston time) and venue. The cards are drawn
+at build time by `src/utils/ogImage.mjs` (Satori for layout, the WebAssembly
+build of resvg for the PNG) with the Inter font from `@fontsource/inter`, all
+read from `node_modules`, so the build fetches nothing. Apps cache a share
+image by its URL, so each `og:image` URL ends in a `?v=` fingerprint of the
+card's content: an edited title or a rescheduled meetup gets a fresh image.
+Characters outside Latin and Latin Extended (emoji, arrows, other scripts)
+are left off the card, as the bundled fonts cannot draw them.
 
 ## Environment variables
 
@@ -110,7 +144,7 @@ src/
 │   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 13 Markdown files
+│   └── global/         # Site configuration and page copy — 14 Markdown files
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
 ├── styles/             # Global Tailwind CSS
@@ -127,9 +161,9 @@ There is no node directory to maintain: `/status` maps the nodes gateways
 actually hear, and `/map` redirects there. Fixed infrastructure is listed in
 `services/status/infrastructure.json` (see [docs/status.md](docs/status.md)).
 
-The 13 files in `src/content/global/` are `site.md`, `navigation.md`,
+The 14 files in `src/content/global/` are `site.md`, `navigation.md`,
 `footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `guides.md`,
-`guides-detail.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
+`guides-detail.md`, `handbook.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 
 ### Adding Content
@@ -278,10 +312,12 @@ checking inbound links.
 `release/**`, as separate jobs:
 
 - **`site`**: `npm ci`, `npm run test:site` (every `*.test.mjs` outside
-  `test/submissions/`), `npm run build`, a check that `dist/` has no inline
-  executable `<script>` tags (the CSP would block them), an internal link
-  check of `dist/` (`npm run check:links`, see [Link checking](#link-checking)),
-  and `npm run check`.
+  `test/submissions/`, `test/status/` and `test/build/`), `npm run build`, `npm run test:build` (checks `dist/` itself:
+  every guide and meetup page must point at a share image the build emitted),
+  a check that `dist/` has no inline executable `<script>` tags (the CSP would
+  block them), `npm run check`, `npm run build:pdf` with a check that every
+  guide and the handbook got a PDF, and an internal link check of `dist/`
+  (`npm run check:links`, see [Link checking](#link-checking)).
 - **`submissions`**: the service tests in `test/submissions/` on Node 22, the
   service's runtime version (`npm run test:submissions`). Locally, `npm test`
   still runs both suites.
@@ -297,6 +333,8 @@ checking inbound links.
     `Strict-Transport-Security` headers (the request is sent with
     `X-Forwarded-Proto: https` so HSTS applies)
   - `/guides/what-is-meshtastic/` returns 200
+  - a guide PDF and the handbook PDF under `/downloads/` return 200 as
+    `application/pdf`
   - `/guides/what-is-meshtastic.md/` returns **301** to
     `/guides/what-is-meshtastic/`, covering the legacy redirects above
   - an unknown URL returns a real 404, and a hashed `/_astro/` asset is

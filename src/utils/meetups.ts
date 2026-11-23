@@ -40,3 +40,18 @@ export const isPastMeetup = (data: MeetupDates, now: Date = new Date()): boolean
 
 export const isUpcomingMeetup = (data: MeetupDates, now: Date = new Date()): boolean =>
   !isPastMeetup(data, now);
+
+/**
+ * Start date and time on one line, with the zone abbreviation ("Saturday,
+ * October 3, 2026 · 6:00 PM EDT"). For share cards, which are read outside
+ * the site by people who may not assume Charleston time.
+ */
+export const formatMeetupDateTime = (date: Date): string => {
+  const time = date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+    timeZone: MEETUP_TIME_ZONE,
+  });
+  return `${formatMeetupDate(date)} · ${time}`;
+};

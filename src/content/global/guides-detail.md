@@ -3,6 +3,9 @@ type: guides-detail
 backLabel: Back to Guides
 prerequisitesHeading: Prerequisites
 relatedHeading: Related Guides
+download:
+  label: Download PDF
+  hint: Save a copy for when the internet is down.
 feedback:
   question: Was this guide helpful?
   reportLabel: Report an Issue

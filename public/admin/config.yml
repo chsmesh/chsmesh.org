@@ -118,6 +118,7 @@ collections:
       - { name: prerequisites, label: Prerequisites, widget: list, required: false, field: { name: item, label: Prerequisite, widget: string } }
       - { name: lastUpdated, label: Last updated, widget: datetime, type: date, required: false }
       - { name: author, label: Author, widget: string, required: false }
+      - { name: handbook, label: Include in the field handbook, widget: boolean, default: false, required: false, hint: "Adds this guide to /handbook/ and its PDF. Keep it to what someone needs when the internet is down." }
       - { name: body, label: Guide content, widget: markdown }
 
   - name: resources
@@ -516,6 +517,33 @@ collections:
             fields:
               - { name: heading, label: Heading, widget: string }
               - { name: body, label: Body, widget: text }
+      - name: handbook
+        label: Field handbook page
+        file: src/content/global/handbook.md
+        fields:
+          - { name: type, widget: hidden, default: handbook }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: intro, label: Introduction, widget: text }
+          - { name: downloadLabel, label: Download button label, widget: string }
+          - { name: generatedLabel, label: Generated label, widget: string, hint: "Followed by the date the site was built" }
+          - { name: contentsHeading, label: Contents heading, widget: string }
+          - { name: glossaryHeading, label: Glossary heading, widget: string }
+          - name: promo
+            label: Callout on the guides page
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - { name: downloadLabel, label: Download button label, widget: string }
+              - { name: viewLabel, label: View online label, widget: string }
       - name: guides-detail
         label: Guide detail page
         file: src/content/global/guides-detail.md
@@ -524,6 +552,12 @@ collections:
           - { name: backLabel, label: Back link label, widget: string }
           - { name: prerequisitesHeading, label: Prerequisites heading, widget: string }
           - { name: relatedHeading, label: Related guides heading, widget: string }
+          - name: download
+            label: PDF download
+            widget: object
+            fields:
+              - { name: label, label: Button label, widget: string }
+              - { name: hint, label: Hint, widget: string, hint: "Shown next to the button" }
           - name: feedback
             label: Feedback
             widget: object

@@ -833,3 +833,308 @@ a.glossary-entry-term:not(.btn) {
   line-height: 1.65;
   color: var(--color-neutral-600);
 }
+
+/* A button on the hero gradient: .btn-outline is teal on teal there. */
+.hero-btn {
+  background-color: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+}
+
+.hero-btn:hover {
+  background-color: rgba(255, 255, 255, 0.24);
+}
+
+/* Field handbook (/handbook/) */
+.handbook-contents {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+
+.handbook-contents li {
+  margin-bottom: 0.75rem;
+}
+
+.handbook-contents a {
+  font-weight: 600;
+}
+
+.handbook-contents span {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--color-neutral-600);
+}
+
+.handbook-chapter {
+  padding: 2.5rem 0;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.handbook-chapter-header {
+  margin-bottom: 1.5rem;
+}
+
+.handbook-chapter-header h1 {
+  font-size: 1.875rem;
+  color: var(--color-primary-700);
+}
+
+@media (min-width: 768px) {
+  .handbook-chapter-header h1 {
+    font-size: 2.25rem;
+  }
+}
+
+.handbook-chapter-header > p {
+  margin-top: 0.5rem;
+  font-size: 1.125rem;
+  color: var(--color-neutral-600);
+}
+
+.handbook-prereqs {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-accent-200);
+  background-color: var(--color-accent-50);
+  font-size: 0.875rem;
+  color: var(--color-accent-800);
+}
+
+.handbook-prereqs h3 {
+  font-size: 0.9375rem;
+  color: var(--color-accent-800);
+  margin-bottom: 0.25rem;
+}
+
+.handbook-prereqs ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.handbook span.glossary-entry-term {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+/*
+ * Print
+ *
+ * One stylesheet serves both the browser's own "Print / Save as PDF" and the
+ * PDFs that scripts/build-pdfs.mjs renders from the guide pages and the
+ * handbook. It strips the site chrome, drops the dark hero and code blocks
+ * (ink), keeps a block from splitting across pages where it can, and prints
+ * the address of every outside link, because paper cannot be clicked.
+ *
+ * This sheet is unlayered, so these rules beat Tailwind's utilities without
+ * needing !important; the exceptions are marked.
+ */
+@media print {
+  /* Keep in step with the margins in scripts/build-pdfs.mjs. */
+  @page {
+    margin: 0.65in 0.6in 0.8in;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Named fonts, not `system-ui`: in the image build that keyword resolves to
+     whatever fontconfig lists first, which in the slim Debian image is a CJK
+     font. Liberation Sans/Mono are what the Chromium install step provides;
+     Arial and Courier New are their equivalents in a visitor's own browser. */
+  body {
+    display: block;
+    min-height: 0;
+    background: white;
+    color: black;
+    font-size: 11pt;
+    font-family: Arial, 'Liberation Sans', Helvetica, sans-serif;
+  }
+
+  .prose code {
+    font-family: 'Courier New', 'Liberation Mono', monospace;
+  }
+
+  /* Site chrome, the submission modals, and anything a page marks as
+     screen-only. !important: `.no-print` sits next to display utilities. */
+  body > header,
+  body > footer,
+  .modal,
+  .no-print {
+    display: none !important;
+  }
+
+  .container-narrow,
+  .container-wide {
+    max-width: none;
+    padding: 0;
+  }
+
+  .section,
+  .section-sm,
+  .hero + .section,
+  .hero + .section-sm,
+  .prereqs + .section,
+  .prereqs + .section-sm {
+    padding: 0.5rem 0;
+  }
+
+  h1 { font-size: 22pt; }
+  h2 { font-size: 16pt; }
+  h3 { font-size: 13pt; }
+  h4 { font-size: 11.5pt; }
+
+  .prose h2 { font-size: 14pt; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+  .prose h3 { font-size: 12pt; margin-top: 1rem; margin-bottom: 0.4rem; }
+  .prose { line-height: 1.5; color: black; }
+  .prose p, .prose ul, .prose ol { margin-bottom: 0.6rem; }
+  .prose li { margin-bottom: 0.25rem; }
+
+  /* The hero becomes a plain title block. */
+  .hero,
+  .hero-pattern {
+    background: none;
+    color: var(--color-neutral-700);
+    padding: 0 0 0.75rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-primary-700);
+  }
+
+  /* The second selector matches the specificity of the white hero link
+     colour set earlier in this sheet. */
+  .hero *,
+  .hero a:not(.btn):not([class*='btn-']) {
+    color: inherit;
+  }
+
+  .hero h1 {
+    color: black;
+  }
+
+  .hero p {
+    font-size: 12pt;
+  }
+
+  .hero [class*='badge'] {
+    background: none;
+    border: 1px solid var(--color-neutral-400);
+  }
+
+  .card,
+  .card:hover {
+    box-shadow: none;
+  }
+
+  /* Page breaks */
+  h1, h2, h3, h4,
+  .glossary-letter {
+    break-after: avoid;
+  }
+
+  pre, blockquote, table, tr, img, figure,
+  .prose li,
+  .prereqs,
+  .handbook-prereqs,
+  .glossary-entry {
+    break-inside: avoid;
+  }
+
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  .prose table {
+    font-size: 9.5pt;
+  }
+
+  /* Code: light, bordered, and wrapped instead of scrolled off the page. */
+  /* !important throughout: Shiki writes the dark theme's background and a
+     colour per token as inline styles, which no selector can outrank. */
+  .prose pre {
+    background: var(--color-neutral-100) !important;
+    color: black !important;
+    border: 1px solid var(--color-neutral-300);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: visible !important;
+  }
+
+  .prose pre span {
+    color: black !important;
+  }
+
+  .prose img {
+    max-width: 100%;
+  }
+
+  .prose a {
+    color: var(--color-primary-700);
+  }
+
+  /* Spell out where an outside link goes. */
+  .prose a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    font-weight: 400;
+    color: var(--color-neutral-600);
+    overflow-wrap: anywhere;
+  }
+
+  /* A glossary term in a single guide leads nowhere on paper, so it prints as
+     plain text. In the handbook the glossary is in the same document, so the
+     dotted underline stays as the cue to look the word up. */
+  .prose a.glossary-term {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .handbook .prose a.glossary-term {
+    text-decoration: underline dotted var(--color-neutral-500);
+  }
+
+  /* !important: must beat the :hover / :focus-visible tooltip rule above. */
+  .prose a.glossary-term::after {
+    content: none !important;
+  }
+
+  /* /glossary/ on its own */
+  .glossary-index {
+    display: none;
+  }
+
+  .glossary-entry {
+    margin: 0;
+    padding: 0.5rem 0;
+    border-radius: 0;
+  }
+
+  .glossary-entry:target {
+    background: none;
+    box-shadow: none;
+  }
+
+  /* Handbook: the cover and contents share page one, then every chapter
+     starts on a fresh page. */
+  .handbook-chapter {
+    break-before: page;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .handbook-chapter-header {
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-primary-700);
+  }
+
+  .handbook-chapter-header h1 {
+    font-size: 20pt;
+  }
+}
