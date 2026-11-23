@@ -1,0 +1,37 @@
+# lychee link checker settings, shared by both modes of scripts/check-links.sh
+# (lychee loads this file from the directory it runs in).
+# Reference: https://lychee.cli.rs/guides/config/
+
+no_progress = true
+
+# External requests. These only matter to `check-links.sh external`; the
+# internal check runs offline.
+timeout = 30
+max_retries = 3
+retry_wait_time = 5
+max_concurrency = 8
+# 429 means "slow down", not "gone": a rate-limited link is not a broken one.
+accept = ["100..=103", "200..=299", "429"]
+
+# discord.gg answers 200 for any invite code, valid or not, so checking the
+# invite page proves nothing. Ask Discord's public invite API instead: it
+# returns 404 for an expired or revoked invite.
+remap = ['^https://discord\.gg/([A-Za-z0-9-]+)/?$ https://discord.com/api/v10/invites/$1']
+
+# Allowlist: sites where an automated request cannot tell a working link from
+# a dead one, so checking them would only produce false passes or false
+# alarms (measured 2026-11-22 with a real and a made-up product on each).
+# These links are NOT checked. `scripts/check-links.sh manual` lists them, and
+# links.yml opens a monthly checklist issue asking a person to open each one.
+# Each entry is a regex matched against the whole URL; keep it as narrow as
+# the site allows.
+exclude = [
+  # Serves the same 200 page shell for a live item and a nonexistent one; the
+  # "item unavailable" state is rendered in the browser by JavaScript.
+  '^https://www\.aliexpress\.(com|us)/',
+  # Answers 403 to every non-browser request, including nonexistent pages.
+  '^https://www\.silabs\.com/',
+  # Answers 200, 500 or 503 to non-browser requests regardless of whether the
+  # product exists.
+  '^https://www\.amazon\.com/',
+]
