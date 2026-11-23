@@ -91,8 +91,12 @@ const canonicalUrl = new URL(currentPath, Astro.site);
       <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
     )}
 
-    <!-- Umami analytics (self-hosted, cookieless; allowed in the CSP script-src and connect-src) -->
-    <script is:inline defer src="https://stats.sendtrl.com/s.js" data-website-id="cb56023c-10d8-4a6f-9975-d45737f9e58c"></script>
+    <!-- Umami analytics (self-hosted, cookieless). Loaded from a script so
+         visitors who send Do Not Track or Global Privacy Control are skipped. -->
+    <script>
+      import { loadAnalytics } from '../utils/analytics.mjs';
+      loadAnalytics();
+    </script>
   </head>
   <body class="min-h-screen flex flex-col">
     <!-- Navigation -->
