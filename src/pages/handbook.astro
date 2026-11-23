@@ -5,6 +5,7 @@
 // stylesheet in global.css starts each chapter on a new page.
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
+import OfflineIndicator from '../components/OfflineIndicator.astro';
 import { getCollection, render } from 'astro:content';
 import { getGlobal } from '../utils/global';
 import { getTaxonomyData } from '../utils/taxonomy';
@@ -47,13 +48,14 @@ const generated = new Date().toLocaleDateString('en-US', {
   <article class="handbook">
     <Hero title={handbook.hero.title} subtitle={handbook.hero.subtitle} size={handbook.hero.size ?? 'small'}>
       <p class="mt-4 text-sm text-primary-100">{handbook.generatedLabel} {generated}</p>
-      <div class="mt-6 no-print">
+      <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 no-print">
         <a href={handbookPdfHref} download class="btn hero-btn">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
           </svg>
           {handbook.downloadLabel}
         </a>
+        <OfflineIndicator class="text-primary-100" />
       </div>
     </Hero>
 

@@ -81,7 +81,8 @@ jobs:
 
       - name: Test the built site
         # Checks dist/ itself, e.g. that every meetup and guide page points
-        # at a share image the build emitted.
+        # at a share image the build emitted, and that the offline service
+        # worker lists only files that exist.
         run: npm run test:build
 
       - name: Assert no inline executable scripts in the build
@@ -356,6 +357,35 @@ jobs:
             printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
               || { echo "Missing Content-Security-Policy header on $path" >&2; exit 1; }
           done
+
+      - name: Smoke test - service worker and web app manifest
+        run: |
+          # The build writes /sw.js; nginx must serve it as a script browsers
+          # revalidate on every check, or visitors keep the guides saved by
+          # an old deploy. The CSP must allow it as a worker.
+          headers=$(curl -sS -D - -o /dev/null http://127.0.0.1:8080/sw.js)
+          printf '%s\n' "$headers"
+          printf '%s\n' "$headers" | head -n 1 | grep -q ' 200' \
+            || { echo 'Expected 200 for /sw.js' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^content-type: application/javascript' \
+            || { echo 'Expected a JavaScript content type for /sw.js' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^cache-control: no-cache' \
+            || { echo 'Expected Cache-Control: no-cache on /sw.js' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -i '^content-security-policy:' \
+            | grep -q "worker-src 'self' ;" \
+            || { echo "CSP worker-src is not 'self' on /sw.js" >&2; exit 1; }
+
+          headers=$(curl -sS -D - -o /dev/null http://127.0.0.1:8080/manifest.webmanifest)
+          printf '%s\n' "$headers"
+          printf '%s\n' "$headers" | head -n 1 | grep -q ' 200' \
+            || { echo 'Expected 200 for /manifest.webmanifest' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^content-type: application/manifest+json' \
+            || { echo 'Expected application/manifest+json for /manifest.webmanifest' >&2; exit 1; }
+
+          # The CMS runs workers from blob: URLs; /admin/ must still allow them.
+          curl -sS -D - -o /dev/null http://127.0.0.1:8080/admin/ \
+            | grep -i '^content-security-policy:' | grep -q "worker-src 'self' blob:;" \
+            || { echo 'CSP worker-src does not allow blob: on /admin/' >&2; exit 1; }
 
       - name: Smoke test - legacy .md guide URL redirects to the clean URL
         run: |

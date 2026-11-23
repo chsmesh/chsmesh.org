@@ -302,3 +302,36 @@ test('should not ship an inline define:vars script in the submission form', () =
     'the JSON data block must escape "<" so no value can close the tag early'
   );
 });
+
+test('should allow workers from the site itself only, plus blob: for the CMS', () => {
+  const headers = readFile(securityHeadersPath);
+  const nginxConfig = readFile(nginxConfigPath);
+
+  assert.match(
+    headers,
+    /worker-src\s+'self'\s+\$csp_admin_worker;/,
+    "worker-src must be 'self' (the offline service worker) and the /admin/-only map variable"
+  );
+  // A browser uses the first copy of a repeated directive and ignores the
+  // rest, so a second worker-src anywhere would silently do nothing.
+  const directives = (headers + nginxConfig).replace(/^\s*#.*$/gm, '');
+  assert.equal(directives.match(/worker-src/g)?.length, 1, 'worker-src must be declared exactly once');
+  assert.match(
+    nginxConfig,
+    /map\s+\$uri\s+\$csp_admin_worker\s*\{[^}]*~\^\/admin\/\s+"blob:";/,
+    'the CMS needs blob: workers on /admin/'
+  );
+});
+
+test('should make browsers revalidate the service worker on every check', () => {
+  const [serverBody] = parseBlocks(readFile(nginxConfigPath));
+  const locations = parseLocations(serverBody);
+
+  const worker = locations.find((loc) => loc.matcher === '= /sw.js');
+  assert.ok(worker, 'nginx must declare an exact-match location for /sw.js, ahead of the one-day asset cache');
+  assert.match(worker.body, /add_header\s+Cache-Control\s+"no-cache"\s+always;/);
+
+  const manifest = locations.find((loc) => loc.matcher === '= /manifest.webmanifest');
+  assert.ok(manifest, 'nginx must declare a location for the web app manifest');
+  assert.match(manifest.body, /default_type\s+application\/manifest\+json;/);
+});

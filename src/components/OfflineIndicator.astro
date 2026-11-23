@@ -1,0 +1,19 @@
+---
+// "Available offline" badge. Starts hidden; src/utils/offlineClient.mjs shows
+// it once the service worker has saved the page it is on.
+import { getGlobal } from '../utils/global';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+const offline = await getGlobal('offline', 'offline');
+---
+
+<span data-offline-indicator hidden class:list={['inline-flex items-center gap-1 text-sm no-print', className]}>
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+  </svg>
+  {offline.indicatorLabel}
+</span>

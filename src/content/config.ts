@@ -531,6 +531,25 @@ const global = defineCollection({
       }),
     }),
     z.object({
+      // Offline reading: the /offline/ fallback page and the labels the
+      // service worker's UI uses on every page.
+      type: z.literal('offline'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      savedHeading: z.string(),
+      savedBody: z.string(),
+      guidesLabel: z.string(),
+      // Badge shown on a page once it is saved on the visitor's device.
+      indicatorLabel: z.string(),
+      // Strip under the header while the browser has no connection.
+      bannerText: z.string(),
+    }),
+    z.object({
       type: z.literal('meetups'),
       pageTitle: z.string(),
       pageDescription: z.string(),

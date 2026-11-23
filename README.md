@@ -76,6 +76,45 @@ of `src/styles/global.css`), which also makes the browser's own "Print / Save
 as PDF" clean on every page. Add the `no-print` class to anything that should
 stay off paper. File names and URLs live in `src/utils/downloads.mjs`.
 
+### Offline mode
+
+After one visit, the guides, the field handbook, the glossary and the other
+core pages open without a connection, and the site can be installed to a
+phone's home screen. Nothing is committed for this; `npm run build` writes it:
+
+| Piece | Where |
+| --- | --- |
+| Service worker, `/sw.js` | Written into `dist/` when the build finishes by `src/integrations/offline.mjs`, from the worker in `src/sw/service-worker.js` |
+| Web app manifest | `public/manifest.webmanifest` |
+| App icons, `/icons/*.png` | Drawn at build time from the favicon mark (`src/utils/appIcons.mjs`) |
+| "Available offline" badge and offline banner | `src/components/OfflineIndicator.astro` and `Layout.astro`, driven by `src/utils/offlineClient.mjs` |
+| Page for a URL that was never saved | `src/pages/offline.astro`, copy in `src/content/global/offline.md` |
+
+How it behaves:
+
+- **At install** the worker saves every built page except `/admin/` and
+  `/status/`, with the CSS, scripts and images those pages use (about 0.9 MB
+  today; `npm run test:build` fails if any one file is over 500 kB). The PDFs
+  are not included.
+- **Anything else a visitor opens** - a meetup page, a downloaded PDF - is
+  saved as they go, in a second cache that deploys do not clear.
+- **Pages are network first**, so an edit shows as soon as it is deployed. The
+  saved copy is used when the request fails, the server answers 5xx, or there
+  is no answer within three seconds (a phone with signal but no connection).
+  A page that was never saved gets ten seconds, then the offline page.
+- **Updates**: `sw.js` carries a fingerprint of everything it saves. A deploy
+  that changes any of it changes `sw.js`, and each visitor's browser then
+  saves the new copies in the background on their next visit. nginx serves
+  `sw.js` with `Cache-Control: no-cache` for this reason.
+- **Never cached**: `/api/` (forms, live status data) and `/admin/`.
+
+A new page is saved automatically. To keep one out of the install download,
+add it to `NOT_PRECACHED` in `src/integrations/offline.mjs`.
+
+`npm run dev` has no service worker (and removes one left on that port by a
+preview). To try offline mode locally, serve a build: `npm run build && npm run
+preview`, load a page, then switch DevTools to offline.
+
 The build also emits a sitemap:
 [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/)
 is registered in `astro.config.mjs`, so `dist/` gets `sitemap-index.xml` and
@@ -89,6 +128,7 @@ origin. `public/robots.txt` allows all crawlers and points at that index.
 | `src/pages/404.astro` | Builds to `dist/404.html`; nginx serves it through `error_page 404` |
 | `public/robots.txt` | Crawler policy plus the `Sitemap:` pointer |
 | `public/og-image.png` | 1200×630 default Open Graph / Twitter card, used by `Layout.astro` when a page passes no `ogImage` |
+| `public/manifest.webmanifest`, `src/pages/icons/` | Web app manifest and its generated icons; see [Offline mode](#offline-mode) |
 | `src/pages/og/` | Per-page 1200×630 share cards, built to `/og/guides/<slug>.png` and `/og/meetups/<slug>.png` and used as that page's `og:image` |
 
 Each guide and meetup gets its own share card, so a link pasted into Discord,
@@ -145,10 +185,12 @@ src/
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── builds/         # Member build gallery (Markdown) — no entries yet (.gitkeep); photos in src/assets/builds/
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 15 Markdown files
+│   └── global/         # Site configuration and page copy — 16 Markdown files
+├── integrations/       # Build hooks (writes the offline service worker)
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
 ├── styles/             # Global Tailwind CSS
+├── sw/                 # Service worker source (see Offline mode)
 └── utils/              # Helper functions
 ```
 
@@ -166,9 +208,9 @@ There is no node directory to maintain: `/status` maps the nodes gateways
 actually hear, and `/map` redirects there. Fixed infrastructure is listed in
 `services/status/infrastructure.json` (see [docs/status.md](docs/status.md)).
 
-The 15 files in `src/content/global/` are `site.md`, `navigation.md`,
+The 16 files in `src/content/global/` are `site.md`, `navigation.md`,
 `footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `builds.md`, `guides.md`,
-`guides-detail.md`, `handbook.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
+`guides-detail.md`, `handbook.md`, `offline.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 
 ### Adding Content
@@ -318,7 +360,8 @@ checking inbound links.
 
 - **`site`**: `npm ci`, `npm run test:site` (every `*.test.mjs` outside
   `test/submissions/`, `test/status/` and `test/build/`), `npm run build`, `npm run test:build` (checks `dist/` itself:
-  every guide and meetup page must point at a share image the build emitted),
+  every guide and meetup page must point at a share image the build emitted,
+  and the service worker must list the guides and only files that exist),
   a check that `dist/` has no inline executable `<script>` tags (the CSP would
   block them), `npm run check`, `npm run build:pdf` with a check that every
   guide and the handbook got a PDF, and an internal link check of `dist/`
