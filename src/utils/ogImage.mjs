@@ -280,15 +280,15 @@ function cardElement({ kind, badges = [], title, description, details = [] }) {
 export const shareCardVersion = (card) => createHash('sha256').update(JSON.stringify(card)).digest('hex').slice(0, 8);
 
 /**
- * Render a share card to a 1200x630 PNG.
- * @param {ShareCard} card
+ * Rasterize an SVG that needs no fonts to a PNG `width` pixels wide. Also used
+ * for the app icons (src/utils/appIcons.mjs).
+ * @param {string} svg
+ * @param {number} width
  * @returns {Promise<Uint8Array<ArrayBuffer>>}
  */
-export async function renderShareCard(card) {
-  const [fonts] = await Promise.all([loadFonts(), initResvg()]);
-  const svg = await satori(cardElement(card), { width: OG_IMAGE_WIDTH, height: OG_IMAGE_HEIGHT, fonts });
-  // Satori draws text as paths, so resvg needs no fonts of its own.
-  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: OG_IMAGE_WIDTH } });
+export async function svgToPng(svg, width) {
+  await initResvg();
+  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: width } });
   try {
     // Copied out of the WebAssembly memory resvg is about to free, onto a
     // plain ArrayBuffer, which is also what `new Response()` is typed to take.
@@ -296,4 +296,15 @@ export async function renderShareCard(card) {
   } finally {
     resvg.free();
   }
+}
+
+/**
+ * Render a share card to a 1200x630 PNG.
+ * @param {ShareCard} card
+ * @returns {Promise<Uint8Array<ArrayBuffer>>}
+ */
+export async function renderShareCard(card) {
+  const svg = await satori(cardElement(card), { width: OG_IMAGE_WIDTH, height: OG_IMAGE_HEIGHT, fonts: await loadFonts() });
+  // Satori draws text as paths, so resvg needs no fonts of its own.
+  return svgToPng(svg, OG_IMAGE_WIDTH);
 }

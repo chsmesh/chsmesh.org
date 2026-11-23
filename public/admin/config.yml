@@ -544,6 +544,26 @@ collections:
               - { name: body, label: Body, widget: text }
               - { name: downloadLabel, label: Download button label, widget: string }
               - { name: viewLabel, label: View online label, widget: string }
+      - name: offline
+        label: Offline mode
+        file: src/content/global/offline.md
+        fields:
+          - { name: type, widget: hidden, default: offline }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            hint: "Shown when someone offline opens a page that was not saved on their device"
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: savedHeading, label: Saved pages heading, widget: string }
+          - { name: savedBody, label: Saved pages text, widget: text }
+          - { name: guidesLabel, label: All guides link label, widget: string }
+          - { name: indicatorLabel, label: Saved badge, widget: string, hint: "Shown on a page once it is saved on the visitor's device" }
+          - { name: bannerText, label: Offline banner, widget: string, hint: "Shown under the header while the visitor has no connection" }
       - name: guides-detail
         label: Guide detail page
         file: src/content/global/guides-detail.md
