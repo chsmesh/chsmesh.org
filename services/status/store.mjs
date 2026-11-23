@@ -5,8 +5,9 @@
 // Privacy rules applied in snapshot():
 //   - message text is never stored or published, only counted
 //   - positions are rounded to POSITION_DECIMALS (about 1 km)
-//   - only LongFast (the public default key) is decoded; every other channel
-//     is counted by name only
+//   - only LongFast (the public default key) is decoded; packets on every
+//     other channel are counted in the totals, and channel names are neither
+//     published nor stored
 //   - broker usernames never appear; gateways are shown by node name
 
 import { PORTNUM, DEFAULT_KEY, decryptPacket, decodeUser, decodePosition, decodeTelemetry, decodeMapReport, nodeId, roleName } from './mesh.mjs';
@@ -24,6 +25,7 @@ export const DEFAULTS = Object.freeze({
   gatewayOnlineMinutes: 30, // a gateway counts as online if it uploaded this recently
   routerUpHours: 6, // infrastructure is "up" if heard this recently, "stale" up to 24 h
   dedupeMinutes: 10,
+  unseenGraceDays: 7, // a listed site never heard for this long after it was added counts as "down"
 });
 
 const round = (x, d = POSITION_DECIMALS) => (x === null || x === undefined ? null : Math.round(x * 10 ** d) / 10 ** d);
@@ -35,15 +37,27 @@ const median = (xs) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
+// A gateway is named by its node id. Anything else in that slot (part of a
+// channel name containing '/', for example) must never be stored.
+const GATEWAY_ID = /^![0-9a-f]{8}$/;
+const gatewayId = (s) => {
+  const id = String(s ?? '').toLowerCase();
+  return GATEWAY_ID.test(id) ? id : '';
+};
+
 /**
  * Parse an upload topic under the root: <root>/2/e/<channel>/<gateway> or
  * <root>/2/map/... Returns null for anything else (JSON, stat, feeders).
+ * The gateway is the last segment, so a channel name may contain '/'; it is
+ * null unless it is a node id.
  */
 export function parseTopic(topic, root) {
   if (!topic.startsWith(`${root}/`)) return null;
   const parts = topic.slice(root.length + 1).split('/');
   if (parts[0] !== '2') return null;
-  if (parts[1] === 'e' && parts.length >= 4) return { kind: 'packet', channel: parts[2], gateway: parts[3] };
+  if (parts[1] === 'e' && parts.length >= 4) {
+    return { kind: 'packet', channel: parts.slice(2, -1).join('/'), gateway: gatewayId(parts.at(-1)) || null };
+  }
   if (parts[1] === 'map') return { kind: 'map' };
   return null;
 }
@@ -58,7 +72,8 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
   const nodes = new Map();
   // gateway id -> { lastUpload, uploads: {hourStart: n} }
   const gateways = new Map();
-  // hourStart -> { packets, channels: {name: n}, text, hops: [0..7] }
+  // hourStart -> { packets, text, hops: [0..7] }  (no per-channel counts: channel
+  // names, private ones included, are neither published nor kept on disk)
   const hours = new Map();
   // infra id -> Set(blockStart ms) of blocks the node was heard in
   const infraBlocks = new Map();
@@ -68,6 +83,9 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
   const seen = new Map();
   let lastMessageAt = null;
   let startedAt = now();
+  // infra id -> when this collector started tracking the site, so a site that
+  // is never heard ages from "unseen" to "down" instead of staying grey forever
+  const infraSince = new Map([...infra.keys()].map((id) => [id, startedAt]));
 
   const hourStart = (t) => Math.floor(t / HOUR) * HOUR;
   const blockStart = (t) => Math.floor(t / (BLOCK_HOURS * HOUR)) * BLOCK_HOURS * HOUR;
@@ -85,7 +103,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     const k = hourStart(t);
     let h = hours.get(k);
     if (!h) {
-      h = { packets: 0, channels: {}, text: 0, hops: [0, 0, 0, 0, 0, 0, 0, 0] };
+      h = { packets: 0, text: 0, hops: [0, 0, 0, 0, 0, 0, 0, 0] };
       hours.set(k, h);
     }
     return h;
@@ -142,9 +160,9 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     const p = envelope.packet;
     const from = nodeId(p.from);
     // The topic names the uploading gateway; fall back to the envelope's claim.
-    const gw = ((where.kind === 'packet' ? where.gateway : '') || envelope.gatewayId || '').toLowerCase();
+    const gw = (where.kind === 'packet' && where.gateway) || gatewayId(envelope.gatewayId);
 
-    if (gw.startsWith('!')) {
+    if (gw) {
       let g = gateways.get(gw);
       if (!g) gateways.set(gw, (g = { lastUpload: t, uploads: {} }));
       g.lastUpload = t;
@@ -196,7 +214,6 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       seen.set(key, t);
       const h = hour(t);
       h.packets++;
-      h.channels[where.channel] = (h.channels[where.channel] ?? 0) + 1;
       if (hops !== null) h.hops[Math.min(hops, 7)]++;
     }
 
@@ -250,8 +267,6 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       hourly.push({ hour: new Date(k).toISOString(), packets: h?.packets ?? 0, text: h?.text ?? 0 });
     }
     const day = [...hours.entries()].filter(([k]) => k >= hourStart(t) - 23 * HOUR).map(([, h]) => h);
-    // Per-channel counts stay internal: a private channel's name is its
-    // owner's business and is never published.
     const hops = [0, 0, 0, 0, 0, 0, 0, 0];
     for (const h of day) h.hops.forEach((v, i) => (hops[i] += v));
 
@@ -263,14 +278,17 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       const heard = infraBlocks.get(id) ?? new Set();
       const activity = [];
       for (let i = 0; i < blocks; i++) activity.push(heard.has(firstBlock + i * BLOCK_HOURS * HOUR) ? 1 : 0);
-      const lastSeen = infraLast.get(id) ?? null;
+      // A site heard as an ordinary node or gateway before it was listed has no
+      // infraLast entry yet, so that evidence counts too.
+      const lastSeen = Math.max(infraLast.get(id) ?? 0, n?.lastHeard ?? 0, gateways.get(id)?.lastUpload ?? 0) || null;
       const age = lastSeen ? t - lastSeen : Infinity;
+      const unseen = t - (infraSince.get(id) ?? startedAt) <= opt.unseenGraceDays * DAY ? 'unseen' : 'down';
       return {
         id,
         name: s.name ?? label(id),
         area: s.area ?? null,
         role: n?.role ?? s.role ?? null,
-        status: age <= opt.routerUpHours * HOUR ? 'up' : age <= DAY ? 'stale' : 'down',
+        status: lastSeen === null ? unseen : age <= opt.routerUpHours * HOUR ? 'up' : age <= DAY ? 'stale' : 'down',
         lastHeard: lastSeen ? new Date(lastSeen).toISOString() : null,
         activity,
         activityPct: Math.round((activity.reduce((a, b) => a + b, 0) / blocks) * 100),
@@ -325,6 +343,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
         nodesWithPosition: active.filter((n) => n.pos).length,
         infrastructureUp: up,
         infrastructureTotal: infrastructure.length,
+        infrastructureUnseen: infrastructure.filter((r) => r.status === 'unseen').length,
         gatewaysOnline: online.length,
         packets24h: day.reduce((a, h) => a + h.packets, 0),
         textMessages24h: day.reduce((a, h) => a + h.text, 0),
@@ -351,6 +370,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       hours: [...hours.entries()],
       infraBlocks: [...infraBlocks.entries()].map(([id, set]) => [id, [...set]]),
       infraLast: [...infraLast.entries()],
+      infraSince: [...infraSince.entries()],
     };
   }
 
@@ -358,11 +378,24 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     if (!state || state.version !== 1) return false;
     startedAt = state.startedAt ?? startedAt;
     lastMessageAt = state.lastMessageAt ?? null;
-    for (const n of state.nodes ?? []) nodes.set(n.id, { heardBy: {}, ...n });
-    for (const [id, g] of state.gateways ?? []) gateways.set(id, g);
-    for (const [k, h] of state.hours ?? []) hours.set(Number(k), h);
+    // Earlier versions could save part of a channel name as a gateway id, and
+    // saved per-channel counts; neither is kept.
+    for (const n of state.nodes ?? []) {
+      const heardBy = Object.fromEntries(Object.entries(n.heardBy ?? {}).filter(([gw]) => gatewayId(gw)));
+      nodes.set(n.id, { ...n, heardBy });
+    }
+    for (const [id, g] of state.gateways ?? []) if (gatewayId(id)) gateways.set(id, g);
+    for (const [k, entry] of state.hours ?? []) {
+      if (!entry || typeof entry !== 'object') continue; // a damaged entry must not abort the load
+      const { channels, ...h } = entry;
+      hours.set(Number(k), h);
+    }
     for (const [id, list] of state.infraBlocks ?? []) infraBlocks.set(id, new Set(list));
     for (const [id, ms] of state.infraLast ?? []) infraLast.set(id, ms);
+    // State saved before infraSince existed: those sites were tracked since the
+    // collector started. A site missing from newer state was just added.
+    if (!state.infraSince) for (const id of infra.keys()) infraSince.set(id, startedAt);
+    for (const [id, ms] of state.infraSince ?? []) if (infra.has(id)) infraSince.set(id, ms);
     prune();
     return true;
   }

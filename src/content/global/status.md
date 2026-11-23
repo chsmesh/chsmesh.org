@@ -24,7 +24,7 @@ stats:
     label: Channel busy (median)
 infrastructure:
   heading: Infrastructure
-  body: Fixed routers and rooftop nodes. Up = heard in the last 6 hours, stale = within a day. Each bar is one 3-hour block over the last 7 days, filled when the node was heard (its own packets, its uploads, or traffic it relayed).
+  body: Fixed routers and rooftop nodes. Up = heard in the last 6 hours, stale = within a day, down = not heard in the last day. Not yet seen = added in the last 7 days and not heard yet (new, or out of reach of the gateways that upload to us); after 7 days it counts as down. The headline count leaves out sites not yet seen. Each bar is one 3-hour block over the last 7 days, filled when the node was heard (its own packets, its uploads, or traffic it relayed).
 activity:
   heading: Activity
   body: Packets uploaded per hour over the last 24 hours, each packet counted once however many gateways heard it.
