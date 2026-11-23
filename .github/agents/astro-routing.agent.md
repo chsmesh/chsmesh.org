@@ -57,7 +57,7 @@ project/
     │   └── Layout.astro
     └── pages/
         ├── index.astro
-        ├── map.astro
+        ├── status.astro
         ├── guides/
         │   ├── [slug].astro
         │   └── index.astro
@@ -84,4 +84,3 @@ Use `Layout` props for SEO and share cards.
 - Styling and component design (coordinate with UI Specialist)
 - Content schema definitions (coordinate with Content Specialist)
 - Content writing (coordinate with Content Curator)
-- Map data semantics (coordinate with Map Specialist)

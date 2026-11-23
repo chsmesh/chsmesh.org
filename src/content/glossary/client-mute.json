@@ -1,0 +1,11 @@
+{
+  "term": "Client Mute",
+  "definition": "A device role that sends and receives its own messages but never relays anyone else's. Good for a second device in the same house.",
+  "aliases": [
+    "CLIENT_MUTE"
+  ],
+  "related": [
+    "device-role",
+    "client"
+  ]
+}

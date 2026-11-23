@@ -75,9 +75,8 @@ project/
 │   │   ├── guides/
 │   │   ├── meetups/     # empty, kept by .gitkeep
 │   │   ├── resources/
-│   │   ├── nodes/       # empty, not present in a fresh clone
 │   │   ├── taxonomies/   # default.md — labels and icons
-│   │   └── global/       # 11 files of site metadata and page copy
+│   │   └── global/       # 13 files of site metadata and page copy
 │   └── pages/
 │       ├── guides/
 │       └── meetups/
@@ -86,10 +85,6 @@ project/
 `src/content/meetups/` exists — it is kept in git by a `.gitkeep` file — but the
 collection is still empty. Add the first `.md` entry to that directory; the
 schema and the `/meetups` routes are already in place.
-
-`src/content/nodes/` is empty too, and has no `.gitkeep`, so git does not carry
-it and a fresh clone will not have the directory. Create it when you add the
-first node `.json` file.
 
 ## Common Patterns
 
@@ -108,5 +103,4 @@ Use `getStaticPaths()` with collection IDs for `[slug].astro` routes.
 
 - UI styling decisions (coordinate with UI Specialist)
 - SEO metadata strategy (coordinate with SEO Specialist)
-- Map UI/geo visualization (coordinate with Map Specialist)
 - Content writing (coordinate with Content Curator)

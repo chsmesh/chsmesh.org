@@ -1,0 +1,8 @@
+{
+  "term": "Firmware",
+  "definition": "The software that runs on the radio itself, as opposed to the app on your phone. Meshtastic firmware is free and open source.",
+  "related": [
+    "flashing",
+    "web-flasher"
+  ]
+}

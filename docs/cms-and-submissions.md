@@ -39,10 +39,10 @@ exactly `https://chsmesh.org/admin/` and not another hostname.
 | --- | --- | --- |
 | Meetups | `src/content/meetups/*.md` | Date, location, description |
 | Guides | `src/content/guides/*.md` | Markdown body, category, difficulty, prerequisites |
+| Glossary | `src/content/glossary/*.json` | Term, short definition (also the tooltip in guides), aliases, related terms. Terms and aliases are linked automatically at their first mention in each guide |
 | Resources | `src/content/resources/*.md` | Links to devices, software, firmware, communities |
-| Map nodes | `src/content/nodes/*.json` | Name, type, coordinates |
-| Taxonomies | `src/content/taxonomies/*` | The allowed categories, difficulties and node types |
-| Site settings | `src/content/global/*` | Site links, navigation, footer |
+| Taxonomies | `src/content/taxonomies/*` | The allowed categories and difficulties |
+| Site settings | `src/content/global/*` | Site links, navigation, footer, and each page's copy, including the areas that need coverage on the relay sites page |
 
 Images uploaded through the CMS go to `public/images/` and are referenced as
 `/images/<file>`.
@@ -80,8 +80,8 @@ show the same branch.
 
 ## Reviewing public submissions
 
-The submission forms on the site (add a node, submit a guide, suggest a
-meetup, share a resource) do not require an account. Each submission becomes
+The submission forms on the site (submit a guide, suggest a meetup,
+share a resource) do not require an account. Each submission becomes
 a pull request opened by the submissions service, in the same shape the CMS
 uses for its own drafts, so you can review it either in the CMS Workflow view
 or on GitHub.
@@ -92,14 +92,33 @@ or on GitHub.
   named `<slug>`. If that slug is already taken on `main` or by another open
   workflow branch, a short random suffix is added.
 - **Title** `<Kind> submission: <entry title>`.
-- **Labels** `cms/pending_review`, `submission` and the kind (`node`,
-  `guide`, `meetup` or `resource`). The `cms/` label is what puts the entry in
+- **Labels** `cms/pending_review`, `submission` and the kind (`guide`,
+  `meetup` or `resource`). The `cms/` label is what puts the entry in
   the CMS Workflow view. Filter the GitHub queue with `label:submission`.
 - **Body** shows the file path, a table of the submitted fields, and a review
   checklist.
 - **Contact details** are never in the pull request. The submitter's email
   goes only to the private moderators' Discord channel, in a message that
   links to the pull request.
+
+### Relay host offers
+
+The "I can host" form on `/relay-sites/` is the exception: it never becomes a
+pull request. An offer describes someone's property, and this repository is
+public, so the service sends the whole offer (name, kind of site,
+neighborhood, notes, email, phone) to the moderators' Discord channel and
+writes nothing anywhere else. Reply to the person directly from there.
+
+- The form asks for a neighborhood, not an address. Get the address
+  privately when you follow up, and keep it out of GitHub, the CMS and
+  public Discord channels.
+- The list of areas that need coverage is edited in the CMS under
+  **Site settings → Relay sites page**. Keep it at neighborhood level: never
+  name an address, a building or a host. Set **Last reviewed** when you
+  change it.
+- The form needs `DISCORD_WEBHOOK_URL`. Without it the service answers 503
+  and the form tells the visitor to reach out on Discord, so an offer is
+  never silently dropped.
 
 ### Reviewing
 
@@ -113,14 +132,12 @@ or on GitHub.
    time sent with some other offset (for example UTC): the service stores
    the same moment in Charleston time, which may not be the clock time the
    submitter typed.
-3. For nodes, confirm the coordinates are plausible and the owner is happy
-   for the location to be public.
-4. Edit the entry if it needs changes, either in the CMS (open it from
+3. Edit the entry if it needs changes, either in the CMS (open it from
    **In review**) or on the branch in GitHub. Small fixes are quicker than a
    round trip with the submitter.
-5. Wait for the CI check. It runs the content schema validation, so a green
+4. Wait for the CI check. It runs the content schema validation, so a green
    check means the entry will build.
-6. To publish, move the entry to **Ready** and choose **Publish** in the CMS,
+5. To publish, move the entry to **Ready** and choose **Publish** in the CMS,
    or merge the pull request on GitHub. To reject, delete the entry from the
    Workflow view or close the pull request and delete the branch.
 
@@ -135,6 +152,8 @@ Three layers reduce spam before it reaches the queue:
 1. **Rate limits.** nginx allows 10 submissions per minute per address with a
    short burst, and the service allows 5 per hour per address per form.
 2. **A honeypot field.** Bots that fill every input are dropped silently.
+   A relay host offer that trips it is still delivered, titled
+   "Possible spam", because nothing else would record it.
 3. **Cloudflare Turnstile.** When configured, each form shows a Turnstile
    check on first interaction and the service verifies the result with
    Cloudflare before doing anything else.
@@ -165,7 +184,7 @@ Runtime values are read by the submissions service when it starts.
 | `GITHUB_TOKEN` | Yes | Token the service uses to open pull requests. See [GitHub setup](#github-setup). |
 | `GITHUB_REPO` | No | Defaults to `chsmesh/chsmesh.org`. |
 | `GITHUB_BASE_BRANCH` | No | Defaults to `main`. |
-| `DISCORD_WEBHOOK_URL` | Recommended | Webhook for a private moderators' channel. Receives the pull request link and the submitter's email. Without it the email is only in the service logs. |
+| `DISCORD_WEBHOOK_URL` | Recommended; required for relay host offers | Webhook for a private moderators' channel. Receives the pull request link and the submitter's email, and the full text of each relay host offer. Without it a content submitter's email is only in the service logs, and relay host offers are refused with 503. |
 | `TURNSTILE_SECRET` | No | Cloudflare Turnstile secret. When set, every submission must carry a valid token. Set it together with `PUBLIC_TURNSTILE_SITE_KEY`. |
 | `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET` | For the CMS | Credentials of the GitHub OAuth App used for CMS sign-in. Leave empty to disable sign-in. |
 | `GITHUB_OAUTH_SCOPE` | No | Defaults to `public_repo`. |
@@ -187,7 +206,7 @@ Runtime values are read by the submissions service when it starts.
    and secret in the two `GITHUB_OAUTH_*` variables. GitHub accepts one
    callback URL per app, so local testing needs a second app (see
    [Local development](#local-development)).
-3. **Labels.** Create `submission`, `node`, `guide`, `meetup` and `resource`.
+3. **Labels.** Create `submission`, `guide`, `meetup` and `resource`.
    GitHub creates any missing label the first time the service applies it, so
    this is only for colours and descriptions. The service also applies
    `cms/pending_review`; the CMS manages the `cms/` labels from then on. If
@@ -280,7 +299,8 @@ the CMS sign-in do not work there.
 
 | Method and path | Purpose |
 | --- | --- |
-| `POST /api/submit/{node,guide,meetup,resource}` | Public submission. Body is the JSON the site's forms send. |
+| `POST /api/submit/{guide,meetup,resource}` | Public submission. Body is the JSON the site's forms send. |
+| `POST /api/submit/host` | Relay host offer from `/relay-sites/`. Forwarded to Discord only; no pull request. |
 | `GET /api/auth?provider=github&site_id=<host>` | Starts CMS sign-in. Redirects to GitHub. |
 | `GET /api/auth/callback` | GitHub returns here. Posts the token to the CMS window and closes. |
 | `GET /healthz` | Health check. Not proxied by nginx. |
@@ -289,13 +309,13 @@ Submission responses:
 
 | Status | Meaning |
 | --- | --- |
-| `200 { ok: true, pullRequest }` | Pull request opened. `pullRequest` is its URL. |
+| `200 { ok: true, pullRequest }` | Pull request opened. `pullRequest` is its URL. A host offer returns `200 { ok: true }` once Discord has accepted it. |
 | `400 { ok: false, errors }` | Validation failed. `errors` lists the fields. |
 | `400 { ok: false, error }` | Turnstile verification failed. |
 | `403` | The request's `Origin` is not `SITE_ORIGIN`. |
 | `429` | Rate limited. |
-| `503` | The service has no `GITHUB_TOKEN`. |
-| `502` | GitHub or the network failed while opening the pull request. |
+| `503` | The service has no `GITHUB_TOKEN` (for a host offer: no `DISCORD_WEBHOOK_URL`). |
+| `502` | GitHub or the network failed while opening the pull request (for a host offer: the Discord webhook failed). |
 
 ### Troubleshooting
 

@@ -1,0 +1,8 @@
+{
+  "term": "Web flasher",
+  "definition": "The official Meshtastic website that installs firmware straight from a Chrome or Edge browser, with nothing to download first.",
+  "related": [
+    "flashing",
+    "firmware"
+  ]
+}

@@ -159,32 +159,35 @@ collections:
       - { name: image, label: Image, widget: image, required: false }
       - { name: body, label: Detailed information, widget: markdown }
 
-  - name: nodes
-    label: Map nodes
-    label_singular: Node
-    folder: src/content/nodes
+  - name: glossary
+    label: Glossary
+    label_singular: Glossary term
+    description: >-
+      Definitions shown on /glossary/. The first mention of each term (or one of
+      its aliases) in a guide links to its entry automatically.
+    folder: src/content/glossary
     create: true
     extension: json
     format: json
-    identifier_field: name
+    identifier_field: term
     slug: "{{slug}}"
-    summary: "{{name}} ({{type}})"
-    sortable_fields: [name, type, lastSeen]
+    summary: "{{term}}"
+    sortable_fields: [term]
     editor: { preview: false }
     fields:
-      - { name: name, label: Node name, widget: string }
-      - { name: description, label: Description, widget: text, required: false }
-      - name: coordinates
-        label: Coordinates
-        widget: object
-        fields:
-          - { name: lat, label: Latitude, widget: number, value_type: float, min: -90, max: 90 }
-          - { name: lng, label: Longitude, widget: number, value_type: float, min: -180, max: 180 }
-      - { name: type, label: Type, widget: select, options: [client, router, relay, solar], default: client }
-      - { name: elevation, label: Elevation (feet), widget: number, value_type: int, required: false }
-      - { name: active, label: Active, widget: boolean, default: true }
-      - { name: owner, label: Owner, widget: string, required: false }
-      - { name: lastSeen, label: Last seen, widget: datetime, type: date, required: false }
+      - { name: term, label: Term, widget: string }
+      - { name: definition, label: Short definition, widget: text, maxlength: 200, hint: "One or two plain-language sentences, 200 characters at most. Shown in the tooltip when a reader hovers the term in a guide." }
+      - { name: explanation, label: Longer explanation, widget: text, required: false, hint: "Optional. Plain text; leave a blank line between paragraphs." }
+      - { name: aliases, label: Aliases, widget: list, required: false, hint: "Other spellings that should link here, e.g. 'pre-shared key' for PSK. Plurals ending in 's' already match. An alias in ALL CAPITALS only matches when written that way.", field: { name: alias, label: Alias, widget: string } }
+      - name: related
+        label: Related terms
+        widget: relation
+        collection: glossary
+        value_field: "{{slug}}"
+        display_fields: [term]
+        search_fields: [term]
+        multiple: true
+        required: false
 
   - name: taxonomies
     label: Taxonomies
@@ -491,6 +494,28 @@ collections:
                   - { name: label, label: Label, widget: string }
                   - { name: href, label: Href, widget: string }
                   - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+      - name: glossary
+        label: Glossary page
+        file: src/content/global/glossary.md
+        fields:
+          - { name: type, widget: hidden, default: glossary }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: alsoKnownAsLabel, label: Aliases label, widget: string, hint: "Shown before a term's other names" }
+          - { name: relatedLabel, label: Related terms label, widget: string }
+          - name: empty
+            label: Empty state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
       - name: guides-detail
         label: Guide detail page
         file: src/content/global/guides-detail.md
@@ -593,6 +618,14 @@ collections:
             fields:
               - { name: heading, label: Heading, widget: string }
               - { name: body, label: Body, widget: text }
+              - name: cta
+                label: Button under the map
+                widget: object
+                required: false
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
           - name: gateways
             label: Gateways
             widget: object
@@ -604,100 +637,6 @@ collections:
             widget: object
             fields:
               - { name: heading, label: Heading, widget: string }
-          - name: unavailable
-            label: Unavailable state
-            widget: object
-            fields:
-              - { name: heading, label: Heading, widget: string }
-              - { name: body, label: Body, widget: text }
-          - name: paused
-            label: Paused state (no uploads arriving)
-            widget: object
-            fields:
-              - { name: heading, label: Heading, widget: string }
-              - { name: body, label: Body, widget: text }
-      - name: map
-        label: Map page
-        file: src/content/global/map.md
-        fields:
-          - { name: type, widget: hidden, default: map }
-          - { name: pageTitle, label: Page title, widget: string }
-          - { name: pageDescription, label: Page description, widget: text }
-          - name: hero
-            label: Hero
-            widget: object
-            fields:
-              - { name: title, label: Title, widget: string }
-              - { name: subtitle, label: Subtitle, widget: string }
-              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
-          - name: stats
-            label: Stats
-            widget: list
-            required: false
-            summary: "{{fields.label}} ({{fields.key}})"
-            fields:
-              - { name: key, label: Node type, widget: select, options: [total, relay, router, solar, client] }
-              - { name: label, label: Label, widget: string }
-              - { name: colorClass, label: Color class, widget: string, required: false, hint: "Tailwind text color, e.g. text-blue-600" }
-          - name: map
-            label: Map
-            widget: object
-            fields:
-              - { name: heading, label: Heading, widget: string }
-              - { name: body, label: Body, widget: text }
-          - name: empty
-            label: Empty state
-            widget: object
-            fields:
-              - { name: heading, label: Heading, widget: string }
-              - { name: body, label: Body, widget: text }
-          - name: legend
-            label: Legend
-            widget: object
-            fields:
-              - { name: heading, label: Heading, widget: string }
-              - name: items
-                label: Items
-                widget: list
-                required: false
-                summary: "{{fields.label}}"
-                fields:
-                  - { name: label, label: Label, widget: string }
-                  - { name: description, label: Description, widget: string }
-                  - { name: colorClass, label: Color class, widget: string, hint: "Tailwind background color, e.g. bg-blue-500" }
-          - name: addNode
-            label: Add a node
-            widget: object
-            fields:
-              - { name: heading, label: Heading, widget: string }
-              - { name: body, label: Body, widget: text }
-              - name: cta
-                label: Button
-                widget: object
-                fields:
-                  - { name: label, label: Label, widget: string }
-                  - { name: href, label: Href, widget: string }
-                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
-          - name: coverage
-            label: Coverage
-            widget: object
-            fields:
-              - { name: heading, label: Heading, widget: string }
-              - { name: body, label: Body, widget: text }
-              - name: locations
-                label: Locations
-                widget: list
-                required: false
-                summary: "{{fields.label}} ({{fields.status}})"
-                fields:
-                  - { name: label, label: Label, widget: string }
-                  - name: status
-                    label: Status
-                    widget: select
-                    options:
-                      - { label: Complete, value: complete }
-                      - { label: In progress, value: progress }
-                      - { label: Planned, value: planned }
           - name: externalMaps
             label: External maps
             widget: object
@@ -712,19 +651,127 @@ collections:
                   - { name: label, label: Label, widget: string }
                   - { name: href, label: Href, widget: string }
                   - { name: external, label: Opens in new tab, widget: boolean, required: false }
-          - name: registeredNodes
-            label: Registered nodes
+          - name: unavailable
+            label: Unavailable state
             widget: object
             fields:
               - { name: heading, label: Heading, widget: string }
-              - name: table
-                label: Table column headings
-                widget: object
+              - { name: body, label: Body, widget: text }
+          - name: paused
+            label: Paused state (no uploads arriving)
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+      - name: relay-sites
+        label: Relay sites page
+        file: src/content/global/relay-sites.md
+        fields:
+          - { name: type, widget: hidden, default: relay-sites }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+              - name: ctas
+                label: Buttons
+                widget: list
+                required: false
+                summary: "{{fields.label}} → {{fields.href}}"
                 fields:
-                  - { name: name, label: Name, widget: string }
-                  - { name: type, label: Type, widget: string }
-                  - { name: elevation, label: Elevation, widget: string }
-                  - { name: lastSeen, label: Last seen, widget: string }
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string, hint: "#host-offer jumps to the form, #areas to the list of areas" }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: intro
+            label: Introduction
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: hosting
+            label: What hosting involves
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: points
+                label: Points
+                widget: list
+                required: false
+                summary: "{{fields.title}}"
+                fields:
+                  - { name: title, label: Title, widget: string }
+                  - { name: description, label: Description, widget: text }
+          - name: hosts
+            label: Who we are looking for
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: items
+                label: Kinds of host
+                widget: list
+                required: false
+                summary: "{{fields.title}}"
+                fields:
+                  - { name: title, label: Title, widget: string }
+                  - { name: description, label: Description, widget: text }
+          - name: areas
+            label: Areas that need coverage
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - { name: updated, label: Last reviewed, widget: datetime, required: false, time_format: false, format: YYYY-MM-DD, hint: "Set this to today whenever you change the list" }
+              - { name: updatedLabel, label: Last reviewed label, widget: string }
+              - { name: empty, label: Text shown when the list is empty, widget: text }
+              - name: items
+                label: Areas
+                widget: list
+                required: false
+                summary: "{{fields.name}}"
+                hint: "Neighborhood level only. Never name an address, a building or a host. Most needed first."
+                fields:
+                  - { name: name, label: Neighborhood or area, widget: string }
+                  - { name: need, label: What is needed, widget: text }
+          - name: offer
+            label: Offer a site (above the form)
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: faq
+            label: FAQ
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: items
+                label: Questions
+                widget: list
+                required: false
+                summary: "{{fields.question}}"
+                fields:
+                  - { name: question, label: Question, widget: string }
+                  - { name: answer, label: Answer, widget: text }
+          - name: contactCta
+            label: Contact call to action
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: ctas
+                label: Buttons
+                widget: list
+                required: false
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
       - name: about
         label: About page
         file: src/content/global/about.md

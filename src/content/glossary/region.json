@@ -1,0 +1,12 @@
+{
+  "term": "Region",
+  "definition": "The setting that tells your radio which frequencies and power limits are legal where you are. In Charleston it must be US.",
+  "explanation": "A new device has no region set and will not transmit until you choose one. Picking the wrong region can put you on frequencies that are illegal here, and it also stops you hearing everyone else.",
+  "aliases": [
+    "LoRa region"
+  ],
+  "related": [
+    "ism-band",
+    "modem-preset"
+  ]
+}

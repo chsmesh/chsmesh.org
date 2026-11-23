@@ -1,0 +1,12 @@
+{
+  "term": "LongFast",
+  "definition": "The default Meshtastic modem preset: long range at a modest speed. It is what a new device uses out of the box.",
+  "aliases": [
+    "Long Fast",
+    "LONG_FAST"
+  ],
+  "related": [
+    "modem-preset",
+    "primary-channel"
+  ]
+}

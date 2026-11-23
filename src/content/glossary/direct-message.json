@@ -1,0 +1,11 @@
+{
+  "term": "Direct message",
+  "definition": "A message addressed to one node rather than a whole channel. Other nodes still relay it but cannot read it on current firmware.",
+  "aliases": [
+    "DM"
+  ],
+  "related": [
+    "channel",
+    "psk"
+  ]
+}

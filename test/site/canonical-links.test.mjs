@@ -71,11 +71,13 @@ test('should leave a link-free markdown tree untouched', () => {
 });
 
 test('should register the canonical-link plugin and the trailing-slash rule', () => {
-  const config = readFile(path.join(repoRoot, 'astro.config.mjs'));
+  // Comments are stripped first: one of them names the plugin's file, and
+  // must not be able to stand in for the registration itself.
+  const config = readFile(path.join(repoRoot, 'astro.config.mjs')).replace(/^\s*\/\/.*$/gm, '');
 
   assert.match(
     config,
-    /rehypePlugins:\s*\[\s*rehypeCanonicalLinks\s*\]/,
+    /rehypePlugins:\s*\[(?:\s*\[[^\]]*\],)*\s*rehypeCanonicalLinks,?\s*\]/,
     'markdown prose links must be canonicalized at build time'
   );
   assert.match(

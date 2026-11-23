@@ -81,21 +81,22 @@ const resources = defineCollection({
   }),
 });
 
-// Nodes collection - for the map page
-const nodes = defineCollection({
+// Glossary collection - plain-language definitions of mesh jargon. One JSON
+// file per term; the file name is the entry's anchor on /glossary/. JSON (not
+// markdown) so src/utils/glossary.mjs can read the terms for the auto-linking
+// rehype plugin without a YAML parser.
+const glossary = defineCollection({
   type: 'data',
   schema: z.object({
-    name: z.string(),
-    description: z.string().optional(),
-    coordinates: z.object({
-      lat: z.number(),
-      lng: z.number(),
-    }),
-    type: z.enum(['relay', 'router', 'client', 'solar']).default('client'),
-    elevation: z.number().optional(), // in feet
-    active: z.boolean().default(true),
-    owner: z.string().optional(),
-    lastSeen: z.coerce.date().optional(),
+    term: z.string().min(1),
+    // Shown in the hover tooltip on auto-linked terms, so it has to stay short.
+    definition: z.string().min(1).max(200),
+    // Optional longer explanation; blank lines separate paragraphs.
+    explanation: z.string().optional(),
+    // Other spellings that should auto-link to this entry.
+    aliases: z.array(z.string()).default([]),
+    // File names (without .json) of related entries.
+    related: z.array(z.string()).default([]),
   }),
 });
 
@@ -256,72 +257,79 @@ const global = defineCollection({
       }),
     }),
     z.object({
-      type: z.literal('map'),
+      type: z.literal('relay-sites'),
       pageTitle: z.string(),
       pageDescription: z.string(),
       hero: z.object({
         title: z.string(),
         subtitle: z.string(),
         size: z.enum(['small', 'large']).optional(),
+        ctas: z.array(ctaSchema).default([]),
       }),
-      stats: z
-        .array(
-          z.object({
-            key: z.enum(['total', 'relay', 'router', 'solar', 'client']),
-            label: z.string(),
-            colorClass: z.string().optional(),
-          })
-        )
-        .default([]),
-      map: z.object({
+      intro: z.object({
         heading: z.string(),
         body: z.string(),
       }),
-      empty: z.object({
+      hosting: z.object({
+        heading: z.string(),
+        body: z.string(),
+        points: z
+          .array(
+            z.object({
+              title: z.string(),
+              description: z.string(),
+            })
+          )
+          .default([]),
+      }),
+      hosts: z.object({
+        heading: z.string(),
+        body: z.string(),
+        items: z
+          .array(
+            z.object({
+              title: z.string(),
+              description: z.string(),
+            })
+          )
+          .default([]),
+      }),
+      // Neighborhood level only. Never list an address, a building name or
+      // anything else that identifies a host or a prospective host.
+      areas: z.object({
+        heading: z.string(),
+        body: z.string(),
+        updated: z.coerce.date().optional(),
+        updatedLabel: z.string(),
+        empty: z.string(),
+        items: z
+          .array(
+            z.object({
+              name: z.string(),
+              need: z.string(),
+            })
+          )
+          .default([]),
+      }),
+      offer: z.object({
         heading: z.string(),
         body: z.string(),
       }),
-      legend: z.object({
+      faq: z.object({
         heading: z.string(),
         items: z
           .array(
             z.object({
-              label: z.string(),
-              description: z.string(),
-              colorClass: z.string(),
+              question: z.string(),
+              answer: z.string(),
             })
           )
           .default([]),
       }),
-      addNode: z.object({
+      contactCta: z.object({
         heading: z.string(),
         body: z.string(),
-        cta: ctaSchema,
-      }),
-      coverage: z.object({
-        heading: z.string(),
-        body: z.string(),
-        locations: z
-          .array(
-            z.object({
-              label: z.string(),
-              status: z.enum(['complete', 'progress', 'planned']),
-            })
-          )
-          .default([]),
-      }),
-      externalMaps: z.object({
-        heading: z.string(),
-        links: z.array(linkSchema).default([]),
-      }),
-      registeredNodes: z.object({
-        heading: z.string(),
-        table: z.object({
-          name: z.string(),
-          type: z.string(),
-          elevation: z.string(),
-          lastSeen: z.string(),
-        }),
+        ctas: z.array(ctaSchema).default([]),
       }),
     }),
     z.object({
@@ -345,9 +353,20 @@ const global = defineCollection({
       infrastructure: z.object({ heading: z.string(), body: z.string() }),
       activity: z.object({ heading: z.string(), body: z.string() }),
       hops: z.object({ heading: z.string(), body: z.string() }),
-      map: z.object({ heading: z.string(), body: z.string() }),
+      map: z.object({
+        heading: z.string(),
+        body: z.string(),
+        // Link under the map, to the relay host recruiting page.
+        // nullish: the CMS may save a removed object as null.
+        cta: ctaSchema.nullish(),
+      }),
       gateways: z.object({ heading: z.string(), body: z.string() }),
       nodes: z.object({ heading: z.string() }),
+      // Other projects' maps, for a wider view than our own gateways give.
+      externalMaps: z.object({
+        heading: z.string(),
+        links: z.array(linkSchema).default([]),
+      }),
       unavailable: z.object({ heading: z.string(), body: z.string() }),
       // Shown when the service answers but is not receiving uploads.
       paused: z.object({ heading: z.string(), body: z.string() }),
@@ -370,6 +389,22 @@ const global = defineCollection({
         heading: z.string(),
         body: z.string(),
         cta: ctaSchema,
+      }),
+    }),
+    z.object({
+      type: z.literal('glossary'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      alsoKnownAsLabel: z.string(),
+      relatedLabel: z.string(),
+      empty: z.object({
+        heading: z.string(),
+        body: z.string(),
       }),
     }),
     z.object({
@@ -469,7 +504,7 @@ export const collections = {
   meetups,
   guides,
   resources,
-  nodes,
+  glossary,
   taxonomies,
   global,
 };

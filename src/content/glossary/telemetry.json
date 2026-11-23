@@ -1,0 +1,9 @@
+{
+  "term": "Telemetry",
+  "definition": "Automatic status reports from a node, such as battery level, voltage, and readings from attached temperature or humidity sensors.",
+  "related": [
+    "packet",
+    "channel-utilization",
+    "mqtt"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "term": "Repeater",
+  "definition": "A node placed to relay traffic for others. Also the name of an older device role, now deprecated; use Router or Router Late instead.",
+  "related": [
+    "router",
+    "router-late",
+    "device-role"
+  ]
+}

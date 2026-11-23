@@ -1,0 +1,11 @@
+{
+  "term": "nRF52",
+  "definition": "A family of very low-power Bluetooth microcontroller chips. Boards built on it run far longer on a battery than ESP32 boards.",
+  "aliases": [
+    "nRF52840"
+  ],
+  "related": [
+    "esp32",
+    "uf2"
+  ]
+}

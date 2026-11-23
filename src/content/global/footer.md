@@ -11,10 +11,14 @@ quickLinks:
       href: /meetups/
     - label: Guides
       href: /guides/
+    - label: Glossary
+      href: /glossary/
     - label: Resources
       href: /resources/
-    - label: Network Map
-      href: /map/
+    - label: Network Status
+      href: /status/
+    - label: Host a Relay
+      href: /relay-sites/
 community:
   heading: Community
   links:

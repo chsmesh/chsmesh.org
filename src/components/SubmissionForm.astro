@@ -12,6 +12,7 @@ export interface FormField {
   placeholder?: string;
   helpText?: string;
   rows?: number;
+  maxLength?: number; // Keep in step with the service's limit for the field
   min?: number;
   max?: number;
   step?: number | string;
@@ -37,7 +38,7 @@ export interface PayloadRule {
 
 export interface FormConfig {
   id: string;
-  kind: 'node' | 'guide' | 'meetup' | 'resource'; // Submissions service route and Turnstile action
+  kind: 'guide' | 'meetup' | 'resource' | 'host'; // Submissions service route and Turnstile action
   title: string;
   description: string;
   fields: FormField[];
@@ -94,7 +95,17 @@ const formConfigJson = JSON.stringify({
   <h3 class="text-xl font-semibold mb-2">{config.title}</h3>
   <p class="text-sm text-neutral-600 mb-6">{config.description}</p>
 
-  <form id={config.id} class="space-y-4">
+  <!--
+    method="post" matters only if the script below never runs: a form with no
+    method submits as GET and would put what was typed, contact details
+    included, into the URL, the browser history and the access log.
+  -->
+  <form id={config.id} method="post" class="space-y-4">
+    <noscript>
+      <p class="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+        This form needs JavaScript to send. If it is turned off, please contact us on Discord or by email instead.
+      </p>
+    </noscript>
     <div class="space-y-4">
       {config.fields.map((field) => {
         const isGridField = field.gridCol === 2;
@@ -113,6 +124,7 @@ const formConfigJson = JSON.stringify({
                 required={field.required}
                 rows={field.rows || 3}
                 placeholder={field.placeholder}
+                maxlength={field.maxLength}
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               ></textarea>
             ) : field.type === 'select' ? (
@@ -146,6 +158,7 @@ const formConfigJson = JSON.stringify({
                 name={field.name}
                 required={field.required}
                 placeholder={field.placeholder}
+                maxlength={field.maxLength}
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             ) : null}
@@ -299,6 +312,7 @@ const formConfigJson = JSON.stringify({
   // matter how many <SubmissionForm /> instances the page renders, so it walks
   // every `<script type="application/json" data-form-config>` data block and
   // initialises the form each one describes.
+  import { track } from '../utils/analytics.mjs';
 
   // Structural mirrors of the `FormField` / `FormConfig` interfaces declared in
   // this component's frontmatter. The config reaches the browser as parsed JSON,
@@ -690,6 +704,7 @@ const formConfigJson = JSON.stringify({
         }
 
         showSuccess(config.successMessage);
+        track('form-submit', { form: config.id });
         form.reset();
         resetTurnstile();
 

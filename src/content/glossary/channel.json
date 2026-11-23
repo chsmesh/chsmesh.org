@@ -1,0 +1,10 @@
+{
+  "term": "Channel",
+  "definition": "A named group that shares one encryption key. Nodes with the same channel name and key can read each other's messages.",
+  "explanation": "A device can hold up to eight channels: one primary and up to seven secondary. A channel is a conversation group, not a radio frequency; the frequency comes from your region and modem preset.",
+  "related": [
+    "primary-channel",
+    "psk",
+    "direct-message"
+  ]
+}

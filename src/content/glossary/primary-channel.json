@@ -1,0 +1,10 @@
+{
+  "term": "Primary channel",
+  "definition": "The first channel on a device. It carries position and telemetry broadcasts and helps decide the radio frequency in use.",
+  "explanation": "Out of the box the primary channel is the public default, protected only by a key that everyone knows. Treat anything sent there as readable by anyone nearby.",
+  "related": [
+    "channel",
+    "psk",
+    "longfast"
+  ]
+}
