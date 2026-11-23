@@ -39,19 +39,6 @@ const oneOf = (values, extra = {}) => ({ type: 'enum', values, ...extra });
 const stringList = (maxItems = 20, maxLen = 200, extra = {}) => ({ type: 'stringList', maxItems, maxLen, ...extra });
 
 export const SPECS = {
-  node: {
-    label: 'Node',
-    collection: 'nodes',
-    fields: {
-      name: string(80, { required: true }),
-      description: text(2000),
-      coordinates: { type: 'coords', required: true },
-      type: oneOf(['relay', 'router', 'client', 'solar'], { required: true }),
-      elevation: number(0, 20000),
-      owner: string(80),
-      submitterEmail: { type: 'email', required: true },
-    },
-  },
   guide: {
     label: 'Guide',
     collection: 'guides',
@@ -285,25 +272,6 @@ export function renderMarkdown(frontmatter, body = '') {
  */
 export function buildFile(kind, data, { slug, today }) {
   switch (kind) {
-    case 'node':
-      return {
-        path: `src/content/nodes/${slug}.json`,
-        title: data.name,
-        content: `${JSON.stringify(
-          {
-            name: data.name,
-            description: data.description,
-            coordinates: data.coordinates,
-            type: data.type,
-            elevation: data.elevation,
-            active: true,
-            owner: data.owner,
-            lastSeen: today,
-          },
-          null,
-          2
-        )}\n`,
-      };
     case 'guide':
       return {
         path: `src/content/guides/${slug}.md`,
@@ -424,7 +392,6 @@ export function pullRequestBody(kind, data, { path, hasContact, notes = [] }) {
     kind === 'meetup'
       ? `- [ ] Date and time are right. The form asks for Charleston time; the service stored it as ${SITE_TIME_ZONE} time with that date's UTC offset`
       : null,
-    kind === 'node' ? '- [ ] Coordinates are plausible and the owner consents to publication' : null,
     '- [ ] `npm run check` passes on this branch (CI runs it)',
     '',
     hasContact

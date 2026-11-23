@@ -23,7 +23,7 @@ You are a specialist for metadata, layout conventions, and site-wide SEO consist
 import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Network Map" description="Explore the mesh network">
+<Layout title="Network Status" description="Live health of the mesh network">
   <!-- Page content -->
 </Layout>
 ```
@@ -63,5 +63,4 @@ Use `getEntry('global', 'site')` for site-wide data in layouts.
 
 - Visual component styling (coordinate with UI Specialist)
 - Content schema changes (coordinate with Content Specialist)
-- Map data updates (coordinate with Map Specialist)
 - Content authoring (coordinate with Content Curator)

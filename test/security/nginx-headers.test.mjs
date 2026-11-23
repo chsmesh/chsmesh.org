@@ -165,6 +165,14 @@ test('should redirect the legacy .md content URLs permanently', () => {
   }
 });
 
+test('should redirect the retired /map page to /status permanently', () => {
+  assert.match(
+    readFile(nginxConfigPath),
+    /rewrite\s+\^\/map\/\?\$\s+\/status\/\s+permanent\s*;/,
+    'nginx must permanently redirect /map and /map/ to /status/'
+  );
+});
+
 test('should emit relative redirects so the container port never leaks', () => {
   const nginxConfig = readFile(nginxConfigPath);
   const servers = parseBlocks(nginxConfig);

@@ -40,8 +40,7 @@ exactly `https://chsmesh.org/admin/` and not another hostname.
 | Meetups | `src/content/meetups/*.md` | Date, location, description |
 | Guides | `src/content/guides/*.md` | Markdown body, category, difficulty, prerequisites |
 | Resources | `src/content/resources/*.md` | Links to devices, software, firmware, communities |
-| Map nodes | `src/content/nodes/*.json` | Name, type, coordinates |
-| Taxonomies | `src/content/taxonomies/*` | The allowed categories, difficulties and node types |
+| Taxonomies | `src/content/taxonomies/*` | The allowed categories and difficulties |
 | Site settings | `src/content/global/*` | Site links, navigation, footer |
 
 Images uploaded through the CMS go to `public/images/` and are referenced as
@@ -80,8 +79,8 @@ show the same branch.
 
 ## Reviewing public submissions
 
-The submission forms on the site (add a node, submit a guide, suggest a
-meetup, share a resource) do not require an account. Each submission becomes
+The submission forms on the site (submit a guide, suggest a meetup,
+share a resource) do not require an account. Each submission becomes
 a pull request opened by the submissions service, in the same shape the CMS
 uses for its own drafts, so you can review it either in the CMS Workflow view
 or on GitHub.
@@ -92,8 +91,8 @@ or on GitHub.
   named `<slug>`. If that slug is already taken on `main` or by another open
   workflow branch, a short random suffix is added.
 - **Title** `<Kind> submission: <entry title>`.
-- **Labels** `cms/pending_review`, `submission` and the kind (`node`,
-  `guide`, `meetup` or `resource`). The `cms/` label is what puts the entry in
+- **Labels** `cms/pending_review`, `submission` and the kind (`guide`,
+  `meetup` or `resource`). The `cms/` label is what puts the entry in
   the CMS Workflow view. Filter the GitHub queue with `label:submission`.
 - **Body** shows the file path, a table of the submitted fields, and a review
   checklist.
@@ -113,14 +112,12 @@ or on GitHub.
    time sent with some other offset (for example UTC): the service stores
    the same moment in Charleston time, which may not be the clock time the
    submitter typed.
-3. For nodes, confirm the coordinates are plausible and the owner is happy
-   for the location to be public.
-4. Edit the entry if it needs changes, either in the CMS (open it from
+3. Edit the entry if it needs changes, either in the CMS (open it from
    **In review**) or on the branch in GitHub. Small fixes are quicker than a
    round trip with the submitter.
-5. Wait for the CI check. It runs the content schema validation, so a green
+4. Wait for the CI check. It runs the content schema validation, so a green
    check means the entry will build.
-6. To publish, move the entry to **Ready** and choose **Publish** in the CMS,
+5. To publish, move the entry to **Ready** and choose **Publish** in the CMS,
    or merge the pull request on GitHub. To reject, delete the entry from the
    Workflow view or close the pull request and delete the branch.
 
@@ -187,7 +184,7 @@ Runtime values are read by the submissions service when it starts.
    and secret in the two `GITHUB_OAUTH_*` variables. GitHub accepts one
    callback URL per app, so local testing needs a second app (see
    [Local development](#local-development)).
-3. **Labels.** Create `submission`, `node`, `guide`, `meetup` and `resource`.
+3. **Labels.** Create `submission`, `guide`, `meetup` and `resource`.
    GitHub creates any missing label the first time the service applies it, so
    this is only for colours and descriptions. The service also applies
    `cms/pending_review`; the CMS manages the `cms/` labels from then on. If
@@ -280,7 +277,7 @@ the CMS sign-in do not work there.
 
 | Method and path | Purpose |
 | --- | --- |
-| `POST /api/submit/{node,guide,meetup,resource}` | Public submission. Body is the JSON the site's forms send. |
+| `POST /api/submit/{guide,meetup,resource}` | Public submission. Body is the JSON the site's forms send. |
 | `GET /api/auth?provider=github&site_id=<host>` | Starts CMS sign-in. Redirects to GitHub. |
 | `GET /api/auth/callback` | GitHub returns here. Posts the token to the CMS window and closes. |
 | `GET /healthz` | Health check. Not proxied by nginx. |
