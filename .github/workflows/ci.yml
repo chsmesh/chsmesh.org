@@ -320,6 +320,31 @@ jobs:
             *) echo "Expected redirect to /guides/what-is-meshtastic/, got: '$location'" >&2; exit 1 ;;
           esac
 
+      - name: Smoke test - retired /map page redirects to /status/
+        run: |
+          # The Network Map page was retired in favour of /status/. Assert the
+          # 301 and its target for both spellings, so a dropped or shadowed
+          # rewrite fails here rather than 404ing old links and bookmarks.
+          for path in /map /map/; do
+            response=$(curl -sS -D - -o /dev/null "http://127.0.0.1:8080$path")
+            printf '%s\n' "$response"
+
+            status=$(printf '%s\n' "$response" | head -n 1)
+            case "$status" in
+              *' 301'*) ;;
+              *) echo "Expected 301 for $path, got: $status" >&2; exit 1 ;;
+            esac
+
+            location=$(printf '%s\n' "$response" \
+              | tr -d '\r' \
+              | sed -n 's/^[Ll]ocation: *//p' \
+              | tail -n 1)
+            case "$location" in
+              /status/) ;;
+              *) echo "Expected $path to redirect to /status/, got: '$location'" >&2; exit 1 ;;
+            esac
+          done
+
       - name: Smoke test - unknown route returns 404 with security headers
         run: |
           # The 404 page is served from its own `location = /404.html` block,

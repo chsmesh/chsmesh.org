@@ -15,7 +15,7 @@ test('should add the trailing slash that directory-format pages publish', () => 
     ['/about', '/about/'],
     ['/guides', '/guides/'],
     ['/meetups', '/meetups/'],
-    ['/map', '/map/'],
+    ['/status', '/status/'],
     ['/resources', '/resources/'],
     ['/guides/initial-setup', '/guides/initial-setup/'],
   ]) {

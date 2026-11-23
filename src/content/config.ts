@@ -81,24 +81,6 @@ const resources = defineCollection({
   }),
 });
 
-// Nodes collection - for the map page
-const nodes = defineCollection({
-  type: 'data',
-  schema: z.object({
-    name: z.string(),
-    description: z.string().optional(),
-    coordinates: z.object({
-      lat: z.number(),
-      lng: z.number(),
-    }),
-    type: z.enum(['relay', 'router', 'client', 'solar']).default('client'),
-    elevation: z.number().optional(), // in feet
-    active: z.boolean().default(true),
-    owner: z.string().optional(),
-    lastSeen: z.coerce.date().optional(),
-  }),
-});
-
 const taxonomyItem = z.object({
   key: z.string(),
   label: z.string(),
@@ -256,78 +238,6 @@ const global = defineCollection({
       }),
     }),
     z.object({
-      type: z.literal('map'),
-      pageTitle: z.string(),
-      pageDescription: z.string(),
-      hero: z.object({
-        title: z.string(),
-        subtitle: z.string(),
-        size: z.enum(['small', 'large']).optional(),
-      }),
-      stats: z
-        .array(
-          z.object({
-            key: z.enum(['total', 'relay', 'router', 'solar', 'client']),
-            label: z.string(),
-            colorClass: z.string().optional(),
-          })
-        )
-        .default([]),
-      map: z.object({
-        heading: z.string(),
-        body: z.string(),
-      }),
-      empty: z.object({
-        heading: z.string(),
-        body: z.string(),
-      }),
-      legend: z.object({
-        heading: z.string(),
-        items: z
-          .array(
-            z.object({
-              label: z.string(),
-              description: z.string(),
-              colorClass: z.string(),
-            })
-          )
-          .default([]),
-      }),
-      addNode: z.object({
-        heading: z.string(),
-        body: z.string(),
-        cta: ctaSchema,
-      }),
-      coverage: z.object({
-        heading: z.string(),
-        body: z.string(),
-        locations: z
-          .array(
-            z.object({
-              label: z.string(),
-              status: z.enum(['complete', 'progress', 'planned']),
-            })
-          )
-          .default([]),
-        // Link under the list, to the relay host recruiting page.
-        // nullish: the CMS may save a removed object as null.
-        cta: ctaSchema.nullish(),
-      }),
-      externalMaps: z.object({
-        heading: z.string(),
-        links: z.array(linkSchema).default([]),
-      }),
-      registeredNodes: z.object({
-        heading: z.string(),
-        table: z.object({
-          name: z.string(),
-          type: z.string(),
-          elevation: z.string(),
-          lastSeen: z.string(),
-        }),
-      }),
-    }),
-    z.object({
       type: z.literal('relay-sites'),
       pageTitle: z.string(),
       pageDescription: z.string(),
@@ -427,6 +337,11 @@ const global = defineCollection({
       map: z.object({ heading: z.string(), body: z.string() }),
       gateways: z.object({ heading: z.string(), body: z.string() }),
       nodes: z.object({ heading: z.string() }),
+      // Other projects' maps, for a wider view than our own gateways give.
+      externalMaps: z.object({
+        heading: z.string(),
+        links: z.array(linkSchema).default([]),
+      }),
       unavailable: z.object({ heading: z.string(), body: z.string() }),
       // Shown when the service answers but is not receiving uploads.
       paused: z.object({ heading: z.string(), body: z.string() }),
@@ -548,7 +463,6 @@ export const collections = {
   meetups,
   guides,
   resources,
-  nodes,
   taxonomies,
   global,
 };

@@ -2,7 +2,7 @@
 //
 // Two jobs, both same-origin behind nginx (`location ^~ /api/`):
 //
-//   POST /api/submit/{node,guide,meetup,resource}
+//   POST /api/submit/{guide,meetup,resource}
 //       Accept the JSON payload the site's SubmissionForm already produces,
 //       validate it, write the content file to a new branch, open a pull
 //       request, and notify a private Discord channel. Anonymous users never

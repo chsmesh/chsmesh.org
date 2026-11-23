@@ -1,6 +1,6 @@
 ---
 name: Add Content
-about: Submit new content (guide, meetup, node, or resource)
+about: Submit new content (guide, meetup, or resource)
 title: "[CONTENT] "
 labels: content
 assignees: ""
@@ -10,7 +10,6 @@ assignees: ""
 
 - [ ] Guide
 - [ ] Meetup Event
-- [ ] Mesh Node
 - [ ] Resource/Device
 
 ## Description
@@ -30,13 +29,6 @@ Describe the content you're adding.
 - Date:
 - Location:
 - Description:
-
-### For Nodes:
-- Node name:
-- Location:
-- Type: (relay/router/client/solar)
-- Coordinates (lat/lng — please round residential locations to ~3 decimals):
-- Brief description:
 
 ### For Resources:
 - Device/Software name:

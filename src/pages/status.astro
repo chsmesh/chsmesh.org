@@ -2,11 +2,17 @@
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import { getGlobal } from '../utils/global';
+import { resolveLink } from '../utils/siteLinks';
 
 // Page copy comes from src/content/global/status.md; the numbers come from the
 // status service (services/status) at runtime, so this page builds without it.
 const page = await getGlobal('status', 'status');
 const stats = page.stats as { key: string; label: string }[];
+const site = await getGlobal('site', 'site');
+const externalMaps = page.externalMaps.links.map((link) => ({
+  ...link,
+  href: resolveLink(link.href, site.links),
+}));
 ---
 
 <Layout title={page.pageTitle} description={page.pageDescription}>
@@ -98,11 +104,37 @@ const stats = page.stats as { key: string; label: string }[];
           </div>
         </div>
 
-        <!-- Gateways -->
-        <div class="card card-body">
-          <h2 class="text-xl font-semibold">{page.gateways.heading}</h2>
-          <p class="text-sm text-neutral-500 mb-4">{page.gateways.body}</p>
-          <ul class="space-y-2 text-sm" data-status="gateways"></ul>
+        <div class="space-y-8">
+          <!-- Gateways -->
+          <div class="card card-body">
+            <h2 class="text-xl font-semibold">{page.gateways.heading}</h2>
+            <p class="text-sm text-neutral-500 mb-4">{page.gateways.body}</p>
+            <ul class="space-y-2 text-sm" data-status="gateways"></ul>
+          </div>
+
+          <!-- External maps -->
+          {externalMaps.length > 0 && (
+            <div class="card card-body">
+              <h2 class="text-xl font-semibold mb-3">{page.externalMaps.heading}</h2>
+              <ul class="space-y-2 text-sm">
+                {externalMaps.map((link) => (
+                  <li>
+                    <a
+                      href={link.href}
+                      target={link.external ? '_blank' : undefined}
+                      rel={link.external ? 'noopener noreferrer' : undefined}
+                      class="flex items-center justify-between hover:text-primary-600 transition-colors"
+                    >
+                      {link.label}
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 

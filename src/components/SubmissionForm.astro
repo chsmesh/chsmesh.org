@@ -38,7 +38,7 @@ export interface PayloadRule {
 
 export interface FormConfig {
   id: string;
-  kind: 'node' | 'guide' | 'meetup' | 'resource' | 'host'; // Submissions service route and Turnstile action
+  kind: 'guide' | 'meetup' | 'resource' | 'host'; // Submissions service route and Turnstile action
   title: string;
   description: string;
   fields: FormField[];
@@ -312,6 +312,7 @@ const formConfigJson = JSON.stringify({
   // matter how many <SubmissionForm /> instances the page renders, so it walks
   // every `<script type="application/json" data-form-config>` data block and
   // initialises the form each one describes.
+  import { track } from '../utils/analytics.mjs';
 
   // Structural mirrors of the `FormField` / `FormConfig` interfaces declared in
   // this component's frontmatter. The config reaches the browser as parsed JSON,
@@ -703,6 +704,7 @@ const formConfigJson = JSON.stringify({
         }
 
         showSuccess(config.successMessage);
+        track('form-submit', { form: config.id });
         form.reset();
         resetTurnstile();
 
