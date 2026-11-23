@@ -223,6 +223,53 @@ test('state survives a serialize/load round trip', () => {
   assert.equal(b.load({ version: 99 }), false);
 });
 
+test('channel names are never kept in saved state', () => {
+  const now = clockAt('2026-11-14T15:00:00Z');
+  const a = createStore({ infrastructure: INFRA, root: ROOT, now });
+  a.ingest(topic('LoCo-Chat'), env('locoChat'));
+  assert.doesNotMatch(JSON.stringify(a.serialize()), /LoCo-Chat/);
+  // State written by earlier versions carried per-channel counts; loading drops them.
+  const old = JSON.parse(JSON.stringify(a.serialize()));
+  for (const [, h] of old.hours) h.channels = { 'LoCo-Chat': 1 };
+  const b = createStore({ infrastructure: INFRA, root: ROOT, now });
+  assert.equal(b.load(old), true);
+  assert.doesNotMatch(JSON.stringify(b.serialize()), /LoCo-Chat/);
+  assert.equal(b.snapshot().totals.packets24h, 1);
+});
+
+test('a channel name containing a slash never leaks into the gateway slot', () => {
+  assert.deepEqual(parseTopic(`${ROOT}/2/e/Ops/Zzqq/!3d506c26`, ROOT), { kind: 'packet', channel: 'Ops/Zzqq', gateway: '!3d506c26' });
+  assert.equal(parseTopic(`${ROOT}/2/e/Ops/Zzqq`, ROOT).gateway, null);
+
+  const now = clockAt('2026-11-14T15:00:00Z');
+  const a = createStore({ infrastructure: INFRA, root: ROOT, now });
+  a.ingest(`${ROOT}/2/e/Ops/Zzqq/!3d506c26`, env('locoChat'));
+  // No gateway segment at all, and an envelope that claims a bogus one.
+  a.ingest(`${ROOT}/2/e/Ops/Zzqq`, { ...env('locoChat'), gatewayId: 'Zzqq' });
+  assert.doesNotMatch(JSON.stringify(a.serialize()), /zzqq/i);
+  assert.equal(a.size.gateways, 1);
+
+  // State saved by earlier versions may already hold such a fragment.
+  const old = JSON.parse(JSON.stringify(a.serialize()));
+  old.nodes[0].heardBy.zzqq = { at: now(), hops: 0, hopsAt: now() };
+  old.gateways.push(['!zzqq', { lastUpload: now(), uploads: {} }]);
+  const b = createStore({ infrastructure: INFRA, root: ROOT, now });
+  assert.equal(b.load(old), true);
+  assert.doesNotMatch(JSON.stringify(b.serialize()), /zzqq/i);
+});
+
+test('a damaged hour entry does not abort loading the rest of the state', () => {
+  const now = clockAt('2026-11-14T15:00:00Z');
+  const a = createStore({ infrastructure: INFRA, root: ROOT, now });
+  a.ingest(topic('LongFast'), env('nodeinfo'));
+  const state = JSON.parse(JSON.stringify(a.serialize()));
+  state.hours.unshift([String(now() - 3_600_000), null]);
+  const b = createStore({ infrastructure: INFRA, root: ROOT, now });
+  assert.equal(b.load(state), true);
+  assert.deepEqual(b.snapshot().totals, a.snapshot().totals);
+  assert.deepEqual(b.snapshot().infrastructure, a.snapshot().infrastructure);
+});
+
 test('malformed payloads are counted but never throw out of ingest', () => {
   const now = clockAt('2026-11-14T15:00:00Z');
   const store = createStore({ infrastructure: INFRA, root: ROOT, now });
