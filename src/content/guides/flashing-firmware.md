@@ -6,6 +6,7 @@ category: getting-started
 order: 3
 readingTime: 10
 lastUpdated: 2026-04-21
+handbook: true
 prerequisites:
   - A Meshtastic-compatible device
   - USB cable (data capable, not charge-only)

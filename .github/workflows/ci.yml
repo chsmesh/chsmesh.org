@@ -97,6 +97,26 @@ jobs:
       - name: Type and content schema check
         run: npm run check
 
+      - name: Install headless Chromium for the PDF build
+        run: npx playwright-core install --with-deps chromium-headless-shell
+
+      - name: Build the offline PDFs
+        # The image build runs this too, but the container job is skipped for
+        # content-only pull requests - exactly the ones that change what gets
+        # printed.
+        run: npm run build:pdf
+
+      - name: Assert every guide and the handbook have a PDF
+        run: |
+          for dir in dist/guides/*/; do
+            slug=$(basename "$dir")
+            test -s "dist/downloads/chsmesh-guide-$slug.pdf" \
+              || { echo "No PDF for the guide $slug" >&2; exit 1; }
+          done
+          test -s dist/downloads/chsmesh-field-handbook.pdf \
+            || { echo 'No field handbook PDF' >&2; exit 1; }
+          ls -l dist/downloads
+
   submissions:
     name: Submissions service - tests
     runs-on: ubuntu-latest
@@ -299,6 +319,22 @@ jobs:
             echo "Expected 200 for /guides/what-is-meshtastic/, got $status" >&2
             exit 1
           fi
+
+      - name: Smoke test - guide and handbook PDFs are served
+        run: |
+          # The PDFs are generated in the image build, not committed, so this
+          # is the check that the build step ran and nginx serves its output.
+          for path in /downloads/chsmesh-guide-what-is-meshtastic.pdf \
+            /downloads/chsmesh-field-handbook.pdf; do
+            headers=$(curl -sS -D - -o /dev/null "http://127.0.0.1:8080$path")
+            printf '%s\n' "$headers"
+            printf '%s\n' "$headers" | head -n 1 | grep -q ' 200' \
+              || { echo "Expected 200 for $path" >&2; exit 1; }
+            printf '%s\n' "$headers" | grep -qi '^content-type: application/pdf' \
+              || { echo "Expected application/pdf for $path" >&2; exit 1; }
+            printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
+              || { echo "Missing Content-Security-Policy header on $path" >&2; exit 1; }
+          done
 
       - name: Smoke test - legacy .md guide URL redirects to the clean URL
         run: |

@@ -76,7 +76,7 @@ project/
 │   │   ├── meetups/     # empty, kept by .gitkeep
 │   │   ├── resources/
 │   │   ├── taxonomies/   # default.md — labels and icons
-│   │   └── global/       # 13 files of site metadata and page copy
+│   │   └── global/       # 14 files of site metadata and page copy
 │   └── pages/
 │       ├── guides/
 │       └── meetups/

@@ -7,9 +7,11 @@ import { createLabelMap, getTaxonomyData } from '../../utils/taxonomy';
 import { getGlobal } from '../../utils/global';
 import { getCtaClass } from '../../utils/cta';
 import { resolveLink } from '../../utils/siteLinks';
+import { HANDBOOK_PATH, handbookPdfHref } from '../../utils/downloads.mjs';
 
 const allGuides = await getCollection('guides');
 const guidesPage = await getGlobal('guides', 'guides');
+const handbook = await getGlobal('handbook', 'handbook');
 const site = await getGlobal('site', 'site');
 const resolveHref = (href: string) => resolveLink(href, site.links);
 const taxonomy = await getTaxonomyData();
@@ -148,6 +150,18 @@ const activeTabs = Object.entries(categories).filter(([_, cat]) => cat.guides.le
           ))}
         </>
       )}
+    </div>
+  </section>
+
+  <!-- Offline copies -->
+  <section class="section-sm bg-primary-50 border-t border-primary-100">
+    <div class="container-narrow text-center">
+      <h2 class="text-2xl font-semibold mb-2">{handbook.promo.heading}</h2>
+      <p class="text-neutral-700 mb-6">{handbook.promo.body}</p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a href={handbookPdfHref} download class={getCtaClass('primary')}>{handbook.promo.downloadLabel}</a>
+        <a href={HANDBOOK_PATH} class={getCtaClass('outline')}>{handbook.promo.viewLabel}</a>
+      </div>
     </div>
   </section>
 

@@ -13,6 +13,8 @@ quickLinks:
       href: /guides/
     - label: Glossary
       href: /glossary/
+    - label: Field Handbook
+      href: /handbook/
     - label: Resources
       href: /resources/
     - label: Network Status
