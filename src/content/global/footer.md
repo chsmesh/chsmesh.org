@@ -11,6 +11,8 @@ quickLinks:
       href: /meetups/
     - label: Guides
       href: /guides/
+    - label: Glossary
+      href: /glossary/
     - label: Resources
       href: /resources/
     - label: Network Map

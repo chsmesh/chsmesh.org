@@ -1,0 +1,11 @@
+{
+  "term": "Gateway",
+  "definition": "A node that is connected to the internet and bridges the radio mesh to an MQTT server.",
+  "aliases": [
+    "MQTT gateway"
+  ],
+  "related": [
+    "mqtt",
+    "node"
+  ]
+}

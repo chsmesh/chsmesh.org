@@ -32,6 +32,13 @@ Thank you for your interest in contributing to CHS Mesh! We welcome contribution
 - Specify difficulty level: `beginner`, `intermediate`, or `advanced`
 - Use standard categories: `getting-started`, `hardware`, `software`, `network`, or `troubleshooting`
 
+### Glossary Terms
+
+- Guides link the first mention of each glossary term to `/glossary/` automatically, so do not hand-link terms
+- Add a term as a `.json` file in `src/content/glossary/` (or through the CMS): `term`, a `definition` of 200 characters at most, and optionally `explanation`, `aliases`, and `related`
+- Write the definition for someone who has never used a radio; it is also the tooltip readers see in guides
+- Check that an alias is not a common word with another meaning - it will be linked wherever it first appears
+
 ### Meetup Events
 
 - Provide accurate date and location information

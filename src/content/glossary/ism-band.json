@@ -1,0 +1,11 @@
+{
+  "term": "ISM band",
+  "definition": "Radio spectrum open to low-power devices without a licence. In the US, Meshtastic uses the 902-928 MHz band, often called 915 MHz.",
+  "aliases": [
+    "915 MHz"
+  ],
+  "related": [
+    "region",
+    "lora"
+  ]
+}

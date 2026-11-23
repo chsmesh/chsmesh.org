@@ -1,0 +1,13 @@
+{
+  "term": "Channel utilization",
+  "definition": "The share of time the radio frequency is busy with anyone's transmissions. High numbers mean a congested mesh and lost messages.",
+  "aliases": [
+    "channel utilisation",
+    "ChUtil"
+  ],
+  "related": [
+    "modem-preset",
+    "hop-limit",
+    "telemetry"
+  ]
+}

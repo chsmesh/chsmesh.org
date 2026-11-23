@@ -1,0 +1,9 @@
+{
+  "term": "MQTT",
+  "definition": "An internet messaging protocol. A node with internet access can use it to pass mesh traffic to and from a server.",
+  "explanation": "MQTT is optional and off by default. It is how online maps and dashboards, including the status page on this site, see what the mesh is doing. Messages only leave the radio mesh from channels where uplink has been turned on.",
+  "related": [
+    "gateway",
+    "telemetry"
+  ]
+}

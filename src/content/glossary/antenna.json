@@ -1,0 +1,10 @@
+{
+  "term": "Antenna",
+  "definition": "The part that radiates and receives the radio signal. A better antenna, mounted higher, is the cheapest way to gain range.",
+  "explanation": "Never power on a LoRa radio without an antenna attached: transmitting into nothing can damage it. The antenna must also be made for your band, which is 915 MHz in the US.",
+  "related": [
+    "line-of-sight",
+    "dbm",
+    "ism-band"
+  ]
+}

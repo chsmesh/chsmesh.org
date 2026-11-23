@@ -1,0 +1,8 @@
+{
+  "term": "UF2",
+  "definition": "A firmware file format you install by dragging the file onto the device, which shows up on your computer like a USB drive.",
+  "related": [
+    "flashing",
+    "nrf52"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "term": "Line of sight",
+  "definition": "A clear, unobstructed path between two antennas. LoRa travels much farther with it, which is why height matters more than power.",
+  "aliases": [
+    "line-of-sight",
+    "LOS"
+  ],
+  "related": [
+    "antenna",
+    "router"
+  ]
+}

@@ -3,6 +3,10 @@ import { defineConfig, passthroughImageService } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { rehypeCanonicalLinks } from './src/utils/rehypeCanonicalLinks.mjs';
+import { rehypeGlossaryLinks } from './src/utils/rehypeGlossaryLinks.mjs';
+import { loadGlossaryTerms } from './src/utils/glossary.mjs';
+
+const glossaryTerms = loadGlossaryTerms(new URL('./src/content/glossary/', import.meta.url));
 
 // https://astro.build/config
 export default defineConfig({
@@ -19,9 +23,16 @@ export default defineConfig({
     }),
   ],
   markdown: {
-    // Internal links in markdown prose bypass resolveLink, so canonicalize
-    // them here instead - see src/utils/rehypeCanonicalLinks.mjs.
-    rehypePlugins: [rehypeCanonicalLinks],
+    rehypePlugins: [
+      // Link the first mention of each glossary term in a guide to /glossary/ -
+      // see src/utils/rehypeGlossaryLinks.mjs. The terms are passed in as an
+      // option so they are part of this config: Astro re-renders cached
+      // markdown when the config changes, i.e. whenever the glossary does.
+      [rehypeGlossaryLinks, { terms: glossaryTerms }],
+      // Internal links in markdown prose bypass resolveLink, so canonicalize
+      // them here instead - see src/utils/rehypeCanonicalLinks.mjs.
+      rehypeCanonicalLinks,
+    ],
   },
   image: {
     // Avoid a hard dependency on the optional `sharp` binary so builds succeed

@@ -726,3 +726,135 @@ a:not(.btn):not([class*="btn-"]):hover {
 .scroll-mt-24 {
   scroll-margin-top: 6rem;
 }
+
+/* Glossary */
+
+/* A term auto-linked in a guide (src/utils/rehypeGlossaryLinks.mjs). The dotted
+   underline tells it apart from an ordinary link: it explains a word rather
+   than leading somewhere new. */
+/* Containing blocks for the tooltip below: the paragraph or list item a term
+   sits in, with the whole text column as the fallback. */
+.prose,
+.prose p,
+.prose li,
+.prose td {
+  position: relative;
+}
+
+.prose a.glossary-term {
+  color: inherit;
+  text-decoration: underline dotted var(--color-primary-600);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+  cursor: help;
+}
+
+.prose a.glossary-term:hover,
+.prose a.glossary-term:focus-visible {
+  color: var(--color-primary-700);
+}
+
+/* The definition tooltip is pure CSS - the site's CSP allows no inline script,
+   and none is needed. The link itself is not positioned, so the tooltip keeps
+   its natural vertical position (the term's own line, pushed below it by the
+   margin) while `left: 0` pins it to the left edge of its paragraph. That way
+   it can never hang off the side of a phone screen, wherever the term falls
+   in the line. Tapping a term simply follows the link to the full entry. */
+.prose a.glossary-term[data-definition]:hover::after,
+.prose a.glossary-term[data-definition]:focus-visible::after {
+  content: attr(data-definition);
+  position: absolute;
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(100%, 24rem);
+  margin-top: 1.9em;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background-color: var(--color-neutral-800);
+  color: white;
+  font-size: 0.875rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+/* A-Z bar on /glossary/ */
+.glossary-index {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.glossary-index ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.glossary-index a,
+.glossary-index span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+}
+
+.glossary-index a:hover {
+  background-color: var(--color-primary-50);
+}
+
+.glossary-index span {
+  color: var(--color-neutral-300);
+}
+
+.glossary-letter {
+  font-size: 1.5rem;
+  color: var(--color-primary-700);
+  margin-bottom: 0.5rem;
+}
+
+.glossary-entry {
+  padding: 1rem 0.75rem;
+  margin: 0 -0.75rem;
+  border-top: 1px solid var(--color-neutral-200);
+  border-radius: 0.5rem;
+}
+
+/* The entry a guide link (or a "Related" link) just jumped to. */
+.glossary-entry:target {
+  background-color: var(--color-accent-50);
+  box-shadow: inset 3px 0 0 var(--color-accent-400);
+}
+
+a.glossary-entry-term:not(.btn) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+.glossary-entry-aliases {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-neutral-500);
+}
+
+.glossary-entry-definition {
+  margin-top: 0.25rem;
+  color: var(--color-neutral-800);
+}
+
+.glossary-entry-explanation,
+.glossary-entry-related {
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--color-neutral-600);
+}

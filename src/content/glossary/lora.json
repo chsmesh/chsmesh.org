@@ -1,0 +1,10 @@
+{
+  "term": "LoRa",
+  "definition": "A long-range, low-power radio technique. It trades speed for distance, so a tiny radio can send short messages for miles.",
+  "explanation": "LoRa (short for \"Long Range\") is the radio layer underneath Meshtastic. It spreads each transmission across a wide slice of spectrum, which lets a receiver pick out a signal that is weaker than the background noise. The cost is speed: LoRa carries a few hundred bytes at a time, which is why Meshtastic handles text and positions but not voice or pictures.",
+  "related": [
+    "modem-preset",
+    "ism-band",
+    "snr"
+  ]
+}

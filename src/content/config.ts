@@ -99,6 +99,25 @@ const nodes = defineCollection({
   }),
 });
 
+// Glossary collection - plain-language definitions of mesh jargon. One JSON
+// file per term; the file name is the entry's anchor on /glossary/. JSON (not
+// markdown) so src/utils/glossary.mjs can read the terms for the auto-linking
+// rehype plugin without a YAML parser.
+const glossary = defineCollection({
+  type: 'data',
+  schema: z.object({
+    term: z.string().min(1),
+    // Shown in the hover tooltip on auto-linked terms, so it has to stay short.
+    definition: z.string().min(1).max(200),
+    // Optional longer explanation; blank lines separate paragraphs.
+    explanation: z.string().optional(),
+    // Other spellings that should auto-link to this entry.
+    aliases: z.array(z.string()).default([]),
+    // File names (without .json) of related entries.
+    related: z.array(z.string()).default([]),
+  }),
+});
+
 const taxonomyItem = z.object({
   key: z.string(),
   label: z.string(),
@@ -373,6 +392,22 @@ const global = defineCollection({
       }),
     }),
     z.object({
+      type: z.literal('glossary'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      alsoKnownAsLabel: z.string(),
+      relatedLabel: z.string(),
+      empty: z.object({
+        heading: z.string(),
+        body: z.string(),
+      }),
+    }),
+    z.object({
       type: z.literal('guides-detail'),
       backLabel: z.string(),
       prerequisitesHeading: z.string(),
@@ -470,6 +505,7 @@ export const collections = {
   guides,
   resources,
   nodes,
+  glossary,
   taxonomies,
   global,
 };

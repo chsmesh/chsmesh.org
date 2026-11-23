@@ -1,0 +1,11 @@
+{
+  "term": "Traceroute",
+  "definition": "A test that shows which nodes a message passed through on its way to another node, with the signal quality of each hop.",
+  "aliases": [
+    "trace route"
+  ],
+  "related": [
+    "hop",
+    "snr"
+  ]
+}

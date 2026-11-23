@@ -1,0 +1,8 @@
+{
+  "term": "Short name",
+  "definition": "A label of up to four characters that stands in for your node on small screens and maps.",
+  "related": [
+    "long-name",
+    "node"
+  ]
+}

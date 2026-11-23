@@ -1,0 +1,14 @@
+{
+  "term": "SNR",
+  "definition": "Signal-to-noise ratio, in dB: how far a received signal stands above (or below) the background noise. Higher is better.",
+  "explanation": "LoRa can decode signals that are weaker than the noise, so a negative SNR is normal and not a fault. As a rough guide, positive values mean a comfortable link and values falling towards -15 dB mean the link is close to its limit.",
+  "aliases": [
+    "signal-to-noise ratio",
+    "signal to noise ratio"
+  ],
+  "related": [
+    "rssi",
+    "lora",
+    "antenna"
+  ]
+}

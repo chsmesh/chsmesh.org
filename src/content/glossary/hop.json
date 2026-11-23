@@ -1,0 +1,9 @@
+{
+  "term": "Hop",
+  "definition": "One retransmission of a message from one node to the next. A message that passes through two relaying nodes has travelled two hops.",
+  "related": [
+    "hop-limit",
+    "rebroadcast",
+    "traceroute"
+  ]
+}

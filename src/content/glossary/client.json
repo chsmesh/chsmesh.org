@@ -1,0 +1,9 @@
+{
+  "term": "Client",
+  "definition": "The default device role. A client sends and receives your messages and relays for others when no better-placed node already has.",
+  "related": [
+    "device-role",
+    "client-mute",
+    "router"
+  ]
+}

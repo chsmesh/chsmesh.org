@@ -1,0 +1,11 @@
+{
+  "term": "Router Late",
+  "definition": "A device role that always relays, but only after other nodes have had their turn. It fills gaps without competing with routers.",
+  "aliases": [
+    "ROUTER_LATE"
+  ],
+  "related": [
+    "router",
+    "device-role"
+  ]
+}

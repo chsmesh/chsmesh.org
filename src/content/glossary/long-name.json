@@ -1,0 +1,8 @@
+{
+  "term": "Long name",
+  "definition": "The full name your node shows to others on the mesh, such as \"Chris - Downtown\".",
+  "related": [
+    "short-name",
+    "node"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "term": "Device role",
+  "definition": "The setting that tells a node how to behave on the mesh: mainly whether, and how eagerly, it relays other people's messages.",
+  "explanation": "Most nodes should be Client. Infrastructure roles such as Router are for well-placed, always-on nodes; a badly placed router makes the mesh worse for everyone around it.",
+  "aliases": [
+    "node role",
+    "role"
+  ],
+  "related": [
+    "client",
+    "client-mute",
+    "router",
+    "router-late"
+  ]
+}

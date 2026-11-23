@@ -186,6 +186,36 @@ collections:
       - { name: owner, label: Owner, widget: string, required: false }
       - { name: lastSeen, label: Last seen, widget: datetime, type: date, required: false }
 
+  - name: glossary
+    label: Glossary
+    label_singular: Glossary term
+    description: >-
+      Definitions shown on /glossary/. The first mention of each term (or one of
+      its aliases) in a guide links to its entry automatically.
+    folder: src/content/glossary
+    create: true
+    extension: json
+    format: json
+    identifier_field: term
+    slug: "{{slug}}"
+    summary: "{{term}}"
+    sortable_fields: [term]
+    editor: { preview: false }
+    fields:
+      - { name: term, label: Term, widget: string }
+      - { name: definition, label: Short definition, widget: text, maxlength: 200, hint: "One or two plain-language sentences, 200 characters at most. Shown in the tooltip when a reader hovers the term in a guide." }
+      - { name: explanation, label: Longer explanation, widget: text, required: false, hint: "Optional. Plain text; leave a blank line between paragraphs." }
+      - { name: aliases, label: Aliases, widget: list, required: false, hint: "Other spellings that should link here, e.g. 'pre-shared key' for PSK. Plurals ending in 's' already match. An alias in ALL CAPITALS only matches when written that way.", field: { name: alias, label: Alias, widget: string } }
+      - name: related
+        label: Related terms
+        widget: relation
+        collection: glossary
+        value_field: "{{slug}}"
+        display_fields: [term]
+        search_fields: [term]
+        multiple: true
+        required: false
+
   - name: taxonomies
     label: Taxonomies
     editor: { preview: false }
@@ -491,6 +521,28 @@ collections:
                   - { name: label, label: Label, widget: string }
                   - { name: href, label: Href, widget: string }
                   - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+      - name: glossary
+        label: Glossary page
+        file: src/content/global/glossary.md
+        fields:
+          - { name: type, widget: hidden, default: glossary }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: alsoKnownAsLabel, label: Aliases label, widget: string, hint: "Shown before a term's other names" }
+          - { name: relatedLabel, label: Related terms label, widget: string }
+          - name: empty
+            label: Empty state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
       - name: guides-detail
         label: Guide detail page
         file: src/content/global/guides-detail.md

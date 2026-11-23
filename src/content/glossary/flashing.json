@@ -1,0 +1,12 @@
+{
+  "term": "Flashing",
+  "definition": "Installing or updating firmware on a device, usually over a USB cable from your computer.",
+  "aliases": [
+    "flashed"
+  ],
+  "related": [
+    "firmware",
+    "web-flasher",
+    "uf2"
+  ]
+}

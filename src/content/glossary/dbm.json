@@ -1,0 +1,8 @@
+{
+  "term": "dBm",
+  "definition": "A unit of radio power on a logarithmic scale. Every 3 dBm doubles the power; 20 dBm is 0.1 watt and 30 dBm is 1 watt.",
+  "related": [
+    "rssi",
+    "antenna"
+  ]
+}

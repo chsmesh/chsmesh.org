@@ -1,0 +1,9 @@
+{
+  "term": "Node",
+  "definition": "A single Meshtastic radio on the mesh. Your handheld is a node, and so is the solar box on a rooftop.",
+  "related": [
+    "mesh-network",
+    "device-role",
+    "long-name"
+  ]
+}

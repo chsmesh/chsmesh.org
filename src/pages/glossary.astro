@@ -1,0 +1,101 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import { getCollection } from 'astro:content';
+import { getGlobal } from '../utils/global';
+import { glossaryLetter } from '../utils/glossary.mjs';
+
+const glossaryPage = await getGlobal('glossary', 'glossary');
+const entries = (await getCollection('glossary')).sort((a, b) =>
+  a.data.term.localeCompare(b.data.term, 'en', { sensitivity: 'base' })
+);
+const termBySlug = new Map(entries.map((entry) => [entry.id, entry.data.term]));
+
+// Group the sorted entries under their first letter.
+const groups = new Map<string, typeof entries>();
+for (const entry of entries) {
+  const letter = glossaryLetter(entry.data.term);
+  groups.set(letter, [...(groups.get(letter) ?? []), entry]);
+}
+
+// Always show the whole alphabet so the bar does not reflow as terms are
+// added; letters with no entries render as plain, unlinked text.
+const alphabet = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ...(groups.has('#') ? ['#'] : [])];
+const letterId = (letter: string) => (letter === '#' ? 'letter-other' : `letter-${letter.toLowerCase()}`);
+
+const paragraphs = (text: string) =>
+  text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+---
+
+<Layout title={glossaryPage.pageTitle} description={glossaryPage.pageDescription}>
+  <Hero title={glossaryPage.hero.title} subtitle={glossaryPage.hero.subtitle} size={glossaryPage.hero.size ?? 'small'} />
+
+  <section class="section">
+    <div class="container-narrow">
+      {entries.length === 0 ? (
+        <div class="card card-body text-center py-12">
+          <h2 class="text-xl font-semibold mb-2">{glossaryPage.empty.heading}</h2>
+          <p class="text-neutral-600">{glossaryPage.empty.body}</p>
+        </div>
+      ) : (
+        <>
+          <nav class="glossary-index" aria-label="Glossary A to Z">
+            <ul>
+              {alphabet.map((letter) => (
+                <li>
+                  {groups.has(letter) ? (
+                    <a href={`#${letterId(letter)}`}>{letter}</a>
+                  ) : (
+                    <span aria-hidden="true">{letter}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* In the bar's order, so "#" comes last here too. */}
+          {alphabet.filter((letter) => groups.has(letter)).map((letter) => (
+            <section class="mb-10" aria-labelledby={letterId(letter)}>
+              <h2 id={letterId(letter)} class="glossary-letter scroll-mt-24">{letter}</h2>
+              <dl>
+                {(groups.get(letter) ?? []).map((entry) => (
+                  <div id={entry.id} class="glossary-entry scroll-mt-24">
+                    <dt>
+                      <a href={`#${entry.id}`} class="glossary-entry-term">{entry.data.term}</a>
+                      {entry.data.aliases.length > 0 && (
+                        <span class="glossary-entry-aliases">
+                          {glossaryPage.alsoKnownAsLabel}: {entry.data.aliases.join(', ')}
+                        </span>
+                      )}
+                    </dt>
+                    <dd>
+                      <p class="glossary-entry-definition">{entry.data.definition}</p>
+                      {entry.data.explanation &&
+                        paragraphs(entry.data.explanation).map((p) => (
+                          <p class="glossary-entry-explanation">{p}</p>
+                        ))}
+                      {entry.data.related.some((slug) => termBySlug.has(slug)) && (
+                        <p class="glossary-entry-related">
+                          {glossaryPage.relatedLabel}:{' '}
+                          {entry.data.related
+                            .filter((slug) => termBySlug.has(slug))
+                            .map((slug, i, all) => (
+                              // Kept on one line: whitespace between the link and the comma would render.
+                              <><a href={`#${slug}`}>{termBySlug.get(slug)}</a>{i < all.length - 1 ? ', ' : ''}</>
+                            ))}
+                        </p>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
+        </>
+      )}
+    </div>
+  </section>
+</Layout>

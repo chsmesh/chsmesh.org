@@ -1,0 +1,14 @@
+{
+  "term": "Rebroadcast",
+  "definition": "When a node retransmits a message it heard so that nodes farther away can receive it. This is how the mesh extends range.",
+  "aliases": [
+    "rebroadcasting",
+    "relay",
+    "relaying"
+  ],
+  "related": [
+    "hop",
+    "hop-limit",
+    "device-role"
+  ]
+}

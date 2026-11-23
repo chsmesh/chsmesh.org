@@ -1,0 +1,14 @@
+{
+  "term": "PSK",
+  "definition": "Pre-shared key: the secret that encrypts a channel. Everyone who should read the channel needs the same key.",
+  "explanation": "The default channel ships with a well-known key, so it is not private. For a private group, create a channel with a freshly generated key and share it by QR code or link with the people you trust.",
+  "aliases": [
+    "pre-shared key",
+    "preshared key"
+  ],
+  "related": [
+    "channel",
+    "primary-channel",
+    "direct-message"
+  ]
+}

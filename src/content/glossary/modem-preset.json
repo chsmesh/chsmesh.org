@@ -1,0 +1,14 @@
+{
+  "term": "Modem preset",
+  "definition": "A named bundle of radio settings that balances range against speed. Every node on a mesh must use the same one to talk.",
+  "explanation": "Presets run from \"Short\" and fast to \"Long\" and slow. Longer-range presets keep the air busy for longer per message, so they suit small, spread-out meshes; faster presets suit dense ones.",
+  "aliases": [
+    "radio preset",
+    "preset"
+  ],
+  "related": [
+    "longfast",
+    "lora",
+    "channel-utilization"
+  ]
+}
