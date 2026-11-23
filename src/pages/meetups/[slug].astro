@@ -4,6 +4,7 @@ import { getCollection, render } from 'astro:content';
 import { getTaxonomyLabels } from '../../utils/taxonomy';
 import { getGlobal } from '../../utils/global';
 import { formatMeetupDate, formatMeetupTime, isPastMeetup } from '../../utils/meetups';
+import { meetupShareCard } from '../../utils/shareCards';
 
 export async function getStaticPaths() {
   const meetups = await getCollection('meetups');
@@ -22,6 +23,7 @@ const labels = await getTaxonomyLabels();
 const isPast = isPastMeetup(meetup.data);
 const formattedDate = formatMeetupDate(date);
 const formattedTime = formatMeetupTime(date);
+const shareCard = meetupShareCard(meetup);
 
 const statusLabel = isPast
   ? labels.meetupStatuses.past ?? 'Past Event'
@@ -39,7 +41,7 @@ const mapsUrl = coordinates
     : null;
 ---
 
-<Layout title={title} description={description}>
+<Layout title={title} description={description} ogImage={shareCard.path} ogImageAlt={shareCard.alt}>
   <article>
     <!-- Header -->
     <section class="hero hero-pattern py-12">

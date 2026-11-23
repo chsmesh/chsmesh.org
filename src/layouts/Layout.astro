@@ -6,14 +6,23 @@ import { guideFormConfig, meetupFormConfig, resourceFormConfig } from '../compon
 import '../styles/global.css';
 import { resolveLink } from '../utils/siteLinks';
 
+// Every share image is this size: the default public/og-image.png and the
+// per-page cards from src/utils/ogImage.mjs. Declared here rather than
+// imported from that module, which would pull the renderer into every page.
+const OG_IMAGE_WIDTH = 1200;
+const OG_IMAGE_HEIGHT = 630;
+
 interface Props {
   title: string;
   description?: string;
+  /** Share image path. Must be 1200x630, like the default. */
   ogImage?: string;
+  ogImageAlt?: string;
+  ogType?: 'website' | 'article';
   noIndex?: boolean;
 }
 
-const { title, description = 'Charleston Meshtastic Community - Connect with local mesh network enthusiasts', ogImage = '/og-image.png', noIndex = false } = Astro.props;
+const { title, description = 'Charleston Meshtastic Community - Connect with local mesh network enthusiasts', ogImage = '/og-image.png', ogImageAlt = 'CHS Mesh - Charleston Meshtastic Community', ogType = 'website', noIndex = false } = Astro.props;
 
 const navigationEntry = await getEntry('global', 'navigation');
 const navigation = navigationEntry?.data?.type === 'navigation' ? navigationEntry.data : undefined;
@@ -66,10 +75,14 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     {noIndex && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL(ogImage, Astro.site)} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content={String(OG_IMAGE_WIDTH)} />
+    <meta property="og:image:height" content={String(OG_IMAGE_HEIGHT)} />
+    <meta property="og:image:alt" content={ogImageAlt} />
     <meta property="og:url" content={Astro.url} />
     <meta property="og:site_name" content="CHS Mesh" />
 
@@ -78,6 +91,7 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={new URL(ogImage, Astro.site)} />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
