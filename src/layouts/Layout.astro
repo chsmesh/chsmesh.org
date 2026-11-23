@@ -1,9 +1,12 @@
 ---
 import { getEntry } from 'astro:content';
 import Modal from '../components/Modal.astro';
+import OfflineIndicator from '../components/OfflineIndicator.astro';
 import SubmissionForm from '../components/SubmissionForm.astro';
 import { guideFormConfig, meetupFormConfig, resourceFormConfig } from '../components/formConfigs';
 import '../styles/global.css';
+import { appIconHref } from '../utils/appIcons.mjs';
+import { getGlobal } from '../utils/global';
 import { resolveLink } from '../utils/siteLinks';
 
 // Every share image is this size: the default public/og-image.png and the
@@ -30,6 +33,7 @@ const siteEntry = await getEntry('global', 'site');
 const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
 const footerEntry = await getEntry('global', 'footer');
 const footer = footerEntry?.data?.type === 'footer' ? footerEntry.data : undefined;
+const offline = await getGlobal('offline', 'offline');
 const resolveHref = (href: string) => resolveLink(href, site?.links);
 // The nav previously rendered `link.href` raw, so it was the one link list on
 // the site that could neither resolve an `@links.*` token nor pick up the
@@ -96,6 +100,11 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
+    <!-- Installable app and offline reading: see "Offline mode" in the README. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href={appIconHref('apple-touch-icon')} />
+    <meta name="theme-color" content="#0d9488" />
+
     <!-- Canonical URL -->
     {!noIndex && <link rel="canonical" href={canonicalUrl} />}
 
@@ -110,6 +119,13 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     <script>
       import { loadAnalytics } from '../utils/analytics.mjs';
       loadAnalytics();
+    </script>
+
+    <!-- Offline reading: registers the service worker and shows the offline
+         banner and the "available offline" badges. `astro dev` has no sw.js. -->
+    <script>
+      import { setUpOffline } from '../utils/offlineClient.mjs';
+      setUpOffline({ enabled: import.meta.env.PROD });
     </script>
   </head>
   <body class="min-h-screen flex flex-col">
@@ -177,6 +193,10 @@ const canonicalUrl = new URL(currentPath, Astro.site);
       </nav>
     </header>
 
+    <div data-offline-banner hidden role="status" class="bg-accent-50 border-b border-accent-200 text-neutral-800 text-sm text-center py-2 px-4 no-print">
+      {offline.bannerText}
+    </div>
+
     <!-- Main Content -->
     <main class="flex-grow">
       <slot />
@@ -232,6 +252,7 @@ const canonicalUrl = new URL(currentPath, Astro.site);
         <div class="border-t border-neutral-700 mt-8 pt-8 text-sm text-center">
           <p>{footerCopyright}</p>
           <p class="mt-2 text-neutral-400">{footer?.legal.trademark}</p>
+          <p class="mt-2"><OfflineIndicator class="text-neutral-400" /></p>
         </div>
       </div>
     </footer>

@@ -1,0 +1,35 @@
+---
+// What the service worker (src/sw/service-worker.js) shows when someone
+// offline opens a page that was never saved on their device. It is saved at
+// install itself, and lists what else is: the guides, the handbook and the
+// glossary.
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import { getCollection } from 'astro:content';
+import { getGlobal } from '../utils/global';
+import { HANDBOOK_PATH } from '../utils/downloads.mjs';
+
+const offline = await getGlobal('offline', 'offline');
+const handbook = await getGlobal('handbook', 'handbook');
+const glossary = await getGlobal('glossary', 'glossary');
+const guides = (await getCollection('guides')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<Layout title={offline.pageTitle} description={offline.pageDescription} noIndex>
+  <Hero title={offline.hero.title} subtitle={offline.hero.subtitle} size={offline.hero.size ?? 'small'} />
+
+  <section class="section-sm">
+    <div class="container-narrow">
+      <h2 class="mb-2">{offline.savedHeading}</h2>
+      <p class="text-neutral-600 mb-6">{offline.savedBody}</p>
+      <ul class="space-y-2">
+        <li><a href={HANDBOOK_PATH}>{handbook.pageTitle}</a></li>
+        {guides.map((guide) => (
+          <li><a href={`/guides/${guide.slug}/`}>{guide.data.title}</a></li>
+        ))}
+        <li><a href="/guides/">{offline.guidesLabel}</a></li>
+        <li><a href="/glossary/">{glossary.pageTitle}</a></li>
+      </ul>
+    </div>
+  </section>
+</Layout>

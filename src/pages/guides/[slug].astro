@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import OfflineIndicator from '../../components/OfflineIndicator.astro';
 import { getCollection, render } from 'astro:content';
 import { getTaxonomyLabels } from '../../utils/taxonomy';
 import { getGlobal } from '../../utils/global';
@@ -90,6 +91,7 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
             {guidesDetail.download.label}
           </a>
           <span class="text-sm text-primary-100">{guidesDetail.download.hint}</span>
+          <OfflineIndicator class="text-primary-100" />
         </div>
       </div>
     </section>

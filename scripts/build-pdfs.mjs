@@ -206,8 +206,11 @@ export async function buildPdfs(distDir) {
   });
 
   try {
+    // The pages register the offline service worker (dist/sw.js), which would
+    // download every guide again behind each print. Printing needs none of it.
+    const context = await browser.newContext({ serviceWorkers: 'block' });
     // One page, reused: the image builder is short on memory.
-    const page = await browser.newPage();
+    const page = await context.newPage();
 
     // Print from dist/ alone. The pages also ask for third-party scripts
     // (Turnstile, analytics); none affects the printed page, and waiting on
