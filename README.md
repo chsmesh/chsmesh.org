@@ -95,9 +95,11 @@ How it behaves:
 - **At install** the worker saves every built page except `/admin/` and
   `/status/`, with the CSS, scripts and images those pages use (about 0.9 MB
   today; `npm run test:build` fails if any one file is over 500 kB). The PDFs
-  are not included.
+  and the build gallery's photos are not included.
 - **Anything else a visitor opens** - a meetup page, a downloaded PDF - is
-  saved as they go, in a second cache that deploys do not clear.
+  saved as they go, in a second cache that deploys do not clear. After each
+  deploy the worker drops the hashed `/_astro/` files in it that no saved page
+  uses any more.
 - **Pages are network first**, so an edit shows as soon as it is deployed. The
   saved copy is used when the request fails, the server answers 5xx, or there
   is no answer within three seconds (a phone with signal but no connection).

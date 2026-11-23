@@ -164,7 +164,9 @@ export function initPhotoField(root: HTMLElement, idPrefix: string): PhotoField 
         return item;
       })
     );
-    input!.disabled = photos.length >= max;
+    // Also while a batch is being prepared: a second pick would count its room
+    // before the first batch had landed, and both would fit.
+    input!.disabled = preparing > 0 || photos.length >= max;
   }
 
   input.addEventListener('change', async () => {
@@ -178,11 +180,15 @@ export function initPhotoField(root: HTMLElement, idPrefix: string): PhotoField 
     if (files.length > room) problems.push(`Only ${max} photos fit; the rest were left out.`);
 
     preparing += 1;
+    render();
     status.textContent = accepted.length === 1 ? 'Preparing photo...' : `Preparing ${accepted.length} photos...`;
     try {
       for (const file of accepted) {
         try {
-          photos.push({ dataUrl: await prepare(file), alt: '' });
+          const dataUrl = await prepare(file);
+          // The list may have filled while this photo was being prepared.
+          if (photos.length >= max) break;
+          photos.push({ dataUrl, alt: '' });
         } catch (error) {
           console.error('Could not prepare photo', file.name, error);
           problems.push(`Could not use "${file.name}". Try a JPEG, PNG or WebP photo.`);
@@ -192,6 +198,7 @@ export function initPhotoField(root: HTMLElement, idPrefix: string): PhotoField 
     } finally {
       preparing -= 1;
       status.textContent = problems.join(' ');
+      render();
     }
   });
 

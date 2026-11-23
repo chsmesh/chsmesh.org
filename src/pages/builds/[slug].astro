@@ -20,11 +20,22 @@ const { detail } = await getGlobal('builds', 'builds');
 const hardware = await resolveHardware(build);
 const [cover, ...morePhotos] = photos;
 const hasBody = build.body.trim().length > 0;
+// The cover photo is the share image, described as what it is: the layout's
+// defaults are for the 1200x630 PNG cards.
+const coverType = `image/${cover.image.format === 'jpg' ? 'jpeg' : cover.image.format}`;
 
 const otherBuilds = (await getBuilds()).filter((other) => other.id !== build.id).slice(0, 3);
 ---
 
-<Layout title={title} description={description} ogImage={cover.image.src}>
+<Layout
+  title={title}
+  description={description}
+  ogImage={cover.image.src}
+  ogImageAlt={cover.alt}
+  ogImageType={coverType}
+  ogImageWidth={cover.image.width}
+  ogImageHeight={cover.image.height}
+>
   <article>
     <!-- Header -->
     <section class="hero hero-pattern py-12">

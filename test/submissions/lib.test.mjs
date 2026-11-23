@@ -461,3 +461,12 @@ test('build pull requests summarise the photos and ask for a privacy review', ()
   assert.ok(!pullRequestBody('guide', { title: 'T' }, { path: 'p', hasContact: true }).includes('private address'));
   assert.deepEqual(pullRequestLabels('build'), ['cms/pending_review', 'submission', 'build']);
 });
+
+test('should date an entry by the day in Charleston, not in UTC', async () => {
+  const { zonedDate } = await import('../../services/submissions/lib.mjs');
+  // 7:30 PM EST on Nov 22 is already Nov 23 in UTC.
+  assert.equal(zonedDate(Date.parse('2026-11-23T00:30:00Z')), '2026-11-22');
+  assert.equal(zonedDate(Date.parse('2026-11-23T05:00:00Z')), '2026-11-23');
+  // EDT: midnight is 04:00 UTC.
+  assert.equal(zonedDate(Date.parse('2026-07-01T03:59:59Z')), '2026-06-30');
+});

@@ -23,6 +23,8 @@
 //   chsmesh-offline-runtime    everything else a visitor has opened: other
 //                              pages, downloaded PDFs. Kept across versions,
 //                              or every deploy would take them off the device.
+//                              Only its hashed files that no saved page uses
+//                              any more are dropped (pruneRuntime).
 //
 // Saving is always best effort. A full disk or blocked storage must never
 // turn an answer the network gave into an error.
@@ -80,6 +82,47 @@ function save(event, key, response) {
   );
 }
 
+/**
+ * Drop the hashed /_astro/ files in the runtime cache that nothing saved
+ * uses any more. Their names change with their content, so each deploy
+ * strands the old ones, and the CMS bundle (1.9 MB a release) is stranded
+ * from the start: /admin/ is never saved, so no saved page names it. Left
+ * alone they pile up until the browser clears the whole site's storage,
+ * saved guides included.
+ *
+ * A file is in use when a saved page names it, or a script or stylesheet
+ * that is itself in use does. Pages, PDFs and other unhashed files stay.
+ */
+async function pruneRuntime() {
+  try {
+    const runtime = await caches.open(RUNTIME_CACHE);
+    const path = (request) => new URL(request.url).pathname;
+    const runtimeKeys = await runtime.keys();
+    const unused = runtimeKeys.filter((request) => path(request).startsWith('/_astro/'));
+    if (unused.length === 0) return;
+
+    const current = await caches.open(CACHE);
+    const pages = (cache, keys) => keys.filter((request) => path(request).endsWith('/')).map((request) => cache.match(request));
+    const responses = await Promise.all([...pages(runtime, runtimeKeys), ...pages(current, await current.keys())]);
+    const texts = await Promise.all(responses.filter(Boolean).map((response) => response.text()));
+
+    while (texts.length > 0) {
+      const text = texts.pop();
+      for (let index = unused.length - 1; index >= 0; index--) {
+        const pathname = path(unused[index]);
+        if (!text.includes(pathname.slice(pathname.lastIndexOf('/') + 1))) continue;
+        const [request] = unused.splice(index, 1);
+        if (!/\.(?:js|css)$/.test(pathname)) continue;
+        const response = await runtime.match(request);
+        if (response) texts.push(await response.text());
+      }
+    }
+    await Promise.all(unused.map((request) => runtime.delete(request)));
+  } catch {
+    // Best effort: the files are only taking up room.
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
@@ -121,6 +164,7 @@ self.addEventListener('activate', (event) => {
       // (src/utils/offlineClient.mjs) without a reload.
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of clients) client.postMessage({ type: 'offline-ready' });
+      await pruneRuntime();
     })()
   );
 });

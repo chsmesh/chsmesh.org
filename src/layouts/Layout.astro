@@ -9,8 +9,9 @@ import { appIconHref } from '../utils/appIconPaths.mjs';
 import { getGlobal } from '../utils/global';
 import { resolveLink } from '../utils/siteLinks';
 
-// Every share image is this size: the default public/og-image.png and the
-// per-page cards from src/utils/ogImage.mjs. Declared here rather than
+// The default public/og-image.png and the per-page cards from
+// src/utils/ogImage.mjs are this size. A page that shares something else (a
+// build shares its cover photo) passes that image's own type and size. Declared here rather than
 // imported from that module, which would pull the renderer into every page.
 const OG_IMAGE_WIDTH = 1200;
 const OG_IMAGE_HEIGHT = 630;
@@ -18,14 +19,17 @@ const OG_IMAGE_HEIGHT = 630;
 interface Props {
   title: string;
   description?: string;
-  /** Share image path. Must be 1200x630, like the default. */
+  /** Share image path. 1200x630 PNG, like the default, unless the next three say otherwise. */
   ogImage?: string;
   ogImageAlt?: string;
+  ogImageType?: string;
+  ogImageWidth?: number;
+  ogImageHeight?: number;
   ogType?: 'website' | 'article';
   noIndex?: boolean;
 }
 
-const { title, description = 'Charleston Meshtastic Community - Connect with local mesh network enthusiasts', ogImage = '/og-image.png', ogImageAlt = 'CHS Mesh - Charleston Meshtastic Community', ogType = 'website', noIndex = false } = Astro.props;
+const { title, description = 'Charleston Meshtastic Community - Connect with local mesh network enthusiasts', ogImage = '/og-image.png', ogImageAlt = 'CHS Mesh - Charleston Meshtastic Community', ogImageType = 'image/png', ogImageWidth = OG_IMAGE_WIDTH, ogImageHeight = OG_IMAGE_HEIGHT, ogType = 'website', noIndex = false } = Astro.props;
 
 const navigationEntry = await getEntry('global', 'navigation');
 const navigation = navigationEntry?.data?.type === 'navigation' ? navigationEntry.data : undefined;
@@ -83,9 +87,9 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL(ogImage, Astro.site)} />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content={String(OG_IMAGE_WIDTH)} />
-    <meta property="og:image:height" content={String(OG_IMAGE_HEIGHT)} />
+    <meta property="og:image:type" content={ogImageType} />
+    <meta property="og:image:width" content={String(ogImageWidth)} />
+    <meta property="og:image:height" content={String(ogImageHeight)} />
     <meta property="og:image:alt" content={ogImageAlt} />
     <meta property="og:url" content={Astro.url} />
     <meta property="og:site_name" content="CHS Mesh" />

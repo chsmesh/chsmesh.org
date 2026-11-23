@@ -25,7 +25,7 @@
 
 import http from 'node:http';
 import crypto from 'node:crypto';
-import { KINDS, CONTACT_KINDS, SPECS, contactNotice, isPlainObject, validate, buildFile, slugify, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch } from './lib.mjs';
+import { KINDS, CONTACT_KINDS, SPECS, contactNotice, isPlainObject, validate, buildFile, slugify, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch, zonedDate } from './lib.mjs';
 
 const env = (name, fallback = '') => (process.env[name] ?? fallback).trim();
 
@@ -234,7 +234,7 @@ async function commitWithAttachments(branch, baseSha, file, message) {
 }
 
 async function openPullRequest(kind, data, notes = []) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = zonedDate();
   const shortId = crypto.randomBytes(3).toString('hex');
   let slug = slugify(data.name ?? data.title);
 

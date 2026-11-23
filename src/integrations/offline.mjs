@@ -56,9 +56,17 @@ const toDistPath = (url) => {
   }
 };
 
+// Photos that went through Astro's asset pipeline: today, the build gallery's
+// (src/assets/builds/). Members add them at up to 1.5 MB each and the home
+// page shows the newest, so they are saved when a visitor sees them, not at
+// install. Images a stylesheet uses are still followed in precacheList.
+const CONTENT_PHOTO = /^\/_astro\/.*\.(?:png|jpe?g|gif|webp|avif)$/i;
+
 /**
- * The site's own files that `html` loads: hashed /_astro/ files, and images
- * and icons from public/. Links to other pages and to PDFs are not followed.
+ * The site's own files that `html` loads and the worker saves at install:
+ * hashed /_astro/ scripts and stylesheets, and images and icons from public/.
+ * Links to other pages and to PDFs are not followed, and neither are content
+ * photos (CONTENT_PHOTO).
  *
  * @param {string} html
  * @returns {string[]}
@@ -66,6 +74,7 @@ const toDistPath = (url) => {
 export function referencedFiles(html) {
   const found = new Set();
   for (const [, url] of html.matchAll(/(?:src|href)="(\/[^"/][^"?#]*)[^"]*"/g)) {
+    if (CONTENT_PHOTO.test(url)) continue;
     if (url.startsWith('/_astro/') || /\.(?:png|jpe?g|gif|svg|webp|avif|ico|webmanifest)$/i.test(url)) {
       // As the browser will request it: HTML escapes "&" in attributes.
       found.add(url.replace(/&amp;/g, '&'));

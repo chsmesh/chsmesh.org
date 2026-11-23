@@ -87,6 +87,20 @@ test('should save the pages with everything they need, and nothing from the skip
   ]);
 });
 
+test('should leave content photos to be saved when they are seen, not at install', (t) => {
+  const { urls } = precacheList(
+    makeDist(t, {
+      ...SITE,
+      'index.html': page('<img src="/_astro/solar-relay-1.ggg.jpg">'),
+      'builds/solar-relay/index.html': page('<a href="/_astro/solar-relay-1.ggg.jpg"><img src="/_astro/solar-relay-1.ggg.jpg"></a>'),
+      '_astro/solar-relay-1.ggg.jpg': 'jpeg',
+    })
+  );
+  assert.ok(urls.includes('/builds/solar-relay/'));
+  assert.ok(urls.includes('/_astro/pattern.eee.png'), 'an image the stylesheet uses is still saved');
+  assert.equal(urls.includes('/_astro/solar-relay-1.ggg.jpg'), false);
+});
+
 test('should find a file whose link is percent-encoded, and list it as linked', (t) => {
   const { 'images/radio.png': _image, ...rest } = SITE;
   const { urls } = precacheList(

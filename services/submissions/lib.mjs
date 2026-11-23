@@ -5,7 +5,7 @@
 import { SITE_TIME_ZONE, zonedDateTime, inTimeZone } from './time-zone.mjs';
 import { sanitizeImage } from './images.mjs';
 
-export { SITE_TIME_ZONE, zonedDateTime, inTimeZone, zoneOffsetMinutes } from './time-zone.mjs';
+export { SITE_TIME_ZONE, zonedDate, zonedDateTime, inTimeZone, zoneOffsetMinutes } from './time-zone.mjs';
 
 const SLUG_MAX = 60;
 

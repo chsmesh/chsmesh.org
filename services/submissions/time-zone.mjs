@@ -71,6 +71,16 @@ function formatZoned(epochMs, timeZone) {
   return `${date}T${pad(f.hour)}:${pad(f.minute)}:${pad(f.second)}${formatOffset(f.offset)}`;
 }
 
+/**
+ * The calendar date (YYYY-MM-DD) in `timeZone` at `epochMs`. An entry is dated
+ * the day its author sent it in Charleston, not the day it was in UTC: 7:30 PM
+ * here is already tomorrow there.
+ */
+export function zonedDate(epochMs = Date.now(), timeZone = SITE_TIME_ZONE) {
+  const f = zoneFields(epochMs, timeZone);
+  return `${pad(f.year, 4)}-${pad(f.month)}-${pad(f.day)}`;
+}
+
 // Calendar date and clock fields of a regex match, as the epoch ms they
 // would be in UTC, or null if the calendar does not have them (2026-02-30
 // would otherwise roll into March) or they predate MIN_YEAR.

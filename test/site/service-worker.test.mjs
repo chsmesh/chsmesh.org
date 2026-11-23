@@ -47,6 +47,8 @@ function startWorker(network, { version = 'v1', stores = new Map(), brokenStorag
           const body = await res.arrayBuffer();
           store.set(key(request), response(body, { status: res.status }));
         },
+        keys: async () => [...store.keys()].map((path) => new Request(new URL(path, ORIGIN))),
+        delete: async (request) => store.delete(key(request)),
       };
     },
     match: async (request, { cacheName }) => {
@@ -299,6 +301,43 @@ test('should keep a visited page and a downloaded PDF when a new version takes o
   assert.equal(stores.has('chsmesh-offline-v1'), false);
   assert.equal(await (await second.request('/meetups/some-meetup/')).text(), 'fresh /meetups/some-meetup/');
   assert.equal(await (await second.request('/downloads/chsmesh-field-handbook.pdf')).text(), 'fresh /downloads/chsmesh-field-handbook.pdf');
+});
+
+test('should drop the hashed files no saved page uses when a new version takes over', async () => {
+  const stores = new Map();
+  const site = (url) => {
+    if (url === '/meetups/some-meetup/') return response('<script src="/_astro/meetup.111.js"></script><img src="/_astro/photo.222.jpg">');
+    if (url === '/_astro/meetup.111.js') return response('import"./chunk.333.js";');
+    return online(url);
+  };
+  const first = await installed(site, { stores });
+  await first.request('/meetups/some-meetup/');
+  for (const file of ['meetup.111.js', 'chunk.333.js', 'photo.222.jpg', 'cms.444.js', 'old-status.555.css']) {
+    await first.request(`/_astro/${file}`, { mode: 'no-cors' });
+  }
+  await first.request('/downloads/chsmesh-field-handbook.pdf');
+
+  await installed(offline, { stores, version: 'v2' });
+  assert.deepEqual([...stores.get('chsmesh-offline-runtime').keys()].sort(), [
+    // Imported by meetup.111.js and named nowhere in the page.
+    '/_astro/chunk.333.js',
+    '/_astro/meetup.111.js',
+    '/_astro/photo.222.jpg',
+    '/downloads/chsmesh-field-handbook.pdf',
+    '/meetups/some-meetup/',
+  ]);
+});
+
+test('should keep a photo that a page saved at install shows', async () => {
+  const stores = new Map();
+  const site = (url) => (url === '/' ? response('<img src="/_astro/build.666.jpg">') : online(url));
+  const first = await installed(site, { stores });
+  await first.request('/_astro/build.666.jpg', { mode: 'no-cors' });
+
+  const second = startWorker(site, { stores, version: 'v2' });
+  await second.lifecycle('install');
+  await second.lifecycle('activate');
+  assert.deepEqual([...stores.get('chsmesh-offline-runtime').keys()], ['/_astro/build.666.jpg']);
 });
 
 test('should treat a saved page as a page even when its address looks like a file', async () => {
