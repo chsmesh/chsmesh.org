@@ -14,7 +14,7 @@ Content is organized in `src/content/` with schema validation in `src/content/co
 - **guides**: Tutorials with difficulty levels (beginner/intermediate/advanced) and categories (getting-started, hardware, software, network, troubleshooting). 4 entries in `src/content/guides/`.
 - **resources**: Hardware device specifications and community links. 7 entries in `src/content/resources/`.
 - **taxonomies**: Display labels, descriptions, and icons for guide categories/difficulties, resource categories, and meetup statuses/badges. A single entry, `src/content/taxonomies/default.md`, read through `src/utils/taxonomy.ts`.
-- **global**: Site metadata and per-page copy — 11 Markdown files in `src/content/global/`: `site.md`, `navigation.md`, `footer.md`, `home.md`, `about.md`, `status.md`, `guides.md`, `guides-detail.md`, `meetups.md`, `meetups-detail.md`, `resources.md`. The schema is a discriminated union on the `type` frontmatter field, so each file must declare its `type`.
+- **global**: Site metadata and per-page copy — 12 Markdown files in `src/content/global/`: `site.md`, `navigation.md`, `footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `guides.md`, `guides-detail.md`, `meetups.md`, `meetups-detail.md`, `resources.md`. The schema is a discriminated union on the `type` frontmatter field, so each file must declare its `type`.
 
 ### Page Generation
 - Static routes: `src/pages/` → predictable URLs (index.astro → /, about.astro → /about)
@@ -75,6 +75,7 @@ npm run astro ...  # Pass through Astro CLI commands
 - Upcoming vs. past meetups: use `isUpcomingMeetup()` / `isPastMeetup()` from `src/utils/meetups.ts`. They compare against `endDate ?? date`, so an event that has started but not ended still counts as upcoming; a bare `data.date >= now` test would drop it from the listing mid-event
 - Page copy: load it with `getGlobal(id, type)` from `src/utils/global.ts` rather than `getEntry('global', id)` plus `?? ''` fallbacks. It throws on a missing entry or a `type` mismatch, so an authoring mistake fails the build instead of rendering a blank heading
 - CTA buttons: build the class with `getCtaClass(variant, size?)` from `src/utils/cta.ts` rather than hand-writing `btn-*` classes. The about, guides, home, meetups, and resources pages do this
+- Relay host offers: the form on `/relay-sites/` uses the contact-only `host` kind, which the submissions service forwards to the moderators' Discord and never writes to the repository. Never add a street address field to it, and keep `areas.items` in `relay-sites.md` at neighborhood level
 
 ## Common Patterns & Examples
 

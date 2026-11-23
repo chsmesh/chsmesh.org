@@ -11,6 +11,7 @@ CHS Mesh promotes off-grid communication resilience and community collaboration 
 - **Community Meetups**: Scheduled gatherings for testing, learning, and networking
 - **Educational Guides**: Beginner-to-advanced tutorials covering setup, hardware, and troubleshooting
 - **Hardware Resources**: Device specifications and software links for Meshtastic devices
+- **Relay Sites**: A "help wanted" page at `/relay-sites` that lists the neighborhoods needing coverage and lets building owners offer a site; offers go privately to the moderators and are never published
 - **Network Status**: Live health of the LoCoMesh network at `/status` - infrastructure, gateways, activity, channel load, and a list and map of the nodes gateways hear (the map shows those that broadcast a position) - from the status service (see [docs/status.md](docs/status.md))
 
 ## Tech Stack
@@ -108,7 +109,7 @@ src/
 │   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 11 Markdown files
+│   └── global/         # Site configuration and page copy — 12 Markdown files
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
 ├── styles/             # Global Tailwind CSS
@@ -125,8 +126,8 @@ There is no node directory to maintain: `/status` maps the nodes gateways
 actually hear, and `/map` redirects there. Fixed infrastructure is listed in
 `services/status/infrastructure.json` (see [docs/status.md](docs/status.md)).
 
-The 11 files in `src/content/global/` are `site.md`, `navigation.md`,
-`footer.md`, `home.md`, `about.md`, `status.md`, `guides.md`,
+The 12 files in `src/content/global/` are `site.md`, `navigation.md`,
+`footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `guides.md`,
 `guides-detail.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 

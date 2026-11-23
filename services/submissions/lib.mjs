@@ -86,9 +86,45 @@ export const SPECS = {
       submitterEmail: { type: 'email', required: true },
     },
   },
+  // An offer to host a relay node, from the form on /relay-sites/. Contact
+  // only: it describes a private person's or organisation's property, so it
+  // is forwarded to the moderators' Discord channel and never written to the
+  // (public) repository. The form asks for a neighborhood, not an address.
+  host: {
+    label: 'Relay host offer',
+    contactOnly: true,
+    fields: {
+      name: string(80, { required: true }),
+      organization: string(120),
+      siteType: oneOf(['business', 'church', 'school', 'home', 'tower', 'other'], { required: true }),
+      area: string(120, { required: true }),
+      height: string(120),
+      power: oneOf(['outlet', 'none', 'unsure']),
+      // Capped so it fits one Discord embed field (1024) even after escaping
+      // a little markdown; Discord is the only copy of an offer.
+      notes: text(1000),
+      phone: string(40),
+      submitterEmail: { type: 'email', required: true },
+    },
+    // Order and headings of the Discord notice.
+    contactLabels: {
+      name: 'Name',
+      organization: 'Organization',
+      siteType: 'Kind of site',
+      area: 'Neighborhood',
+      height: 'Height',
+      power: 'Power at the site',
+      notes: 'Notes',
+      submitterEmail: 'Email',
+      phone: 'Phone',
+    },
+  },
 };
 
-export const KINDS = Object.keys(SPECS);
+// Kinds that become a content file and a pull request.
+export const KINDS = Object.keys(SPECS).filter((kind) => SPECS[kind].collection);
+// Kinds that are only forwarded to the moderators; nothing is published.
+export const CONTACT_KINDS = Object.keys(SPECS).filter((kind) => SPECS[kind].contactOnly);
 
 // Sveltia CMS lists a pull request in its Workflow view only when the head
 // branch is `cms/<collection>/<slug>`, with the slug equal to the file name,
@@ -353,6 +389,40 @@ export function turnstileVerdict(result, { hostname, action }) {
     return { ok: false, reason: `action mismatch: token for ${result.action ?? '(none)'}, expected ${action}` };
   }
   return { ok: true };
+}
+
+// Discord caps an embed field value at 1024 characters and a title at 256.
+const DISCORD_FIELD_MAX = 1024;
+
+/**
+ * Build the Discord webhook body for a contact-only submission. Everything the
+ * submitter typed goes to the private channel and nowhere else.
+ */
+// Embed field values render Discord markdown. Escape it so submitter text
+// shows as typed and cannot pose as a masked link ("[Verify](https://evil)").
+function discordText(value) {
+  const escaped = String(value).replace(/[\\`*_~|[\]()<>]/g, '\\$&');
+  if (escaped.length <= DISCORD_FIELD_MAX) return escaped;
+  // Do not end on half an escape or half a surrogate pair.
+  return `${escaped.slice(0, DISCORD_FIELD_MAX - 1).replace(/(\\|[\uD800-\uDBFF])$/, '')}…`;
+}
+
+/**
+ * `suspect` marks an offer that tripped the honeypot. Unlike content
+ * submissions it is still delivered, flagged, because nothing else records it.
+ */
+export function contactNotice(kind, data, { suspect = false } = {}) {
+  const spec = SPECS[kind];
+  if (!spec?.contactOnly) throw new Error(`${kind} is not a contact-only kind`);
+  const fields = Object.entries(spec.contactLabels)
+    .filter(([key]) => data[key] !== undefined)
+    .map(([key, name]) => ({ name, value: discordText(data[key]) }));
+  const title = `${suspect ? 'Possible spam - ' : ''}${spec.label}: ${discordText(data.area ?? data.name)}`;
+  return {
+    // Submitter text must never ping anyone in the moderators' channel.
+    allowed_mentions: { parse: [] },
+    embeds: [{ title: title.slice(0, 256), fields }],
+  };
 }
 
 export function summarise(kind, data) {

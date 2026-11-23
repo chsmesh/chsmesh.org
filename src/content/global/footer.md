@@ -15,6 +15,8 @@ quickLinks:
       href: /resources/
     - label: Network Status
       href: /status/
+    - label: Host a Relay
+      href: /relay-sites/
 community:
   heading: Community
   links:

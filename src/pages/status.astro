@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import { getGlobal } from '../utils/global';
 import { resolveLink } from '../utils/siteLinks';
+import { getCtaClass } from '../utils/cta';
 
 // Page copy comes from src/content/global/status.md; the numbers come from the
 // status service (services/status) at runtime, so this page builds without it.
@@ -13,6 +14,10 @@ const externalMaps = page.externalMaps.links.map((link) => ({
   ...link,
   href: resolveLink(link.href, site.links),
 }));
+const mapCta = page.map.cta && {
+  ...page.map.cta,
+  href: resolveLink(page.map.cta.href, site.links),
+};
 ---
 
 <Layout title={page.pageTitle} description={page.pageDescription}>
@@ -101,6 +106,11 @@ const externalMaps = page.externalMaps.links.map((link) => ({
           <div class="card-body border-t border-neutral-200">
             <h3 class="font-semibold text-neutral-700">{page.map.heading}</h3>
             <p class="text-sm text-neutral-500">{page.map.body}</p>
+            {mapCta && (
+              <a href={mapCta.href} class={`${getCtaClass(mapCta.variant, 'sm')} mt-4`}>
+                {mapCta.label}
+              </a>
+            )}
           </div>
         </div>
 

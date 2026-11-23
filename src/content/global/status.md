@@ -34,6 +34,10 @@ hops:
 map:
   heading: Where nodes are
   body: Nodes that share a position, rounded to about 1 km.
+  cta:
+    label: See a gap? Help fill it
+    href: /relay-sites/
+    variant: outline
 gateways:
   heading: Gateways
   body: Nodes uploading to the LoCoMesh MQTT server in the last 24 hours. Want to add one? Ask in the Discord.

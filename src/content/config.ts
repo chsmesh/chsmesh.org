@@ -238,6 +238,82 @@ const global = defineCollection({
       }),
     }),
     z.object({
+      type: z.literal('relay-sites'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+        ctas: z.array(ctaSchema).default([]),
+      }),
+      intro: z.object({
+        heading: z.string(),
+        body: z.string(),
+      }),
+      hosting: z.object({
+        heading: z.string(),
+        body: z.string(),
+        points: z
+          .array(
+            z.object({
+              title: z.string(),
+              description: z.string(),
+            })
+          )
+          .default([]),
+      }),
+      hosts: z.object({
+        heading: z.string(),
+        body: z.string(),
+        items: z
+          .array(
+            z.object({
+              title: z.string(),
+              description: z.string(),
+            })
+          )
+          .default([]),
+      }),
+      // Neighborhood level only. Never list an address, a building name or
+      // anything else that identifies a host or a prospective host.
+      areas: z.object({
+        heading: z.string(),
+        body: z.string(),
+        updated: z.coerce.date().optional(),
+        updatedLabel: z.string(),
+        empty: z.string(),
+        items: z
+          .array(
+            z.object({
+              name: z.string(),
+              need: z.string(),
+            })
+          )
+          .default([]),
+      }),
+      offer: z.object({
+        heading: z.string(),
+        body: z.string(),
+      }),
+      faq: z.object({
+        heading: z.string(),
+        items: z
+          .array(
+            z.object({
+              question: z.string(),
+              answer: z.string(),
+            })
+          )
+          .default([]),
+      }),
+      contactCta: z.object({
+        heading: z.string(),
+        body: z.string(),
+        ctas: z.array(ctaSchema).default([]),
+      }),
+    }),
+    z.object({
       type: z.literal('status'),
       pageTitle: z.string(),
       pageDescription: z.string(),
@@ -258,7 +334,13 @@ const global = defineCollection({
       infrastructure: z.object({ heading: z.string(), body: z.string() }),
       activity: z.object({ heading: z.string(), body: z.string() }),
       hops: z.object({ heading: z.string(), body: z.string() }),
-      map: z.object({ heading: z.string(), body: z.string() }),
+      map: z.object({
+        heading: z.string(),
+        body: z.string(),
+        // Link under the map, to the relay host recruiting page.
+        // nullish: the CMS may save a removed object as null.
+        cta: ctaSchema.nullish(),
+      }),
       gateways: z.object({ heading: z.string(), body: z.string() }),
       nodes: z.object({ heading: z.string() }),
       // Other projects' maps, for a wider view than our own gateways give.

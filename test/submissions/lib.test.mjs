@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { slugify, validate, buildFile, yamlLines, renderMarkdown, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch, zonedDateTime, zoneOffsetMinutes, CMS_LABEL_PREFIX, SUBMISSION_STATUS, KINDS } from '../../services/submissions/lib.mjs';
+import { slugify, validate, buildFile, yamlLines, renderMarkdown, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch, zonedDateTime, zoneOffsetMinutes, CMS_LABEL_PREFIX, SUBMISSION_STATUS, KINDS, CONTACT_KINDS, SPECS, contactNotice } from '../../services/submissions/lib.mjs';
 
 test('turnstile verdict requires success, matching hostname and action', () => {
   const expected = { hostname: 'chsmesh.org', action: 'submit-meetup' };
@@ -267,4 +267,73 @@ test('submission branches and labels are ones the CMS workflow recognises', () =
     assert.equal(collectionFolders.get(collection), folder, `${kind} collection ${collection} must own ${folder}`);
     assert.ok(pullRequestLabels(kind).includes(`${prefix}${SUBMISSION_STATUS}`), `${kind} PR needs a workflow status label`);
   }
+});
+
+test('relay host offers are contact-only and never become repository content', () => {
+  assert.deepEqual(CONTACT_KINDS, ['host']);
+  assert.ok(!KINDS.includes('host'), 'host must not be a pull-request kind');
+  assert.equal(SPECS.host.collection, undefined);
+  assert.throws(() => buildFile('host', { name: 'N' }, { slug: 'x', today: '2026-01-01' }), /Unknown submission kind/);
+  // The page promises a neighborhood is all that is asked for.
+  for (const field of Object.keys(SPECS.host.fields)) assert.doesNotMatch(field, /address|street|lat|lng|coord/i);
+  // Every accepted field reaches the moderators.
+  assert.deepEqual(Object.keys(SPECS.host.contactLabels).sort(), Object.keys(SPECS.host.fields).sort());
+});
+
+test('validate accepts the payload the host form sends and rejects bad ones', () => {
+  const result = validate('host', {
+    name: ' Jordan Smith ',
+    siteType: 'church',
+    area: 'James Island near Folly Road',
+    power: 'unsure',
+    submitterEmail: 'jordan@example.com',
+    address: '1 Secret St',
+    submittedAt: '2026-11-22T00:00:00.000Z',
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.data, {
+    name: 'Jordan Smith',
+    siteType: 'church',
+    area: 'James Island near Folly Road',
+    power: 'unsure',
+    submitterEmail: 'jordan@example.com',
+  });
+
+  const bad = validate('host', { name: 'J', siteType: 'castle', notes: 'x'.repeat(1001) });
+  assert.equal(bad.ok, false);
+  assert.ok(bad.errors.some((e) => e.startsWith('siteType must be one of')));
+  assert.ok(bad.errors.includes('area is required'));
+  assert.ok(bad.errors.includes('submitterEmail is required'));
+  assert.ok(bad.errors.includes('notes is longer than 1000 characters'));
+});
+
+test('host notice carries the contact details, fits Discord limits and cannot ping', () => {
+  const notice = contactNotice('host', {
+    name: 'Jordan Smith',
+    siteType: 'home',
+    area: 'West Ashley',
+    notes: '@everyone '.repeat(150),
+    submitterEmail: 'jordan@example.com',
+  });
+  assert.deepEqual(notice.allowed_mentions, { parse: [] });
+  const [embed] = notice.embeds;
+  assert.equal(embed.title, 'Relay host offer: West Ashley');
+  assert.deepEqual(embed.fields.map((f) => f.name), ['Name', 'Kind of site', 'Neighborhood', 'Notes', 'Email']);
+  assert.equal(embed.fields.at(-1).value, 'jordan@example.com');
+  assert.ok(embed.fields.every((f) => f.value.length <= 1024));
+  assert.throws(() => contactNotice('node', {}), /not a contact-only kind/);
+
+  // Markdown is escaped, so a masked link shows as typed instead of rendering.
+  const masked = contactNotice('host', { name: 'N', area: 'A', notes: '[Verify](https://evil.example) `x`' });
+  assert.equal(masked.embeds[0].fields.at(-1).value, '\\[Verify\\]\\(https://evil.example\\) \\`x\\`');
+  // The longest notes the service accepts arrive whole unless escaping grows them.
+  assert.equal(contactNotice('host', { name: 'N', area: 'A', notes: 'x'.repeat(1000) }).embeds[0].fields.at(-1).value, 'x'.repeat(1000));
+  // A cut never ends on half an escape or half an emoji.
+  for (const filler of ['(', '😀']) {
+    const cut = contactNotice('host', { name: 'N', area: 'A', notes: filler.repeat(1000) }).embeds[0].fields.at(-1).value;
+    assert.ok(cut.length <= 1024);
+    assert.doesNotMatch(cut, /(?<!\\)(\\\\)*\\…$|[\uD800-\uDBFF]…$/);
+  }
+  // A honeypot hit is still delivered, flagged.
+  assert.match(contactNotice('host', { name: 'N', area: 'A' }, { suspect: true }).embeds[0].title, /^Possible spam - /);
 });

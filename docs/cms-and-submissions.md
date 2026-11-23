@@ -41,7 +41,7 @@ exactly `https://chsmesh.org/admin/` and not another hostname.
 | Guides | `src/content/guides/*.md` | Markdown body, category, difficulty, prerequisites |
 | Resources | `src/content/resources/*.md` | Links to devices, software, firmware, communities |
 | Taxonomies | `src/content/taxonomies/*` | The allowed categories and difficulties |
-| Site settings | `src/content/global/*` | Site links, navigation, footer |
+| Site settings | `src/content/global/*` | Site links, navigation, footer, and each page's copy, including the areas that need coverage on the relay sites page |
 
 Images uploaded through the CMS go to `public/images/` and are referenced as
 `/images/<file>`.
@@ -100,6 +100,25 @@ or on GitHub.
   goes only to the private moderators' Discord channel, in a message that
   links to the pull request.
 
+### Relay host offers
+
+The "I can host" form on `/relay-sites/` is the exception: it never becomes a
+pull request. An offer describes someone's property, and this repository is
+public, so the service sends the whole offer (name, kind of site,
+neighborhood, notes, email, phone) to the moderators' Discord channel and
+writes nothing anywhere else. Reply to the person directly from there.
+
+- The form asks for a neighborhood, not an address. Get the address
+  privately when you follow up, and keep it out of GitHub, the CMS and
+  public Discord channels.
+- The list of areas that need coverage is edited in the CMS under
+  **Site settings → Relay sites page**. Keep it at neighborhood level: never
+  name an address, a building or a host. Set **Last reviewed** when you
+  change it.
+- The form needs `DISCORD_WEBHOOK_URL`. Without it the service answers 503
+  and the form tells the visitor to reach out on Discord, so an offer is
+  never silently dropped.
+
 ### Reviewing
 
 1. Read the file in the pull request. Check the content is accurate, not a
@@ -132,6 +151,8 @@ Three layers reduce spam before it reaches the queue:
 1. **Rate limits.** nginx allows 10 submissions per minute per address with a
    short burst, and the service allows 5 per hour per address per form.
 2. **A honeypot field.** Bots that fill every input are dropped silently.
+   A relay host offer that trips it is still delivered, titled
+   "Possible spam", because nothing else would record it.
 3. **Cloudflare Turnstile.** When configured, each form shows a Turnstile
    check on first interaction and the service verifies the result with
    Cloudflare before doing anything else.
@@ -162,7 +183,7 @@ Runtime values are read by the submissions service when it starts.
 | `GITHUB_TOKEN` | Yes | Token the service uses to open pull requests. See [GitHub setup](#github-setup). |
 | `GITHUB_REPO` | No | Defaults to `chsmesh/chsmesh.org`. |
 | `GITHUB_BASE_BRANCH` | No | Defaults to `main`. |
-| `DISCORD_WEBHOOK_URL` | Recommended | Webhook for a private moderators' channel. Receives the pull request link and the submitter's email. Without it the email is only in the service logs. |
+| `DISCORD_WEBHOOK_URL` | Recommended; required for relay host offers | Webhook for a private moderators' channel. Receives the pull request link and the submitter's email, and the full text of each relay host offer. Without it a content submitter's email is only in the service logs, and relay host offers are refused with 503. |
 | `TURNSTILE_SECRET` | No | Cloudflare Turnstile secret. When set, every submission must carry a valid token. Set it together with `PUBLIC_TURNSTILE_SITE_KEY`. |
 | `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET` | For the CMS | Credentials of the GitHub OAuth App used for CMS sign-in. Leave empty to disable sign-in. |
 | `GITHUB_OAUTH_SCOPE` | No | Defaults to `public_repo`. |
@@ -278,6 +299,7 @@ the CMS sign-in do not work there.
 | Method and path | Purpose |
 | --- | --- |
 | `POST /api/submit/{guide,meetup,resource}` | Public submission. Body is the JSON the site's forms send. |
+| `POST /api/submit/host` | Relay host offer from `/relay-sites/`. Forwarded to Discord only; no pull request. |
 | `GET /api/auth?provider=github&site_id=<host>` | Starts CMS sign-in. Redirects to GitHub. |
 | `GET /api/auth/callback` | GitHub returns here. Posts the token to the CMS window and closes. |
 | `GET /healthz` | Health check. Not proxied by nginx. |
@@ -286,13 +308,13 @@ Submission responses:
 
 | Status | Meaning |
 | --- | --- |
-| `200 { ok: true, pullRequest }` | Pull request opened. `pullRequest` is its URL. |
+| `200 { ok: true, pullRequest }` | Pull request opened. `pullRequest` is its URL. A host offer returns `200 { ok: true }` once Discord has accepted it. |
 | `400 { ok: false, errors }` | Validation failed. `errors` lists the fields. |
 | `400 { ok: false, error }` | Turnstile verification failed. |
 | `403` | The request's `Origin` is not `SITE_ORIGIN`. |
 | `429` | Rate limited. |
-| `503` | The service has no `GITHUB_TOKEN`. |
-| `502` | GitHub or the network failed while opening the pull request. |
+| `503` | The service has no `GITHUB_TOKEN` (for a host offer: no `DISCORD_WEBHOOK_URL`). |
+| `502` | GitHub or the network failed while opening the pull request (for a host offer: the Discord webhook failed). |
 
 ### Troubleshooting
 
