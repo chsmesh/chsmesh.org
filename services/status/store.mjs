@@ -5,8 +5,9 @@
 // Privacy rules applied in snapshot():
 //   - message text is never stored or published, only counted
 //   - positions are rounded to POSITION_DECIMALS (about 1 km)
-//   - only LongFast (the public default key) is decoded; every other channel
-//     is counted by name only
+//   - only LongFast (the public default key) is decoded; packets on every
+//     other channel are counted in the totals, and channel names are neither
+//     published nor stored
 //   - broker usernames never appear; gateways are shown by node name
 
 import { PORTNUM, DEFAULT_KEY, decryptPacket, decodeUser, decodePosition, decodeTelemetry, decodeMapReport, nodeId, roleName } from './mesh.mjs';
@@ -35,15 +36,27 @@ const median = (xs) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
+// A gateway is named by its node id. Anything else in that slot (part of a
+// channel name containing '/', for example) must never be stored.
+const GATEWAY_ID = /^![0-9a-f]{8}$/;
+const gatewayId = (s) => {
+  const id = String(s ?? '').toLowerCase();
+  return GATEWAY_ID.test(id) ? id : '';
+};
+
 /**
  * Parse an upload topic under the root: <root>/2/e/<channel>/<gateway> or
  * <root>/2/map/... Returns null for anything else (JSON, stat, feeders).
+ * The gateway is the last segment, so a channel name may contain '/'; it is
+ * null unless it is a node id.
  */
 export function parseTopic(topic, root) {
   if (!topic.startsWith(`${root}/`)) return null;
   const parts = topic.slice(root.length + 1).split('/');
   if (parts[0] !== '2') return null;
-  if (parts[1] === 'e' && parts.length >= 4) return { kind: 'packet', channel: parts[2], gateway: parts[3] };
+  if (parts[1] === 'e' && parts.length >= 4) {
+    return { kind: 'packet', channel: parts.slice(2, -1).join('/'), gateway: gatewayId(parts.at(-1)) || null };
+  }
   if (parts[1] === 'map') return { kind: 'map' };
   return null;
 }
@@ -143,9 +156,9 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     const p = envelope.packet;
     const from = nodeId(p.from);
     // The topic names the uploading gateway; fall back to the envelope's claim.
-    const gw = ((where.kind === 'packet' ? where.gateway : '') || envelope.gatewayId || '').toLowerCase();
+    const gw = (where.kind === 'packet' && where.gateway) || gatewayId(envelope.gatewayId);
 
-    if (gw.startsWith('!')) {
+    if (gw) {
       let g = gateways.get(gw);
       if (!g) gateways.set(gw, (g = { lastUpload: t, uploads: {} }));
       g.lastUpload = t;
@@ -356,10 +369,18 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     if (!state || state.version !== 1) return false;
     startedAt = state.startedAt ?? startedAt;
     lastMessageAt = state.lastMessageAt ?? null;
-    for (const n of state.nodes ?? []) nodes.set(n.id, { heardBy: {}, ...n });
-    for (const [id, g] of state.gateways ?? []) gateways.set(id, g);
-    // Drop per-channel counts saved by earlier versions.
-    for (const [k, { channels, ...h }] of state.hours ?? []) hours.set(Number(k), h);
+    // Earlier versions could save part of a channel name as a gateway id, and
+    // saved per-channel counts; neither is kept.
+    for (const n of state.nodes ?? []) {
+      const heardBy = Object.fromEntries(Object.entries(n.heardBy ?? {}).filter(([gw]) => gatewayId(gw)));
+      nodes.set(n.id, { ...n, heardBy });
+    }
+    for (const [id, g] of state.gateways ?? []) if (gatewayId(id)) gateways.set(id, g);
+    for (const [k, entry] of state.hours ?? []) {
+      if (!entry || typeof entry !== 'object') continue; // a damaged entry must not abort the load
+      const { channels, ...h } = entry;
+      hours.set(Number(k), h);
+    }
     for (const [id, list] of state.infraBlocks ?? []) infraBlocks.set(id, new Set(list));
     for (const [id, ms] of state.infraLast ?? []) infraLast.set(id, ms);
     prune();
