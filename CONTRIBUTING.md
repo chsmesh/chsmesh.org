@@ -83,10 +83,16 @@ listed under Infrastructure, ask in the Discord or open a pull request against
 7. Add screenshots for UI changes
 8. Wait for feedback and review
 
-CI (`.github/workflows/ci.yml`) runs the tests, `npm run build` and
-`npm run check` on every pull request. When the pull request changes anything
-outside the content paths, it also builds the Docker images and smoke tests
-the served site. Running all three locally first saves a round trip.
+CI (`.github/workflows/ci.yml`) runs the tests, `npm run build`, an internal
+link check of the build and `npm run check` on every pull request. When the
+pull request changes anything outside the content paths, it also builds the
+Docker images and smoke tests the served site. Running these locally first
+saves a round trip.
+
+A link to a page or `#anchor` that does not exist fails CI. With
+[lychee](https://lychee.cli.rs/guides/getting-started/) installed, `npm run check:links`
+runs the same check locally after a build. Links to other sites are checked
+weekly rather than on pull requests; see "Link checking" in the README.
 
 ## Code of Conduct
 

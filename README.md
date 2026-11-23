@@ -315,8 +315,9 @@ checking inbound links.
   `test/submissions/`, `test/status/` and `test/build/`), `npm run build`, `npm run test:build` (checks `dist/` itself:
   every guide and meetup page must point at a share image the build emitted),
   a check that `dist/` has no inline executable `<script>` tags (the CSP would
-  block them), `npm run check`, and `npm run build:pdf` with a check that every
-  guide and the handbook got a PDF.
+  block them), `npm run check`, `npm run build:pdf` with a check that every
+  guide and the handbook got a PDF, and an internal link check of `dist/`
+  (`npm run check:links`, see [Link checking](#link-checking)).
 - **`submissions`**: the service tests in `test/submissions/` on Node 22, the
   service's runtime version (`npm run test:submissions`). Locally, `npm test`
   still runs both suites.
@@ -353,6 +354,43 @@ always run every job.
 
 CI does **not** build, push, or deploy images. There is no release workflow in
 this repository.
+
+### Link checking
+
+[lychee](https://lychee.cli.rs/) checks the links in the built site, in two
+modes run by `scripts/check-links.sh`, plus a checklist for the links neither
+can cover:
+
+- **Internal** (`npm run check:links`): offline, against `dist/`. Covers links
+  between pages, assets, `#fragment` anchors, canonical URLs and the sitemap.
+  It runs in the CI `site` job, so a broken internal link fails the pull
+  request.
+- **External** (`npm run check:links:external`): requests every outbound link.
+  `.github/workflows/links.yml` runs it every Monday (and on demand from the
+  Actions tab), outside CI and the `ci-ok` check, so a third-party outage
+  never blocks a merge. When links are broken it opens an issue labelled
+  `broken-links`, or updates the open one, and closes it once every link
+  passes again.
+- **Manual review** (`npm run check:links:manual`): AliExpress, Amazon and
+  Silicon Labs answer automated requests the same way whether or not the page
+  exists, so they are on the allowlist (`exclude`) in `lychee.toml` and the
+  external check **does not check them at all**. Instead, on the 1st of each
+  month `links.yml` opens a "Manual link review" issue labelled `link-review`:
+  a checklist of those links and the pages they are on, for a person to open
+  in a browser. If the previous month's issue is still open it gets a
+  reminder comment rather than a second issue.
+
+GitHub disables scheduled workflows in a public repository after 60 days
+without a commit. If the repository goes quiet for that long, re-enable
+`links.yml` from the Actions tab, or both the weekly check and the monthly
+review stop silently.
+
+All three need `npm run build` first and
+[lychee installed](https://lychee.cli.rs/guides/getting-started/) locally. The internal check
+also needs `npm run build:pdf`, because pages link to the PDFs in
+`dist/downloads/`. Settings live
+in `lychee.toml`. Discord invites are checked through Discord's invite API, because the
+`discord.gg` page answers 200 even for an expired invite.
 
 ### Release and deploy (Komodo)
 

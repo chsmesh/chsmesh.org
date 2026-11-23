@@ -18,6 +18,8 @@ env:
   # Cloudflare's documented "always passes" test site key, so the build
   # exercises the Turnstile path (script tag, widget slot) without a real widget.
   PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+  LYCHEE_VERSION: 0.24.2
+  LYCHEE_SHA256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
 
 jobs:
   changes:
@@ -116,6 +118,24 @@ jobs:
           test -s dist/downloads/chsmesh-field-handbook.pdf \
             || { echo 'No field handbook PDF' >&2; exit 1; }
           ls -l dist/downloads
+
+      - name: Install lychee
+        run: |
+          # Pinned by checksum. Keep the version and checksum in step with
+          # links.yml.
+          curl -fsSL -o "$RUNNER_TEMP/lychee.tar.gz" \
+            "https://github.com/lycheeverse/lychee/releases/download/lychee-v$LYCHEE_VERSION/lychee-x86_64-unknown-linux-gnu.tar.gz"
+          echo "$LYCHEE_SHA256  $RUNNER_TEMP/lychee.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/lychee"
+          tar -xzf "$RUNNER_TEMP/lychee.tar.gz" -C "$RUNNER_TEMP/lychee" --strip-components=1
+          echo "$RUNNER_TEMP/lychee" >> "$GITHUB_PATH"
+
+      - name: Check internal links in the build
+        # Runs after the PDF build, because pages link to the PDFs in
+        # dist/downloads/. Offline, against dist/: page links, assets,
+        # #fragments, canonical URLs and the sitemap. External links are checked weekly by
+        # links.yml instead, so a third-party outage cannot block a merge.
+        run: npm run check:links
 
   submissions:
     name: Submissions service - tests
