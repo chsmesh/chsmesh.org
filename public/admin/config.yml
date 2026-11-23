@@ -247,6 +247,73 @@ collections:
         multiple: true
         required: false
 
+  - name: troubleshooting
+    label: Troubleshooting
+    label_singular: Problem
+    description: >-
+      The decision trees on /troubleshooting/, one entry per starting problem.
+      Each step has an ID, and the answers name the ID of the step they lead
+      to. Every path has to end in a fix or in "ask in Discord"; a save whose
+      steps do not join up fails the checks on its pull request, which say
+      what to correct.
+    folder: src/content/troubleshooting
+    create: true
+    extension: json
+    format: json
+    identifier_field: title
+    slug: "{{slug}}"
+    summary: "{{title}}"
+    sortable_fields: [order, title]
+    editor: { preview: false }
+    fields:
+      - { name: title, label: Problem, widget: string, hint: "In the visitor's words, e.g. \"I can't see any other nodes\"" }
+      - { name: summary, label: Summary, widget: text, hint: "One sentence under the title that helps someone recognise their problem." }
+      - { name: order, label: Order, widget: number, value_type: int, default: 0, hint: "Lower numbers are listed first." }
+      - { name: start, label: First step, widget: string, hint: "The ID of the question to begin with." }
+      - name: steps
+        label: Steps
+        label_singular: step
+        widget: list
+        hint: "IDs use lower-case letters, numbers and single hyphens, e.g. antenna-attached. Without JavaScript the page lists the steps in this order, so keep them in the order a visitor meets them."
+        types:
+          - name: question
+            label: Question
+            widget: object
+            summary: "{{id}}: {{question}}"
+            fields:
+              - { name: id, label: ID, widget: string, pattern: ["^[a-z0-9]+(-[a-z0-9]+)*$", "Lower-case letters, numbers and single hyphens"] }
+              - { name: question, label: Question, widget: string, hint: "Must be answerable with yes or no." }
+              - { name: help, label: How to check, widget: text, required: false, hint: "Where to look to answer it, e.g. where the setting is in the app." }
+              - { name: "yes", label: "If yes, go to", widget: string, hint: "The ID of another step." }
+              - { name: "no", label: "If no, go to", widget: string, hint: "The ID of another step." }
+          - name: fix
+            label: Fix
+            widget: object
+            summary: "{{id}}: {{title}}"
+            fields:
+              - { name: id, label: ID, widget: string, pattern: ["^[a-z0-9]+(-[a-z0-9]+)*$", "Lower-case letters, numbers and single hyphens"] }
+              - { name: title, label: Title, widget: string }
+              - { name: body, label: Explanation, widget: text, hint: "One short paragraph: why this is the likely cause." }
+              - { name: steps, label: Instructions, widget: list, required: false, field: { name: step, label: Instruction, widget: string } }
+              - name: links
+                label: Links
+                widget: list
+                required: false
+                hint: "A guide section (/guides/initial-setup/#pairing), or # and another problem's file name (#no-nodes) to send the visitor to that problem."
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Link, widget: string }
+              - { name: next, label: "If it did not help, go to", widget: string, required: false, hint: "The ID of the next check. Leave empty if this fix ends the path." }
+          - name: ask
+            label: Ask in Discord
+            widget: object
+            summary: "{{id}}: {{title}}"
+            fields:
+              - { name: id, label: ID, widget: string, pattern: ["^[a-z0-9]+(-[a-z0-9]+)*$", "Lower-case letters, numbers and single hyphens"] }
+              - { name: title, label: Title, widget: string }
+              - { name: body, label: Explanation, widget: text }
+              - { name: include, label: What to include in the post, widget: list, field: { name: item, label: Item, widget: string } }
+
   - name: taxonomies
     label: Taxonomies
     editor: { preview: false }
@@ -672,6 +739,41 @@ collections:
           - { name: guidesLabel, label: All guides link label, widget: string }
           - { name: indicatorLabel, label: Saved badge, widget: string, hint: "Shown on a page once it is saved on the visitor's device" }
           - { name: bannerText, label: Offline banner, widget: string, hint: "Shown under the header while the visitor has no connection" }
+      - name: troubleshooting
+        label: Troubleshooting page
+        file: src/content/global/troubleshooting.md
+        fields:
+          - { name: type, widget: hidden, default: troubleshooting }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: intro, label: Introduction, widget: text }
+          - { name: problemsHeading, label: Problem list heading, widget: string }
+          - { name: yesLabel, label: "Yes button", widget: string }
+          - { name: noLabel, label: "No button", widget: string }
+          - { name: goToLabel, label: Go-to label, widget: string, hint: "Followed by a step number, e.g. \"go to step 4\". Shown where the page lists every step: without JavaScript and in print" }
+          - { name: stepLabel, label: Step label, widget: string, hint: "Followed by the step's number" }
+          - { name: fixLabel, label: Fix badge, widget: string }
+          - { name: stillStuckLabel, label: Next check button, widget: string, hint: "Leads from a fix to the next question" }
+          - { name: askLabel, label: Ask badge, widget: string }
+          - { name: includeHeading, label: What-to-include heading, widget: string }
+          - { name: discordLabel, label: Discord button, widget: string }
+          - { name: trailHeading, label: Answers so far heading, widget: string }
+          - { name: triedLabel, label: Tried label, widget: string, hint: "Before a fix's title in the answers so far" }
+          - { name: startOverLabel, label: Start over link, widget: string }
+          - { name: otherProblemLabel, label: Other problem link, widget: string }
+          - name: empty
+            label: Empty state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
       - name: guides-detail
         label: Guide detail page
         file: src/content/global/guides-detail.md

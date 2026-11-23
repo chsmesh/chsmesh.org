@@ -78,6 +78,8 @@ After flashing:
 
 ## Troubleshooting
 
+These are flashing problems. If the radio flashed fine but will not connect to the app or cannot see other nodes, use the [step-by-step troubleshooter](/troubleshooting/).
+
 ### "No device found"
 
 1. **Try a different cable** - Most common issue

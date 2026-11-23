@@ -40,6 +40,7 @@ exactly `https://chsmesh.org/admin/` and not another hostname.
 | Meetups | `src/content/meetups/*.md` | Date, location, description |
 | Guides | `src/content/guides/*.md` | Markdown body, category, difficulty, prerequisites |
 | Glossary | `src/content/glossary/*.json` | Term, short definition (also the tooltip in guides), aliases, related terms. Terms and aliases are linked automatically at their first mention in each guide |
+| Troubleshooting | `src/content/troubleshooting/*.json` | The decision trees at `/troubleshooting/`, one entry per problem. Steps are questions, fixes, or "ask in Discord", and point at each other by ID. The pull request's checks fail if a step leads nowhere, loops, or cannot be reached |
 | Resources | `src/content/resources/*.md` | Links to devices, software, firmware, communities |
 | Builds | `src/content/builds/*.md`, photos in `src/assets/builds/` | The member build gallery at `/builds/`. One to six photos; the first is the cover. Tick **Featured** to show a build on the home page |
 | Taxonomies | `src/content/taxonomies/*` | The allowed categories and difficulties |

@@ -1,0 +1,127 @@
+{
+  "title": "The app won't connect to my radio",
+  "summary": "The Meshtastic app cannot find the radio, pairing fails, or the connection will not start.",
+  "order": 3,
+  "start": "powered",
+  "steps": [
+    {
+      "type": "question",
+      "id": "powered",
+      "question": "Is the radio on and showing signs of life?",
+      "help": "Look for a lit screen or a blinking light. Some boards have a power switch or need a long press of the power button.",
+      "yes": "phone-bluetooth",
+      "no": "power-up"
+    },
+    {
+      "type": "fix",
+      "id": "power-up",
+      "title": "Get the radio powered",
+      "body": "A flat battery is the most common reason a radio does not show up.",
+      "steps": [
+        "Plug the radio into USB power and leave it for a few minutes.",
+        "Press the reset button once, or hold the power button, to start it.",
+        "If it still shows nothing on USB power, the firmware may not have flashed properly. Try the recovery steps in the flashing guide."
+      ],
+      "links": [{ "label": "Flashing firmware guide", "href": "/guides/flashing-firmware/#troubleshooting" }],
+      "next": "phone-bluetooth"
+    },
+    {
+      "type": "question",
+      "id": "phone-bluetooth",
+      "question": "Is Bluetooth on, and does the Meshtastic app have permission to use it?",
+      "help": "On Android the permission is called Nearby devices, and older Android versions also need Location turned on to scan. On iPhone, look under Settings, then Meshtastic.",
+      "yes": "listed",
+      "no": "allow-bluetooth"
+    },
+    {
+      "type": "fix",
+      "id": "allow-bluetooth",
+      "title": "Turn on Bluetooth and allow the app",
+      "body": "The app cannot scan for radios without Bluetooth and its permissions.",
+      "steps": [
+        "Turn on Bluetooth on your phone.",
+        "In the phone's settings, find the Meshtastic app and allow Bluetooth (Nearby devices on Android).",
+        "On older Android versions, also turn on Location.",
+        "Close the app completely and open it again."
+      ],
+      "next": "listed"
+    },
+    {
+      "type": "question",
+      "id": "listed",
+      "question": "Does your radio appear in the app's list of devices?",
+      "help": "It is listed under a name like Meshtastic_1a2b when the app scans.",
+      "yes": "pairing",
+      "no": "make-visible"
+    },
+    {
+      "type": "fix",
+      "id": "make-visible",
+      "title": "Make the radio visible",
+      "body": "A radio that is on but not listed is usually connected to something else, or has its Bluetooth off.",
+      "steps": [
+        "Hold the phone within a few feet of the radio.",
+        "Close anything else that might be connected to it: the app on another phone or tablet, or a browser tab with the web client. A radio accepts one Bluetooth connection at a time.",
+        "Restart the radio.",
+        "If you turned on WiFi on the radio, that turned Bluetooth off on most boards. Connect over USB and turn WiFi off again."
+      ],
+      "next": "pairing"
+    },
+    {
+      "type": "question",
+      "id": "pairing",
+      "question": "Did pairing ask for a PIN, and accept the one you entered?",
+      "help": "A radio with a screen shows a six-digit PIN when you pair. A radio without a screen uses 123456.",
+      "yes": "up-to-date",
+      "no": "pair-again"
+    },
+    {
+      "type": "fix",
+      "id": "pair-again",
+      "title": "Forget the radio and pair again",
+      "body": "A half-finished pairing stays on the phone and blocks new attempts.",
+      "steps": [
+        "In the phone's Bluetooth settings, find the radio and choose Forget or Unpair.",
+        "Restart the radio.",
+        "Pair again from inside the Meshtastic app, not from the phone's Bluetooth settings.",
+        "Enter the PIN on the radio's screen, or 123456 if it has no screen."
+      ],
+      "links": [{ "label": "Pairing steps in the setup guide", "href": "/guides/initial-setup/#pairing" }],
+      "next": "up-to-date"
+    },
+    {
+      "type": "question",
+      "id": "up-to-date",
+      "question": "Are the app and the radio's firmware both up to date?",
+      "help": "Check the app in your phone's app store. An old app with new firmware, or the other way around, can fail to connect.",
+      "yes": "ask",
+      "no": "update"
+    },
+    {
+      "type": "fix",
+      "id": "update",
+      "title": "Update the app and the firmware",
+      "body": "The app and the firmware are released together, and a large gap between them causes connection failures.",
+      "steps": [
+        "Update the Meshtastic app from your app store.",
+        "Flash the current stable firmware over USB.",
+        "Forget the radio in the phone's Bluetooth settings and pair again."
+      ],
+      "links": [{ "label": "Flashing firmware guide", "href": "/guides/flashing-firmware/" }],
+      "next": "ask"
+    },
+    {
+      "type": "ask",
+      "id": "ask",
+      "title": "Ask in Discord",
+      "body": "This is beyond the usual causes. With the details below, someone can usually spot the problem.",
+      "include": [
+        "Your phone model and its Android or iOS version",
+        "The Meshtastic app version",
+        "Your radio model and firmware version",
+        "How you are connecting: Bluetooth, USB or WiFi",
+        "Where exactly it stops, and any error text the app shows"
+      ]
+    }
+  ]
+}

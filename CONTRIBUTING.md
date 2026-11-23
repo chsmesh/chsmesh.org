@@ -39,6 +39,13 @@ Thank you for your interest in contributing to CHS Mesh! We welcome contribution
 - Write the definition for someone who has never used a radio; it is also the tooltip readers see in guides
 - Check that an alias is not a common word with another meaning - it will be linked wherever it first appears
 
+### Troubleshooting Steps
+
+- The troubleshooter at `/troubleshooting/` is data: one `.json` file per problem in `src/content/troubleshooting/` (or use the CMS). The README shows the format
+- Each question must have a yes or no answer, and every path must end in a fix or in "ask in Discord" with a list of what to include in the post
+- Keep a fix short: one paragraph on the likely cause, then numbered instructions. Link to the guide section that covers it instead of repeating it
+- `npm run check` and `npm test` report a step that leads nowhere, loops, or cannot be reached
+
 ### Meetup Events
 
 - Provide accurate date and location information
