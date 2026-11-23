@@ -13,7 +13,8 @@ const labels = await getTaxonomyLabels();
 const categoryLabel = labels.resourceCategories[category] ?? category;
 ---
 
-<article class:list={['card', featured && 'border-accent-300 border-2']}>
+<!-- The id is the anchor that hardware lists on /builds/<slug>/ link to. -->
+<article id={`resource-${resource.slug}`} class:list={['card scroll-mt-24', featured && 'border-accent-300 border-2']}>
   {featured && (
     <div class="bg-accent-500 text-white text-xs font-semibold px-3 py-1 text-center">
       Recommended

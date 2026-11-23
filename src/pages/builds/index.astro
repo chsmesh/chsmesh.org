@@ -1,0 +1,63 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Hero from '../../components/Hero.astro';
+import BuildCard from '../../components/BuildCard.astro';
+import Modal from '../../components/Modal.astro';
+import SubmissionForm from '../../components/SubmissionForm.astro';
+import { buildFormConfig } from '../../components/formConfigs';
+import { getBuilds } from '../../utils/builds';
+import { getGlobal } from '../../utils/global';
+
+const builds = await getBuilds();
+const buildsPage = await getGlobal('builds', 'builds');
+---
+
+<Layout title={buildsPage.pageTitle} description={buildsPage.pageDescription}>
+  <Hero title={buildsPage.hero.title} subtitle={buildsPage.hero.subtitle} size={buildsPage.hero.size ?? 'small'}>
+    <div class="mt-6">
+      <button data-modal-open="build-modal" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        {buildsPage.submitLabel}
+      </button>
+    </div>
+  </Hero>
+
+  <section class="section">
+    <div class="container-wide">
+      {builds.length === 0 ? (
+        <div class="card card-body text-center py-12">
+          <svg class="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <h2 class="text-xl font-semibold mb-2">{buildsPage.empty.heading}</h2>
+          <p class="text-neutral-600 mb-4 max-w-xl mx-auto">{buildsPage.empty.body}</p>
+          <div>
+            <button data-modal-open="build-modal" class="btn-primary">{buildsPage.submitLabel}</button>
+          </div>
+        </div>
+      ) : (
+        <div class="card-grid">
+          {builds.map((build, index) => (
+            <BuildCard build={build} eager={index < 3} />
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+
+  {builds.length > 0 && (
+    <section class="section-sm bg-neutral-50 border-t border-neutral-200">
+      <div class="container-narrow text-center">
+        <h2 class="text-2xl font-semibold mb-2">{buildsPage.contribute.heading}</h2>
+        <p class="text-neutral-600 mb-6">{buildsPage.contribute.body}</p>
+        <button data-modal-open="build-modal" class="btn-outline">{buildsPage.submitLabel}</button>
+      </div>
+    </section>
+  )}
+
+  <Modal id="build-modal" size="lg">
+    <SubmissionForm config={buildFormConfig} />
+  </Modal>
+</Layout>

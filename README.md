@@ -183,8 +183,9 @@ src/
 │   ├── guides/         # Tutorial content (Markdown) — 4 entries
 │   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
+│   ├── builds/         # Member build gallery (Markdown) — no entries yet (.gitkeep); photos in src/assets/builds/
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 15 Markdown files
+│   └── global/         # Site configuration and page copy — 16 Markdown files
 ├── integrations/       # Build hooks (writes the offline service worker)
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
@@ -193,18 +194,22 @@ src/
 └── utils/              # Helper functions
 ```
 
-One collection is defined and routed but currently holds no entries:
+Two collections are defined and routed but currently hold no entries:
 
 - **meetups** — `src/content/meetups/` exists and is kept in git by a `.gitkeep`
   file; it just has no entries. Add the first `.md` file there. The `/meetups`
   and `/meetups/<slug>` routes are already wired up.
+- **builds** — the member build gallery at `/builds` and `/builds/<slug>`.
+  Entries normally arrive through the "Share Your Build" form on `/builds`,
+  which uploads photos and opens a pull request; see
+  [docs/cms-and-submissions.md](docs/cms-and-submissions.md#build-photos).
 
 There is no node directory to maintain: `/status` maps the nodes gateways
 actually hear, and `/map` redirects there. Fixed infrastructure is listed in
 `services/status/infrastructure.json` (see [docs/status.md](docs/status.md)).
 
-The 15 files in `src/content/global/` are `site.md`, `navigation.md`,
-`footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `guides.md`,
+The 16 files in `src/content/global/` are `site.md`, `navigation.md`,
+`footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `builds.md`, `guides.md`,
 `guides-detail.md`, `handbook.md`, `offline.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 

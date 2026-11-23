@@ -10,6 +10,8 @@ links:
     href: /guides/
   - label: Resources
     href: /resources/
+  - label: Builds
+    href: /builds/
   - label: Status
     href: /status/
   - label: About

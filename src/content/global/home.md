@@ -41,6 +41,12 @@ guidesSection:
     label: All Guides
     href: /guides/
     variant: outline
+buildsSection:
+  heading: Member Builds
+  cta:
+    label: All Builds
+    href: /builds/
+    variant: outline
 cta:
   heading: Ready to Join the Network?
   body: Whether you're a seasoned radio enthusiast or completely new to mesh networking, we'd love to have you. Join our community and help us build something amazing.
