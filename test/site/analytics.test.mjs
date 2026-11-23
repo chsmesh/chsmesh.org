@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { ANALYTICS_SRC, trackingOptedOut } from '../../src/utils/analytics.mjs';
+import { ANALYTICS_SRC, shouldLoadAnalytics, trackingOptedOut } from '../../src/utils/analytics.mjs';
 
 const read = (path) => readFileSync(fileURLToPath(new URL(`../../${path}`, import.meta.url)), 'utf8');
 
@@ -37,4 +37,17 @@ test('should load the tracker from the origin the CSP allows', () => {
   const { origin } = new URL(ANALYTICS_SRC);
   assert.match(headers, new RegExp(`script-src[^;]*\\s${origin.replaceAll('.', '\\.')}[\\s;]`));
   assert.match(headers, new RegExp(`connect-src[^;]*\\s${origin.replaceAll('.', '\\.')}[\\s;]`));
+});
+
+test('should load the tracker only on the live site', () => {
+  assert.equal(shouldLoadAnalytics('chsmesh.org', {}), true);
+  assert.equal(shouldLoadAnalytics('www.chsmesh.org', {}), true);
+  assert.equal(shouldLoadAnalytics('localhost', {}), false);
+  assert.equal(shouldLoadAnalytics('preview.chsmesh.org', {}), false);
+  assert.equal(shouldLoadAnalytics('chsmesh.org', { globalPrivacyControl: true }), false);
+});
+
+test('should report opens and submissions under the same form id', () => {
+  assert.match(read('src/components/Modal.astro'), /track\('form-open', \{ form: form\.id \}\)/);
+  assert.match(read('src/components/SubmissionForm.astro'), /track\('form-submit', \{ form: config\.id \}\)/);
 });

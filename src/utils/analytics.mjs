@@ -16,29 +16,63 @@ export function trackingOptedOut(nav, win = {}) {
   return [nav.doNotTrack, nav.msDoNotTrack, win.doNotTrack].some((v) => v === '1' || v === 1 || v === 'yes');
 }
 
+// Only the live site reports. Local dev, previews and other hosts stay out of
+// the production stats.
+export const ANALYTICS_HOSTS = ['chsmesh.org', 'www.chsmesh.org'];
+
 /**
- * Load the tracker unless the visitor opted out. An opted-out browser never
- * contacts the analytics origin at all.
+ * @param {string} hostname
+ * @param {Parameters<typeof trackingOptedOut>[0]} nav
+ * @param {Parameters<typeof trackingOptedOut>[1]} [win]
+ * @returns {boolean}
+ */
+export function shouldLoadAnalytics(hostname, nav, win) {
+  return ANALYTICS_HOSTS.includes(hostname) && !trackingOptedOut(nav, win);
+}
+
+// Events recorded while the tracker is still downloading, sent once it loads.
+const MAX_PENDING = 20;
+/** @type {[string, Record<string, string> | undefined][]} */
+let pending = [];
+let loading = false;
+
+/**
+ * Load the tracker on the live site unless the visitor opted out. An
+ * opted-out browser never contacts the analytics origin at all.
  */
 export function loadAnalytics() {
-  if (trackingOptedOut(navigator, window)) return;
+  if (!shouldLoadAnalytics(location.hostname, navigator, window)) return;
   const script = document.createElement('script');
   script.defer = true;
   script.src = ANALYTICS_SRC;
   script.dataset.websiteId = ANALYTICS_WEBSITE_ID;
+  loading = true;
+  script.addEventListener('load', () => {
+    loading = false;
+    const queued = pending;
+    pending = [];
+    queued.forEach(([name, data]) => track(name, data));
+  });
+  script.addEventListener('error', () => {
+    loading = false;
+    pending = [];
+  });
   document.head.append(script);
 }
 
 /**
- * Record a custom event. Does nothing when the tracker is not loaded (opted
- * out, blocked, or still loading), and never throws into the caller.
+ * Record a custom event. Events sent while the tracker is still loading are
+ * held and sent when it arrives. Does nothing when the tracker is not in use
+ * (opted out, blocked, or not the live site), and never throws into the caller.
  *
  * @param {string} name
  * @param {Record<string, string>} [data]
  */
 export function track(name, data) {
   try {
-    /** @type {any} */ (window).umami?.track(name, data);
+    const umami = /** @type {any} */ (window).umami;
+    if (umami) umami.track(name, data);
+    else if (loading && pending.length < MAX_PENDING) pending.push([name, data]);
   } catch {
     // Analytics must never break the page.
   }

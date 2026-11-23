@@ -238,15 +238,16 @@ Two related behaviours worth knowing:
 
 ### Analytics
 
-`src/utils/analytics.mjs` loads the cookieless Umami tracker from the layout,
-and skips it entirely for visitors who send Do Not Track or Global Privacy
-Control. Besides page views it records three events:
+`src/utils/analytics.mjs` loads the cookieless Umami tracker from the layout.
+It loads only on `chsmesh.org` (so local dev and previews stay out of the
+stats), and is skipped entirely for visitors who send Do Not Track or Global
+Privacy Control. Besides page views it records three events:
 
 | Event | When | Data |
 | --- | --- | --- |
-| `form-open` | A submission modal is opened | `form` (modal id) |
-| `form-submit` | A submission succeeds | `form` (form id) |
-| `resource-click` | A link on a resource card is clicked | `resource`, `link` (link type) |
+| `form-open` | A submission modal is opened | `form` (form id, e.g. `node-form`) |
+| `form-submit` | A submission succeeds | `form` (same form id) |
+| `resource-click` | A link on a resource card is clicked | `resource`, `link` (link type, `other` if unset) |
 
 The About page FAQ describes this to visitors; update it if the events change.
 

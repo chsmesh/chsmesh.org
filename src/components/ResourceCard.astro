@@ -84,7 +84,7 @@ const categoryLabel = labels.resourceCategories[category] ?? category;
             rel="noopener noreferrer"
             data-umami-event="resource-click"
             data-umami-event-resource={title}
-            data-umami-event-link={link.type}
+            data-umami-event-link={link.type ?? 'other'}
             class:list={[
               'btn-sm',
               link.type === 'purchase' ? 'btn-primary' : 'btn-outline',

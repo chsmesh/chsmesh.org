@@ -223,7 +223,9 @@ const sizeClasses = {
         const modal = modalId ? document.getElementById(modalId) : null;
         if (modal) {
           openModal(modal);
-          if (modal.querySelector('form')) track('form-open', { form: modal.id });
+          // Same id that SubmissionForm sends with form-submit, so the two match up.
+          const form = modal.querySelector('form');
+          if (form) track('form-open', { form: form.id });
         }
       });
     });
