@@ -83,12 +83,9 @@ faqs:
       We count visits with Umami, an open-source analytics tool we host ourselves. It sets no cookies, does not store IP addresses, and does not follow you to other sites. It records page views and a few actions: opening a submission form, submitting one, and clicking a link on the Resources page. If your browser sends Do Not Track or Global Privacy Control, the analytics script is not loaded at all. Our submission forms use Cloudflare Turnstile to block spam, which loads a script from Cloudflare on each page. Separately, the Network Status page shows nodes heard on the public LongFast channel; message text is never stored.
 contactCta:
   heading: Have Questions?
-  body: We're happy to help! Reach out on Discord or email us directly.
+  body: We're happy to help! Reach out on Discord.
   ctas:
     - label: Join Discord
       href: '@links.discord'
       variant: primary
-    - label: Email Us
-      href: '@links.emailInfo'
-      variant: outline
 ---

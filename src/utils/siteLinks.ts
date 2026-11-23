@@ -7,7 +7,7 @@ export { normalizeHref };
 /**
  * Resolves an `@links.<key>` token against the link map in
  * `src/content/global/site.md`, which is the single source of truth for the
- * site's Discord, GitHub, and email URLs, then canonicalizes the result with
+ * site's Discord and GitHub URLs, then canonicalizes the result with
  * `normalizeHref`.
  *
  * Every content-authored href on the site flows through here, which is what

@@ -142,7 +142,7 @@ Badge *color* classes (`badge-beginner` / `badge-intermediate` /
 - **Astro Content API**: Core data layer; schema validation prevents invalid frontmatter
 - **Tailwind CSS**: All styling; no custom CSS classes outside `src/styles/global.css` except component-scoped styles
 - **Site Config** (`astro.config.mjs`): `site: 'https://chsmesh.org'` sets canonical URLs for SEO and is the origin `@astrojs/sitemap` uses for `sitemap-index.xml`
-- **Community Links**: `src/content/global/site.md` has one `links` map (Discord, GitHub, repo, and the `info@`/`meetups@` mailto addresses) — there is no separate `social` list. Page copy refers to them with `@links.<key>` tokens, resolved by `resolveLink()` in `src/utils/siteLinks.ts`; used in footer/nav and in CTA hrefs
+- **Community Links**: `src/content/global/site.md` has one `links` map (Discord, GitHub, and repo) — there is no separate `social` list. Page copy refers to them with `@links.<key>` tokens, resolved by `resolveLink()` in `src/utils/siteLinks.ts`; used in footer/nav and in CTA hrefs
 - **nginx** (`nginx.conf` + `security-headers.conf`): security headers live in the include, and **any `location` that declares an `add_header` must re-`include` `security-headers.conf`** or it serves none of them — see the deployment section of `README.md`
 
 ## Debugging & Troubleshooting
