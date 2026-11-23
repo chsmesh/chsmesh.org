@@ -26,7 +26,7 @@ nodes on the mesh ── RF ──► gateways (members' nodes with MQTT uplink)
 | Section | Source |
 | --- | --- |
 | Nodes heard (24 h) | Any packet a gateway uploaded from the node |
-| Infrastructure up | Sites in `services/status/infrastructure.json`. *Up* = heard in the last 6 h, *stale* = within 24 h. Heard means its own packet was uploaded, it uploaded as a gateway, or it relayed a packet (its last ID byte in the relay field, credited only when no other known node shares that byte) |
+| Infrastructure up | Sites in `services/status/infrastructure.json`. *Up* = heard in the last 6 h, *stale* = within 24 h, *down* = longer ago. *Unseen* (shown as "Not yet seen") = never heard and added to the list less than 7 days ago; after that a never-heard site is *down*. Unseen sites are left out of the headline count (`infrastructureUnseen` in the totals). Heard means its own packet was uploaded, it uploaded as a gateway, or it relayed a packet (its last ID byte in the relay field, credited only when no other known node shares that byte) |
 | Last 7 days bars | One 3-hour block each, filled when the site was heard |
 | Channel busy | `channelUtilization` from nodes' own device telemetry on LongFast (median of reports in the last 2 h; per site in the table) |
 | Activity | Packets per hour, each packet counted once however many gateways uploaded it |
@@ -65,13 +65,17 @@ individually, so the service never sees the submissions service's secrets.
 | `PORT` | `3001` | |
 
 State lives in the `status-data` named volume, so history survives restarts
-and redeploys. Losing it only empties the charts until new uploads arrive.
+and redeploys. Losing it empties the charts until new uploads arrive, and
+resets every site that is not currently heard to "Not yet seen" for 7 days
+before it shows as down again.
 
 ### Adding or renaming infrastructure
 
 Edit `services/status/infrastructure.json`: `id` is the Meshtastic node ID
 (`!xxxxxxxx`), `name` and `area` are the public labels. Never add coordinates
-(a test enforces this). Rebuild and redeploy the status image.
+(a test enforces this). Rebuild and redeploy the status image. A site the
+collector has already heard as an ordinary node keeps that history; one it has
+never heard reads "Not yet seen" for 7 days, then "Down".
 
 ## Endpoints
 
