@@ -918,6 +918,132 @@ a.glossary-entry-term:not(.btn) {
   color: var(--color-neutral-900);
 }
 
+/* Local mesh settings card (src/components/MeshSettings.astro) */
+.mesh-settings {
+  margin-bottom: 2rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-primary-200);
+  background-color: var(--color-primary-50);
+  color: var(--color-neutral-700);
+  break-inside: avoid;
+}
+
+.mesh-settings h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.mesh-settings h3 {
+  font-size: 1rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.mesh-settings-layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .mesh-settings-layout {
+    grid-template-columns: minmax(0, 1fr) 13rem;
+  }
+}
+
+.mesh-settings-list {
+  margin-top: 1rem;
+  font-size: 0.9375rem;
+}
+
+.mesh-settings-list > div {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid var(--color-primary-100);
+}
+
+.mesh-settings-list dt {
+  color: var(--color-neutral-600);
+}
+
+.mesh-settings-list dd span,
+.mesh-settings-table th span {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--color-neutral-600);
+}
+
+.mesh-settings-table {
+  overflow-x: auto;
+}
+
+.mesh-settings-table table {
+  width: 100%;
+  font-size: 0.9375rem;
+  border-collapse: collapse;
+}
+
+.mesh-settings-table th,
+.mesh-settings-table td {
+  padding: 0.375rem 0.75rem 0.375rem 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-primary-100);
+}
+
+.mesh-settings-table thead th {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-neutral-600);
+}
+
+.mesh-settings-table code {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.mesh-settings-share {
+  font-size: 0.875rem;
+}
+
+.mesh-settings-share h3 {
+  margin-top: 0;
+}
+
+.mesh-settings-share p {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.mesh-settings-qr {
+  display: block;
+  width: 100%;
+  max-width: 13rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-primary-200);
+}
+
+.mesh-settings-warning,
+.mesh-settings-reviewed {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+.mesh-settings-reviewed {
+  color: var(--color-neutral-600);
+}
+
+/* Task lists in guides (`- [ ]`): the checkbox replaces the bullet. */
+.prose ul.contains-task-list {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+
+.prose .task-list-item input {
+  margin-right: 0.5rem;
+}
+
 /*
  * Print
  *
@@ -1076,6 +1202,20 @@ a.glossary-entry-term:not(.btn) {
 
   .prose a {
     color: var(--color-primary-700);
+  }
+
+  /* The import button becomes its address: paper cannot be tapped. */
+  .mesh-settings-link {
+    display: block;
+    padding: 0;
+    background: none;
+    color: black;
+    font-size: 8pt;
+    overflow-wrap: anywhere;
+  }
+
+  .mesh-settings-link::after {
+    content: ' (' attr(href) ')';
   }
 
   /* Spell out where an outside link goes. */

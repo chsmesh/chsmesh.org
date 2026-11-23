@@ -31,6 +31,7 @@ Thank you for your interest in contributing to CHS Mesh! We welcome contribution
 - Test procedures before submitting
 - Specify difficulty level: `beginner`, `intermediate`, or `advanced`
 - Use standard categories: `getting-started`, `hardware`, `software`, `network`, or `troubleshooting`
+- Do not write setup steps that spell out the local region, preset or channel key. Those values live in `src/content/global/mesh.md`; set `meshSettings: true` in the guide's frontmatter to show them as a card with the channel QR code
 
 ### Glossary Terms
 

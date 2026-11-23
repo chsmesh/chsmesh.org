@@ -6,6 +6,7 @@
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import OfflineIndicator from '../components/OfflineIndicator.astro';
+import MeshSettings from '../components/MeshSettings.astro';
 import { getCollection, render } from 'astro:content';
 import { getGlobal } from '../utils/global';
 import { getTaxonomyData } from '../utils/taxonomy';
@@ -100,6 +101,7 @@ const generated = new Date().toLocaleDateString('en-US', {
               </div>
             )}
           </header>
+          {guide.data.meshSettings && <MeshSettings />}
           <div class="prose max-w-none">
             <Content />
           </div>

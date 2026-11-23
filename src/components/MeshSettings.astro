@@ -1,0 +1,87 @@
+---
+// The local mesh settings card: region, preset, channels and a channel link
+// with its QR code. Everything comes from src/content/global/mesh.md, so the
+// guides that show it (`meshSettings: true`) never restate a setting.
+import { getGlobal } from '../utils/global';
+import { qrPath } from '../utils/qr.mjs';
+
+const mesh = await getGlobal('mesh', 'mesh');
+const qr = qrPath(mesh.share.url);
+const reviewed = mesh.reviewed?.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+---
+
+{/* aria-label, not an id on the heading: the handbook can show this card in
+    more than one chapter. */}
+<aside class="mesh-settings" aria-label={mesh.heading}>
+  <h2>{mesh.heading}</h2>
+  <p>{mesh.intro}</p>
+
+  <div class="mesh-settings-layout">
+    <div>
+      {mesh.settings.length > 0 && (
+        <dl class="mesh-settings-list">
+          {mesh.settings.map((setting) => (
+            <div>
+              <dt>{setting.label}</dt>
+              <dd>
+                <strong>{setting.value}</strong>
+                {setting.note && <span>{setting.note}</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      <h3>{mesh.channelsHeading}</h3>
+      <div class="mesh-settings-table">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{mesh.channelLabels.name}</th>
+              <th scope="col">{mesh.channelLabels.slot}</th>
+              <th scope="col">{mesh.channelLabels.key}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mesh.channels.map((channel) => (
+              <tr>
+                <th scope="row">
+                  {channel.name}
+                  {channel.note && <span>{channel.note}</span>}
+                </th>
+                <td>{mesh.channelLabels[channel.slot]}</td>
+                <td><code>{channel.key}</code></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mesh-settings-share">
+      <h3>{mesh.share.heading}</h3>
+      <svg
+        class="mesh-settings-qr"
+        viewBox={`0 0 ${qr.size} ${qr.size}`}
+        role="img"
+        aria-label={mesh.share.qrAlt}
+        shape-rendering="crispEdges"
+      >
+        <rect width={qr.size} height={qr.size} fill="#fff" />
+        <path d={qr.d} fill="#000" />
+      </svg>
+      <p>{mesh.share.body}</p>
+      <a href={mesh.share.url} class="btn-primary btn-sm mesh-settings-link" rel="noopener noreferrer">
+        {mesh.share.buttonLabel}
+      </a>
+    </div>
+  </div>
+
+  {mesh.share.warning && <p class="mesh-settings-warning">{mesh.share.warning}</p>}
+  {reviewed && <p class="mesh-settings-reviewed">{mesh.reviewedLabel} {reviewed}</p>}
+</aside>

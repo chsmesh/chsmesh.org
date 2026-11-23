@@ -118,6 +118,7 @@ collections:
       - { name: prerequisites, label: Prerequisites, widget: list, required: false, field: { name: item, label: Prerequisite, widget: string } }
       - { name: lastUpdated, label: Last updated, widget: datetime, type: date, required: false }
       - { name: author, label: Author, widget: string, required: false }
+      - { name: meshSettings, label: Show the local mesh settings card, widget: boolean, default: false, required: false, hint: "Puts the region, channels and QR code from Site settings > Local mesh settings above the guide. Use it instead of typing channel settings into a guide." }
       - { name: handbook, label: Include in the field handbook, widget: boolean, default: false, required: false, hint: "Adds this guide to /handbook/ and its PDF. Keep it to what someone needs when the internet is down." }
       - { name: body, label: Guide content, widget: markdown }
 
@@ -525,6 +526,57 @@ collections:
           - { name: mapHeading, label: Map heading, widget: string }
           - { name: mapBody, label: Map body, widget: text }
           - { name: mapCtaLabel, label: Map button label, widget: string }
+      - name: mesh
+        label: Local mesh settings
+        file: src/content/global/mesh.md
+        fields:
+          - { name: type, widget: hidden, default: mesh }
+          - { name: heading, label: Heading, widget: string }
+          # Not `body`: the CMS would write that as the file's markdown content.
+          - { name: intro, label: Intro, widget: text }
+          - { name: reviewed, label: Last checked against the mesh, widget: datetime, type: date, required: false }
+          - { name: reviewedLabel, label: Last checked label, widget: string, hint: "Followed by the date above" }
+          - name: settings
+            label: Radio settings
+            widget: list
+            required: false
+            summary: "{{fields.label}}: {{fields.value}}"
+            fields:
+              - { name: label, label: Setting, widget: string }
+              - { name: value, label: Value, widget: string }
+              - { name: note, label: Note, widget: string, required: false }
+          - { name: channelsHeading, label: Channels heading, widget: string }
+          - name: channelLabels
+            label: Channel table labels
+            widget: object
+            collapsed: true
+            fields:
+              - { name: name, label: Name column, widget: string }
+              - { name: slot, label: Slot column, widget: string }
+              - { name: key, label: Key column, widget: string }
+              - { name: primary, label: Primary, widget: string }
+              - { name: secondary, label: Secondary, widget: string }
+          - name: channels
+            label: Channels
+            widget: list
+            min: 1
+            hint: "Changing a radio setting or a channel here does not change the QR code. Export a new channel link from the Meshtastic app and paste it under One-tap import as well; the site's tests fail if the two disagree."
+            summary: "{{fields.name}} ({{fields.slot}})"
+            fields:
+              - { name: name, label: Name, widget: string }
+              - { name: slot, label: Slot, widget: select, options: [primary, secondary] }
+              - { name: key, label: Key, widget: string, hint: "As typed into the app. Only a key the mesh already publishes; never a private channel's key." }
+              - { name: note, label: Note, widget: string, required: false }
+          - name: share
+            label: One-tap import
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - { name: url, label: Channel link, widget: string, type: url, hint: "A https://meshtastic.org/e/ link exported from the Meshtastic app. The QR code is drawn from it." }
+              - { name: buttonLabel, label: Button label, widget: string }
+              - { name: qrAlt, label: QR code description, widget: string, hint: "For people who cannot see the code" }
+              - { name: warning, label: Warning, widget: text, required: false }
       - name: guides
         label: Guides page
         file: src/content/global/guides.md

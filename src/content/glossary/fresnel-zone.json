@@ -1,0 +1,9 @@
+{
+  "term": "Fresnel zone",
+  "definition": "The football-shaped space around the straight line between two antennas. Trees or buildings inside it weaken the signal even when the line itself is clear.",
+  "aliases": [],
+  "related": [
+    "line-of-sight",
+    "antenna"
+  ]
+}

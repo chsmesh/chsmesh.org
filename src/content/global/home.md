@@ -7,9 +7,12 @@ hero:
   subtitle: Building an open, decentralized mesh network across the Lowcountry 
   size: large
   ctas:
-    - label: Get Started
-      href: /guides/
+    - label: Join the Mesh
+      href: /guides/join-the-charleston-mesh/
       variant: primary
+    - label: Browse Guides
+      href: /guides/
+      variant: secondary
     - label: Join a Meetup
       href: /meetups/
       variant: secondary

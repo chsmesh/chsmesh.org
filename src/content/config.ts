@@ -47,6 +47,9 @@ const guides = defineCollection({
     prerequisites: z.array(z.string()).default([]),
     lastUpdated: z.coerce.date().optional(),
     author: z.string().optional(),
+    // Show the local mesh settings card (src/content/global/mesh.md) above the
+    // guide, so channel settings are written down in one place only.
+    meshSettings: z.boolean().default(false),
     // Include this guide in the field handbook (/handbook/ and its PDF). Keep
     // it to what someone needs in hand when the internet is down.
     handbook: z.boolean().default(false),
@@ -423,6 +426,60 @@ const global = defineCollection({
       unavailable: z.object({ heading: z.string(), body: z.string() }),
       // Shown when the service answers but is not receiving uploads.
       paused: z.object({ heading: z.string(), body: z.string() }),
+    }),
+    z.object({
+      // What a radio needs to join the local mesh. The one place these
+      // settings are written down: guides marked `meshSettings: true` show
+      // them as a card (src/components/MeshSettings.astro) instead of
+      // repeating them.
+      type: z.literal('mesh'),
+      heading: z.string(),
+      // Not `body`: the CMS writes a top-level field of that name as the
+      // file's markdown content, not into the frontmatter.
+      intro: z.string(),
+      // When someone last checked these against the live mesh.
+      reviewed: z.coerce.date().optional(),
+      reviewedLabel: z.string(),
+      settings: z
+        .array(
+          z.object({
+            label: z.string(),
+            value: z.string(),
+            note: z.string().optional(),
+          })
+        )
+        .default([]),
+      channelsHeading: z.string(),
+      channelLabels: z.object({
+        name: z.string(),
+        slot: z.string(),
+        key: z.string(),
+        primary: z.string(),
+        secondary: z.string(),
+      }),
+      channels: z
+        .array(
+          z.object({
+            name: z.string(),
+            slot: z.enum(['primary', 'secondary']),
+            // As typed into the app. Only ever a key the mesh already
+            // publishes; a private channel's key does not belong here.
+            key: z.string(),
+            note: z.string().optional(),
+          })
+        )
+        .min(1),
+      // One-tap import. `url` is a Meshtastic channel link; the QR code is
+      // drawn from it at build time. test/site/mesh-settings.test.mjs checks
+      // that it agrees with the settings and channels listed above.
+      share: z.object({
+        heading: z.string(),
+        body: z.string(),
+        url: z.string().url().startsWith('https://meshtastic.org/e/'),
+        buttonLabel: z.string(),
+        qrAlt: z.string(),
+        warning: z.string().optional(),
+      }),
     }),
     z.object({
       type: z.literal('guides'),

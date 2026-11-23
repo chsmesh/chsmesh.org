@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import OfflineIndicator from '../../components/OfflineIndicator.astro';
+import MeshSettings from '../../components/MeshSettings.astro';
 import { getCollection, render } from 'astro:content';
 import { getTaxonomyLabels } from '../../utils/taxonomy';
 import { getGlobal } from '../../utils/global';
@@ -17,7 +18,7 @@ export async function getStaticPaths() {
 
 const { guide } = Astro.props;
 const { Content } = await render(guide);
-const { title, description, difficulty, category, readingTime, prerequisites, lastUpdated, author } = guide.data;
+const { title, description, difficulty, category, readingTime, prerequisites, lastUpdated, author, meshSettings } = guide.data;
 const guidesDetail = await getGlobal('guides-detail', 'guides-detail');
 const labels = await getTaxonomyLabels();
 const difficultyLabel = labels.guideDifficulties[difficulty] ?? difficulty;
@@ -122,8 +123,11 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
 
     <!-- Content -->
     <section class="section-sm">
-      <div class="container-narrow prose max-w-none">
-        <Content />
+      <div class="container-narrow">
+        {meshSettings && <MeshSettings />}
+        <div class="prose max-w-none">
+          <Content />
+        </div>
       </div>
     </section>
 

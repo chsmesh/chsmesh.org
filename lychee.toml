@@ -34,4 +34,6 @@ exclude = [
   # Answers 200, 500 or 503 to non-browser requests regardless of whether the
   # product exists.
   '^https://www\.amazon\.com/',
+  # Answers 403 to every non-browser request.
+  '^https://www\.dorchestercountysc\.gov/',
 ]
