@@ -8,6 +8,11 @@
 //       request, and notify a private Discord channel. Anonymous users never
 //       touch GitHub directly; the fine-grained token stays here.
 //
+//   POST /api/submit/build
+//       The same, for the gallery at /builds/, with one to six photos sent
+//       base64-encoded in the JSON body. Each is stripped of metadata and
+//       committed to the pull request alongside the entry.
+//
 //   POST /api/submit/host
 //       A relay host offer from /relay-sites/. Contact only: validated and
 //       forwarded to the private Discord channel, never written to GitHub.
@@ -34,6 +39,8 @@ const TURNSTILE_SECRET = env('TURNSTILE_SECRET');
 const OAUTH_CLIENT_ID = env('GITHUB_OAUTH_CLIENT_ID');
 const OAUTH_CLIENT_SECRET = env('GITHUB_OAUTH_CLIENT_SECRET');
 const OAUTH_SCOPE = env('GITHUB_OAUTH_SCOPE', 'public_repo');
+// Request body cap for every kind that does not set its own `maxBodyBytes`
+// (only `build`, which carries photos). nginx enforces the same two limits.
 const MAX_BODY_BYTES = 64 * 1024;
 // `Secure` cookies are dropped by browsers over plain http, which would break
 // the OAuth state check when testing against http://localhost.
@@ -58,13 +65,13 @@ function send(res, status, body, headers = {}) {
   res.end(payload);
 }
 
-function readJson(req) {
+function readJson(req, maxBytes) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
+      if (size > maxBytes) {
         reject(Object.assign(new Error('payload too large'), { status: 413 }));
         req.destroy();
         return;
@@ -200,6 +207,32 @@ async function notifyContact(kind, data, { suspect = false } = {}) {
 // ---------------------------------------------------------------------------
 // Submissions
 
+// Write the entry and its attachments (photos) to `branch` as one commit on
+// top of `baseSha`, through the Git data API: the contents API takes one file
+// per commit and would leave a half-written entry if a later upload failed.
+async function commitWithAttachments(branch, baseSha, file, message) {
+  const repo = `/repos/${GITHUB_REPO}`;
+  const [baseCommit, ...blobs] = await Promise.all([
+    github(`${repo}/git/commits/${baseSha}`),
+    ...file.attachments.map((attachment) =>
+      github(`${repo}/git/blobs`, { method: 'POST', body: { content: attachment.bytes.toString('base64'), encoding: 'base64' } })
+    ),
+  ]);
+  if (!baseCommit) throw new Error(`base commit ${baseSha} not found`);
+  const tree = await github(`${repo}/git/trees`, {
+    method: 'POST',
+    body: {
+      base_tree: baseCommit.tree.sha,
+      tree: [
+        { path: file.path, mode: '100644', type: 'blob', content: file.content },
+        ...file.attachments.map((attachment, index) => ({ path: attachment.path, mode: '100644', type: 'blob', sha: blobs[index].sha })),
+      ],
+    },
+  });
+  const commit = await github(`${repo}/git/commits`, { method: 'POST', body: { message, tree: tree.sha, parents: [baseSha] } });
+  await github(`${repo}/git/refs/heads/${branch}`, { method: 'PATCH', body: { sha: commit.sha } });
+}
+
 async function openPullRequest(kind, data, notes = []) {
   const today = new Date().toISOString().slice(0, 10);
   const shortId = crypto.randomBytes(3).toString('hex');
@@ -234,14 +267,15 @@ async function openPullRequest(kind, data, notes = []) {
 
   let pr;
   try {
-    await github(`/repos/${GITHUB_REPO}/contents/${file.path}`, {
-      method: 'PUT',
-      body: {
-        message: `content(${SPECS[kind].collection}): add ${slug} from public submission`,
-        content: Buffer.from(file.content, 'utf8').toString('base64'),
-        branch,
-      },
-    });
+    const message = `content(${SPECS[kind].collection}): add ${slug} from public submission`;
+    if (file.attachments?.length) {
+      await commitWithAttachments(branch, base.object.sha, file, message);
+    } else {
+      await github(`/repos/${GITHUB_REPO}/contents/${file.path}`, {
+        method: 'PUT',
+        body: { message, content: Buffer.from(file.content, 'utf8').toString('base64'), branch },
+      });
+    }
     pr = await github(`/repos/${GITHUB_REPO}/pulls`, {
       method: 'POST',
       body: {
@@ -288,7 +322,7 @@ async function handleSubmit(req, res, kind) {
 
   let payload;
   try {
-    payload = await readJson(req);
+    payload = await readJson(req, SPECS[kind].maxBodyBytes ?? MAX_BODY_BYTES);
   } catch (error) {
     return send(res, error.status ?? 400, { ok: false, error: error.message });
   }

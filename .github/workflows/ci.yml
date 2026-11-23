@@ -49,6 +49,7 @@ jobs:
             container:
               - '!src/content/**'
               - '!public/images/**'
+              - '!src/assets/builds/**'
               - '!docs/**/*.md'
 
   site:

@@ -1,0 +1,147 @@
+---
+import { render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import BuildCard from '../../components/BuildCard.astro';
+import { getBuilds, resolveHardware } from '../../utils/builds';
+import { getGlobal } from '../../utils/global';
+
+export async function getStaticPaths() {
+  const builds = await getBuilds();
+  return builds.map((build) => ({
+    params: { slug: build.slug },
+    props: { build },
+  }));
+}
+
+const { build } = Astro.props;
+const { Content } = await render(build);
+const { title, builder, description, date, photos, area, nodeName, mapLink } = build.data;
+const { detail } = await getGlobal('builds', 'builds');
+const hardware = await resolveHardware(build);
+const [cover, ...morePhotos] = photos;
+const hasBody = build.body.trim().length > 0;
+
+const otherBuilds = (await getBuilds()).filter((other) => other.id !== build.id).slice(0, 3);
+---
+
+<Layout title={title} description={description} ogImage={cover.image.src}>
+  <article>
+    <!-- Header -->
+    <section class="hero hero-pattern py-12">
+      <div class="container-narrow">
+        <nav class="mb-6">
+          <a href="/builds/" class="transition-colors inline-flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            {detail.backLabel}
+          </a>
+        </nav>
+
+        <h1 class="text-white mb-4">{title}</h1>
+        <p class="text-xl text-primary-100">{description}</p>
+
+        <div class="mt-6 text-sm text-primary-200 flex flex-wrap gap-4">
+          <span>{detail.builderLabel} {builder}</span>
+          <span>
+            {date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Photos. Each links to the full-size file. -->
+    <section class="section-sm">
+      <div class="container-narrow">
+        <figure>
+          <a href={cover.image.src}>
+            <img src={cover.image.src} width={cover.image.width} height={cover.image.height} alt={cover.alt} class="w-full h-auto rounded-xl" />
+          </a>
+        </figure>
+        {morePhotos.length > 0 && (
+          <div class:list={['grid gap-4 mt-4', morePhotos.length === 1 ? 'grid-cols-1' : 'grid-cols-2']}>
+            {morePhotos.map((photo) => (
+              <a href={photo.image.src} class="block aspect-[4/3] bg-neutral-100 rounded-xl overflow-hidden">
+                <img src={photo.image.src} width={photo.image.width} height={photo.image.height} alt={photo.alt} loading="lazy" decoding="async" class="w-full h-full object-cover" />
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+
+    <!-- Details -->
+    {(hardware.length > 0 || area || nodeName || mapLink) && (
+      <section class="section-sm bg-neutral-50 border-y border-neutral-200">
+        <div class="container-narrow grid gap-8 md:grid-cols-2">
+          {hardware.length > 0 && (
+            <div>
+              <h2 class="text-xl font-semibold mb-3">{detail.hardwareHeading}</h2>
+              <ul class="space-y-2">
+                {hardware.map((item) => (
+                  <li class="flex items-start gap-2 text-neutral-700">
+                    <span class="w-1.5 h-1.5 bg-primary-400 rounded-full mt-2 shrink-0"></span>
+                    {item.href ? (
+                      <a href={item.href} class="text-primary-600 hover:text-primary-700 underline">{item.name}</a>
+                    ) : (
+                      <span>{item.name}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {(area || nodeName || mapLink) && (
+            <dl class="space-y-3 text-neutral-700">
+              {area && (
+                <div>
+                  <dt class="text-sm font-medium text-neutral-500">{detail.areaLabel}</dt>
+                  <dd>{area}</dd>
+                </div>
+              )}
+              {nodeName && (
+                <div>
+                  <dt class="text-sm font-medium text-neutral-500">{detail.nodeLabel}</dt>
+                  <dd>{nodeName}</dd>
+                </div>
+              )}
+              {mapLink && (
+                <div>
+                  <a href={mapLink} target="_blank" rel="noopener noreferrer" class="btn-outline btn-sm">
+                    {detail.mapLinkLabel}
+                    <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              )}
+            </dl>
+          )}
+        </div>
+      </section>
+    )}
+
+    <!-- Build notes -->
+    {hasBody && (
+      <section class="section-sm">
+        <div class="container-narrow prose max-w-none">
+          <Content />
+        </div>
+      </section>
+    )}
+
+    <!-- More builds -->
+    {otherBuilds.length > 0 && (
+      <section class="section-sm bg-neutral-50 border-t border-neutral-200">
+        <div class="container-wide">
+          <h2 class="text-xl font-semibold mb-6">{detail.moreHeading}</h2>
+          <div class="card-grid">
+            {otherBuilds.map((other) => (
+              <BuildCard build={other} />
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+  </article>
+</Layout>

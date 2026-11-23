@@ -17,6 +17,8 @@ quickLinks:
       href: /handbook/
     - label: Resources
       href: /resources/
+    - label: Member Builds
+      href: /builds/
     - label: Network Status
       href: /status/
     - label: Host a Relay

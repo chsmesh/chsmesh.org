@@ -1,0 +1,44 @@
+---
+import type { Build } from '../utils/builds';
+
+interface Props {
+  build: Build;
+  // Above-the-fold cards load eagerly so the grid does not pop in.
+  eager?: boolean;
+}
+
+const { build, eager = false } = Astro.props;
+const { title, builder, description, photos, area } = build.data;
+const cover = photos[0];
+const buildHref = `/builds/${build.slug}/`;
+---
+
+<article class="card hover:border-primary-300 transition-colors">
+  <a href={buildHref} class="block relative aspect-[4/3] bg-neutral-100 overflow-hidden" tabindex="-1" aria-hidden="true">
+    {/* A plain <img>: the site builds with Astro's passthrough image service
+        (astro.config.mjs), so <Image> would only emit a second copy of the file. */}
+    <img
+      src={cover.image.src}
+      width={cover.image.width}
+      height={cover.image.height}
+      alt=""
+      class="w-full h-full object-cover"
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+    />
+    {photos.length > 1 && (
+      <span class="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-medium px-2 py-1 rounded">
+        {photos.length} photos
+      </span>
+    )}
+  </a>
+  <div class="card-body">
+    <h3 class="text-lg font-semibold mb-1">
+      <a href={buildHref} class="hover:text-primary-600 transition-colors text-neutral-900">{title}</a>
+    </h3>
+    <p class="text-sm text-neutral-500 mb-3">
+      {builder}{area && <span> · {area}</span>}
+    </p>
+    <p class="text-neutral-600 text-sm line-clamp-2">{description}</p>
+  </div>
+</article>
