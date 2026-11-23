@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import { getCollection, render } from 'astro:content';
 import { getTaxonomyLabels } from '../../utils/taxonomy';
 import { getGlobal } from '../../utils/global';
+import { guideShareCard } from '../../utils/shareCards';
 
 export async function getStaticPaths() {
   const guides = await getCollection('guides');
@@ -19,6 +20,7 @@ const guidesDetail = await getGlobal('guides-detail', 'guides-detail');
 const labels = await getTaxonomyLabels();
 const difficultyLabel = labels.guideDifficulties[difficulty] ?? difficulty;
 const categoryLabel = labels.guideCategories[category] ?? category;
+const shareCard = guideShareCard(guide, labels);
 
 const difficultyColors = {
   beginner: 'badge-beginner',
@@ -36,7 +38,7 @@ const relatedGuides = allGuides
 const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', encodeURIComponent(title));
 ---
 
-<Layout title={title} description={description}>
+<Layout title={title} description={description} ogImage={shareCard.path} ogImageAlt={shareCard.alt} ogType="article">
   <article>
     <!-- Header -->
     <section class="hero hero-pattern py-12">
