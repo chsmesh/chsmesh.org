@@ -386,7 +386,9 @@ without a commit. If the repository goes quiet for that long, re-enable
 review stop silently.
 
 All three need `npm run build` first and
-[lychee installed](https://lychee.cli.rs/guides/getting-started/) locally. Settings live
+[lychee installed](https://lychee.cli.rs/guides/getting-started/) locally. The internal check
+also needs `npm run build:pdf`, because pages link to the PDFs in
+`dist/downloads/`. Settings live
 in `lychee.toml`. Discord invites are checked through Discord's invite API, because the
 `discord.gg` page answers 200 even for an expired invite.
 

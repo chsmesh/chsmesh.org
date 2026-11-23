@@ -5,7 +5,8 @@
 #   scripts/check-links.sh external   # links out to other sites
 #   scripts/check-links.sh manual     # list the links nothing can check
 #
-# Run `npm run build` first. Needs lychee on PATH
+# Run `npm run build` first, and `npm run build:pdf` too for `internal`
+# (pages link to the PDFs in dist/downloads/). Needs lychee on PATH
 # (https://lychee.cli.rs/guides/getting-started/). Shared settings and the allowlist of
 # sites that block bots live in lychee.toml. Extra arguments are passed on to
 # lychee, e.g. `scripts/check-links.sh external --format markdown --output report.md`.
