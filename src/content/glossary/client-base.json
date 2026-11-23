@@ -1,0 +1,12 @@
+{
+  "term": "Client Base",
+  "definition": "A device role for your own rooftop or attic node. It always relays messages to and from the nodes you mark as favorites, and otherwise behaves like a client.",
+  "aliases": [
+    "CLIENT_BASE"
+  ],
+  "related": [
+    "client",
+    "device-role",
+    "router"
+  ]
+}

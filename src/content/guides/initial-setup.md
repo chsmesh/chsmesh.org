@@ -8,8 +8,9 @@ readingTime: 12
 prerequisites:
   - Meshtastic firmware flashed to your device
   - Meshtastic app installed on your phone
-lastUpdated: 2026-04-21
+lastUpdated: 2026-11-22
 handbook: true
+meshSettings: true
 ---
 
 ## Overview
@@ -48,11 +49,11 @@ Install the official Meshtastic app:
 
 ### Region (Critical!)
 
-**You must set this correctly** or your device may transmit illegally.
+**You must set this correctly** or your device may transmit illegally. A new device does not transmit at all until a region is set.
 
 1. Go to **Settings** > **LoRa**
-2. Set **Region** to **US** (United States)
-3. This configures the correct frequency (915 MHz) and power limits
+2. Set **Region** to the one in the card at the top of this page
+3. This configures the correct frequency and power limits
 
 ### User Info
 
@@ -79,13 +80,15 @@ Most users should stay on **Client**. Only use **Router** or **Router Late** for
 
 ## Step 4: Charleston Network Settings
 
+The settings the local mesh uses are in the card at the top of this page, which is kept up to date in one place. In short, the Charleston-area mesh runs on Meshtastic's public defaults. In a hurry? [Join the Charleston Mesh](/guides/join-the-charleston-mesh/) is the ten-minute version of this guide.
+
 ### Primary Channel
 
-The default "LongFast" channel works for general Charleston mesh traffic. This is pre-configured, but verify:
-
 1. Go to **Channels**
-2. Confirm "Primary" channel exists
-3. Default settings should work
+2. Confirm the primary channel matches the card: default name, default key
+3. In **Settings** > **LoRa**, confirm the preset matches the card as well
+
+Do not rename the primary channel. A renamed primary is a different channel, and your radio drops off the public mesh. Add private channels as secondary channels instead.
 
 ### Position Sharing (Optional)
 
@@ -93,10 +96,11 @@ If you want to share your location:
 
 1. Go to **Settings** > **Position**
 2. Enable **Position Broadcast**
-3. Set **Position Broadcast Interval** (900 seconds is a good default)
-4. Enable **Smart Position** to reduce unnecessary broadcasts
+3. Set **Position Broadcast Interval** (900 seconds is the default)
+4. Leave **Smart Position** on to reduce unnecessary broadcasts
+5. Choose how precise the shared location is in the primary channel's settings
 
-**Privacy note**: Your position will be visible to others on the mesh. Only enable if comfortable.
+**Privacy note**: Your position will be visible to others on the mesh and on public maps. On the public channel the firmware rounds it to roughly half a mile at the finest setting; pick a coarser one for a radio that stays at home, or leave position off.
 
 ## Step 5: Verify Connection
 

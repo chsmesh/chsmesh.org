@@ -31,6 +31,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.16.11",
     "leaflet": "^1.9.4",
+    "qrcode-generator": "^2.0.4",
     "satori": "^0.63.2",
     "tailwindcss": "^4.1.18",
     "zod": "^3.25.76"
