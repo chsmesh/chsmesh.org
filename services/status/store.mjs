@@ -24,6 +24,7 @@ export const DEFAULTS = Object.freeze({
   gatewayOnlineMinutes: 30, // a gateway counts as online if it uploaded this recently
   routerUpHours: 6, // infrastructure is "up" if heard this recently, "stale" up to 24 h
   dedupeMinutes: 10,
+  unseenGraceDays: 7, // a listed site never heard for this long after it was added counts as "down"
 });
 
 const round = (x, d = POSITION_DECIMALS) => (x === null || x === undefined ? null : Math.round(x * 10 ** d) / 10 ** d);
@@ -68,6 +69,9 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
   const seen = new Map();
   let lastMessageAt = null;
   let startedAt = now();
+  // infra id -> when this collector started tracking the site, so a site that
+  // is never heard ages from "unseen" to "down" instead of staying grey forever
+  const infraSince = new Map([...infra.keys()].map((id) => [id, startedAt]));
 
   const hourStart = (t) => Math.floor(t / HOUR) * HOUR;
   const blockStart = (t) => Math.floor(t / (BLOCK_HOURS * HOUR)) * BLOCK_HOURS * HOUR;
@@ -263,14 +267,17 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       const heard = infraBlocks.get(id) ?? new Set();
       const activity = [];
       for (let i = 0; i < blocks; i++) activity.push(heard.has(firstBlock + i * BLOCK_HOURS * HOUR) ? 1 : 0);
-      const lastSeen = infraLast.get(id) ?? null;
+      // A site heard as an ordinary node or gateway before it was listed has no
+      // infraLast entry yet, so that evidence counts too.
+      const lastSeen = Math.max(infraLast.get(id) ?? 0, n?.lastHeard ?? 0, gateways.get(id)?.lastUpload ?? 0) || null;
       const age = lastSeen ? t - lastSeen : Infinity;
+      const unseen = t - (infraSince.get(id) ?? startedAt) <= opt.unseenGraceDays * DAY ? 'unseen' : 'down';
       return {
         id,
         name: s.name ?? label(id),
         area: s.area ?? null,
         role: n?.role ?? s.role ?? null,
-        status: lastSeen === null ? 'unseen' : age <= opt.routerUpHours * HOUR ? 'up' : age <= DAY ? 'stale' : 'down',
+        status: lastSeen === null ? unseen : age <= opt.routerUpHours * HOUR ? 'up' : age <= DAY ? 'stale' : 'down',
         lastHeard: lastSeen ? new Date(lastSeen).toISOString() : null,
         activity,
         activityPct: Math.round((activity.reduce((a, b) => a + b, 0) / blocks) * 100),
@@ -325,6 +332,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
         nodesWithPosition: active.filter((n) => n.pos).length,
         infrastructureUp: up,
         infrastructureTotal: infrastructure.length,
+        infrastructureUnseen: infrastructure.filter((r) => r.status === 'unseen').length,
         gatewaysOnline: online.length,
         packets24h: day.reduce((a, h) => a + h.packets, 0),
         textMessages24h: day.reduce((a, h) => a + h.text, 0),
@@ -351,6 +359,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       hours: [...hours.entries()],
       infraBlocks: [...infraBlocks.entries()].map(([id, set]) => [id, [...set]]),
       infraLast: [...infraLast.entries()],
+      infraSince: [...infraSince.entries()],
     };
   }
 
@@ -363,6 +372,10 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     for (const [k, h] of state.hours ?? []) hours.set(Number(k), h);
     for (const [id, list] of state.infraBlocks ?? []) infraBlocks.set(id, new Set(list));
     for (const [id, ms] of state.infraLast ?? []) infraLast.set(id, ms);
+    // State saved before infraSince existed: those sites were tracked since the
+    // collector started. A site missing from newer state was just added.
+    if (!state.infraSince) for (const id of infra.keys()) infraSince.set(id, startedAt);
+    for (const [id, ms] of state.infraSince ?? []) if (infra.has(id)) infraSince.set(id, ms);
     prune();
     return true;
   }

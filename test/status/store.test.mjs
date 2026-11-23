@@ -120,6 +120,57 @@ test('relay bytes credit infrastructure only when unambiguous', () => {
   assert.equal(store2.snapshot().infrastructure.find((r) => r.id === '!e20c4c89').status, 'unseen');
 });
 
+test('a never-heard site is unseen for the grace period, then down, and stays out of the headline count', () => {
+  const now = clockAt('2026-11-14T15:00:00Z');
+  const store = createStore({ infrastructure: INFRA, root: ROOT, now });
+  store.ingest(topic('LongFast'), env('nodeinfo'));
+  const mtp = (s) => s.infrastructure.find((r) => r.id === '!fb5105a5');
+  let s = store.snapshot();
+  assert.equal(mtp(s).status, 'unseen');
+  assert.deepEqual([s.totals.infrastructureUp, s.totals.infrastructureTotal, s.totals.infrastructureUnseen], [1, 2, 1]);
+
+  now.advance(6 * 86400_000);
+  assert.equal(mtp(store.snapshot()).status, 'unseen');
+  // The grace period is per site and survives a restart.
+  const restarted = createStore({ infrastructure: [...INFRA, { id: '!0000aaaa', name: 'New site' }], root: ROOT, now });
+  assert.equal(restarted.load(JSON.parse(JSON.stringify(store.serialize()))), true);
+  now.advance(2 * 86400_000);
+  s = restarted.snapshot();
+  assert.equal(mtp(s).status, 'down');
+  assert.equal(mtp(s).lastHeard, null);
+  assert.equal(s.infrastructure.find((r) => r.id === '!0000aaaa').status, 'unseen', 'a site added later gets its own grace period');
+  assert.equal(s.totals.infrastructureUnseen, 1);
+
+  // State saved before infraSince existed ages from the collector start.
+  const old = store.serialize();
+  delete old.infraSince;
+  const upgraded = createStore({ infrastructure: INFRA, root: ROOT, now });
+  upgraded.load(JSON.parse(JSON.stringify(old)));
+  assert.equal(mtp(upgraded.snapshot()).status, 'down');
+});
+
+test('a node heard before it was listed as infrastructure keeps that evidence', () => {
+  const now = clockAt('2026-11-14T15:00:00Z');
+  const before = createStore({ infrastructure: [], root: ROOT, now });
+  before.ingest(topic('LongFast'), env('nodeinfo'));
+  const heardAt = new Date(now()).toISOString();
+  now.advance(2 * 3600_000);
+  const after = createStore({ infrastructure: INFRA, root: ROOT, now });
+  after.load(JSON.parse(JSON.stringify(before.serialize())));
+  const dt = () => after.snapshot().infrastructure.find((r) => r.id === '!e20c4c89');
+  assert.equal(dt().status, 'up');
+  assert.equal(dt().lastHeard, heardAt);
+  now.advance(30 * 3600_000);
+  assert.equal(dt().status, 'down', 'and it ages like any other site');
+
+  // The same holds for a site first seen only as an uploading gateway.
+  const gwOnly = createStore({ infrastructure: [], root: ROOT, now });
+  gwOnly.ingest(topic('LongFast', '!fb5105a5'), env('text'));
+  const listed = createStore({ infrastructure: INFRA, root: ROOT, now });
+  listed.load(JSON.parse(JSON.stringify(gwOnly.serialize())));
+  assert.equal(listed.snapshot().infrastructure.find((r) => r.id === '!fb5105a5').status, 'up');
+});
+
 test('status ages from up to stale to down and old data is pruned', () => {
   const now = clockAt('2026-11-14T15:00:00Z');
   const store = createStore({ infrastructure: INFRA, root: ROOT, now });

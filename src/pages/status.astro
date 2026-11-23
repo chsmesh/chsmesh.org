@@ -147,7 +147,7 @@ const stats = page.stats as { key: string; label: string }[];
   type Summary = {
     generatedAt: string; lastMessageAt: string | null;
     collector?: { mqtt: 'connected' | 'connecting' | 'disabled' };
-    totals: { activeNodes: number; infrastructureUp: number; infrastructureTotal: number; gatewaysOnline: number; packets24h: number; channelUtilizationMedian: number | null };
+    totals: { activeNodes: number; infrastructureUp: number; infrastructureTotal: number; infrastructureUnseen?: number; gatewaysOnline: number; packets24h: number; channelUtilizationMedian: number | null };
     hops: number[]; hourly: { hour: string; packets: number }[]; blockHours: number;
     infrastructure: Infra[]; gateways: { id: string; name: string; online: boolean; lastUpload: string; uploads24h: number }[]; nodes: Node[];
   };
@@ -179,7 +179,8 @@ const stats = page.stats as { key: string; label: string }[];
   function renderStats(s: Summary) {
     const values: Record<string, string> = {
       activeNodes: String(s.totals.activeNodes),
-      infrastructure: `${s.totals.infrastructureUp} / ${s.totals.infrastructureTotal}`,
+      // Sites not yet seen are not counted against the network.
+      infrastructure: `${s.totals.infrastructureUp} / ${s.totals.infrastructureTotal - (s.totals.infrastructureUnseen ?? 0)}`,
       gatewaysOnline: String(s.totals.gatewaysOnline),
       packets24h: s.totals.packets24h.toLocaleString(),
       channelUtilization: s.totals.channelUtilizationMedian === null ? '–' : `${s.totals.channelUtilizationMedian}%`,
@@ -198,7 +199,9 @@ const stats = page.stats as { key: string; label: string }[];
         const name = el('td', 'px-4 py-3 font-medium', r.name);
         const area = el('td', 'px-4 py-3 text-neutral-600', r.area ?? '–');
         const status = el('td', 'px-4 py-3');
-        const [cls, label] = statusBadge[r.status];
+        // Fall back for a status this script does not know, so a newer service
+        // cannot break a page that is already open or cached.
+        const [cls, label] = statusBadge[r.status] ?? ['bg-neutral-100 text-neutral-600', String(r.status)];
         status.append(el('span', `inline-block px-2 py-0.5 rounded-full text-xs font-medium ${cls}`, label));
         const heard = el('td', 'px-4 py-3 text-neutral-500', ago(r.lastHeard));
         const util = el('td', 'px-4 py-3 text-neutral-600', r.channelUtilization === null ? '–' : `${r.channelUtilization}%`);
