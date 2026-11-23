@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import { slugify, validate, buildFile, yamlLines, renderMarkdown, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch, zonedDateTime, zoneOffsetMinutes, CMS_LABEL_PREFIX, SUBMISSION_STATUS, KINDS } from '../../services/submissions/lib.mjs';
 
 test('turnstile verdict requires success, matching hostname and action', () => {
-  const expected = { hostname: 'chsmesh.org', action: 'submit-node' };
-  const good = { success: true, hostname: 'chsmesh.org', action: 'submit-node' };
+  const expected = { hostname: 'chsmesh.org', action: 'submit-meetup' };
+  const good = { success: true, hostname: 'chsmesh.org', action: 'submit-meetup' };
   assert.deepEqual(turnstileVerdict(good, expected), { ok: true });
 
   assert.equal(turnstileVerdict({ success: false, 'error-codes': ['timeout-or-duplicate'] }, expected).ok, false);
@@ -58,23 +58,26 @@ test('yaml emitter writes the shapes the content schemas use', () => {
   assert.equal(renderMarkdown({ title: 'x' }, '\r\n## Body\r\n'), '---\ntitle: "x"\n---\n\n## Body\n');
 });
 
-test('validate accepts the payload shape the node form sends and drops unknown fields', () => {
-  const result = validate('node', {
-    name: 'West Ashley Relay',
-    description: 'Rooftop relay',
+test('validate accepts the payload shape a form sends, coerces coordinates and drops unknown fields', () => {
+  const result = validate('meetup', {
+    title: 'Hampton Park Mesh Walk',
+    description: 'Range test',
+    date: '2026-09-12T10:00',
+    location: 'Hampton Park',
     coordinates: { lat: '32.7765', lng: -80.0298 },
-    type: 'relay',
-    elevation: 35,
-    owner: 'CharlieM',
     submitterEmail: 'chris@example.com',
-    active: true,
-    lastSeen: '2026-09-12',
+    featured: true,
     submittedAt: '2026-09-12T00:00:00Z',
     frontmatterInjection: 'nope',
   });
   assert.equal(result.ok, true, result.errors.join('; '));
-  assert.deepEqual(Object.keys(result.data).sort(), ['coordinates', 'description', 'elevation', 'name', 'owner', 'submitterEmail', 'type']);
+  assert.deepEqual(Object.keys(result.data).sort(), ['coordinates', 'date', 'description', 'location', 'submitterEmail', 'title']);
   assert.deepEqual(result.data.coordinates, { lat: 32.7765, lng: -80.0298 });
+});
+
+test('node submissions are no longer a kind', () => {
+  assert.equal(KINDS.includes('node'), false);
+  assert.equal(validate('node', { name: 'Relay', coordinates: { lat: 1, lng: 2 }, type: 'relay', submitterEmail: 'a@b.co' }).ok, false);
 });
 
 test('validate rejects missing, malformed and out-of-range values', () => {
@@ -130,24 +133,6 @@ test('guide files carry front matter the guides collection schema accepts', () =
       '',
     ].join('\n')
   );
-});
-
-test('node files are JSON data entries with active and lastSeen filled in', () => {
-  const { data } = validate('node', {
-    name: 'Relay',
-    coordinates: { lat: 1, lng: 2 },
-    type: 'solar',
-    submitterEmail: 'a@b.co',
-  });
-  const file = buildFile('node', data, { slug: 'relay', today: '2026-09-12' });
-  assert.equal(file.path, 'src/content/nodes/relay.json');
-  assert.deepEqual(JSON.parse(file.content), {
-    name: 'Relay',
-    coordinates: { lat: 1, lng: 2 },
-    type: 'solar',
-    active: true,
-    lastSeen: '2026-09-12',
-  });
 });
 
 test('resource and meetup bodies fall back to the description', () => {

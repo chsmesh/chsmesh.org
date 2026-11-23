@@ -1,6 +1,6 @@
 # CHS Mesh - Charleston's Meshtastic Community Hub
 
-A community-driven static website showcasing Charleston's Meshtastic mesh network ecosystem. Built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com), this site features local mesh network nodes, community meetups, educational guides, and hardware resources.
+A community-driven static website showcasing Charleston's Meshtastic mesh network ecosystem. Built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com), this site features live network status, community meetups, educational guides, and hardware resources.
 
 **Live Site**: [chsmesh.org](https://chsmesh.org)
 
@@ -8,11 +8,10 @@ A community-driven static website showcasing Charleston's Meshtastic mesh networ
 
 CHS Mesh promotes off-grid communication resilience and community collaboration through the Meshtastic protocol. Our website documents:
 
-- **Network Map**: A directory of community-registered mesh nodes — routers, relays, clients, and solar-powered infrastructure. Node records are submitted by their owners rather than polled from the mesh, so none of it is live telemetry, and the map shows a "No Nodes Registered" empty state until the first node is added
 - **Community Meetups**: Scheduled gatherings for testing, learning, and networking
 - **Educational Guides**: Beginner-to-advanced tutorials covering setup, hardware, and troubleshooting
 - **Hardware Resources**: Device specifications and software links for Meshtastic devices
-- **Network Status**: Live health of the LoCoMesh network at `/status` - infrastructure, gateways, activity and channel load - from the status service (see [docs/status.md](docs/status.md))
+- **Network Status**: Live health of the LoCoMesh network at `/status` - infrastructure, gateways, activity, channel load, and a list and map of the nodes gateways hear (the map shows those that broadcast a position) - from the status service (see [docs/status.md](docs/status.md))
 
 ## Tech Stack
 
@@ -107,27 +106,27 @@ src/
 │   ├── config.ts       # Zod schemas for every collection
 │   ├── guides/         # Tutorial content (Markdown) — 4 entries
 │   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
-│   ├── nodes/          # Mesh network node definitions (JSON) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 12 Markdown files
+│   └── global/         # Site configuration and page copy — 11 Markdown files
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
 ├── styles/             # Global Tailwind CSS
 └── utils/              # Helper functions
 ```
 
-Two collections are defined and routed but currently hold no entries:
+One collection is defined and routed but currently holds no entries:
 
 - **meetups** — `src/content/meetups/` exists and is kept in git by a `.gitkeep`
   file; it just has no entries. Add the first `.md` file there. The `/meetups`
   and `/meetups/<slug>` routes are already wired up.
-- **nodes** — `src/content/nodes/` exists and is kept in git by a `.gitkeep`
-  file; it just has no entries. Add the first `.json` file there. Until then
-  `/map` counts zero nodes and renders its "No Nodes Registered" panel.
 
-The 12 files in `src/content/global/` are `site.md`, `navigation.md`,
-`footer.md`, `home.md`, `about.md`, `map.md`, `status.md`, `guides.md`,
+There is no node directory to maintain: `/status` maps the nodes gateways
+actually hear, and `/map` redirects there. Fixed infrastructure is listed in
+`services/status/infrastructure.json` (see [docs/status.md](docs/status.md)).
+
+The 11 files in `src/content/global/` are `site.md`, `navigation.md`,
+`footer.md`, `home.md`, `about.md`, `status.md`, `guides.md`,
 `guides-detail.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 
@@ -156,21 +155,6 @@ coordinates:
   lat: 32.7765
   lng: -79.9311
 ---
-```
-
-**Nodes**: Add a `.json` file to `src/content/nodes/` (the directory already
-exists, kept by a `.gitkeep`; it simply has no entries yet):
-```json
-{
-  "name": "Node Name",
-  "description": "Short description of the node",
-  "type": "router",
-  "coordinates": { "lat": 32.776, "lng": -79.931 },
-  "elevation": 30,
-  "active": true,
-  "owner": "Community Member",
-  "lastSeen": "2026-04-21"
-}
 ```
 
 ## Deployment

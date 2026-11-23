@@ -2,7 +2,7 @@
 import { getEntry } from 'astro:content';
 import Modal from '../components/Modal.astro';
 import SubmissionForm from '../components/SubmissionForm.astro';
-import { nodeFormConfig, guideFormConfig, meetupFormConfig, resourceFormConfig } from '../components/formConfigs';
+import { guideFormConfig, meetupFormConfig, resourceFormConfig } from '../components/formConfigs';
 import '../styles/global.css';
 import { resolveLink } from '../utils/siteLinks';
 
@@ -219,10 +219,6 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     </footer>
 
     <!-- Submission Modals -->
-    <Modal id="node-modal" size="lg">
-      <SubmissionForm config={nodeFormConfig} />
-    </Modal>
-
     <Modal id="guide-modal" size="xl">
       <SubmissionForm config={guideFormConfig} />
     </Modal>

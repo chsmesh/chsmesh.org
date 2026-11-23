@@ -66,4 +66,4 @@ Use `.stat-card` with `.stat-value` and `.stat-label` for KPI rows.
 
 - Content schema or routing logic (coordinate with Astro specialists)
 - Content writing or copy updates (coordinate with Content Curator)
-- Data modeling for nodes or meetups (coordinate with relevant specialists)
+- Data modeling for meetups (coordinate with relevant specialists)

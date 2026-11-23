@@ -13,8 +13,8 @@ quickLinks:
       href: /guides/
     - label: Resources
       href: /resources/
-    - label: Network Map
-      href: /map/
+    - label: Network Status
+      href: /status/
 community:
   heading: Community
   links:

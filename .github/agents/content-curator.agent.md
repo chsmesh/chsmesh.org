@@ -60,7 +60,6 @@ project/
         ├── guides/
         ├── meetups/     # empty, kept by .gitkeep
         ├── resources/
-        ├── nodes/       # empty, not present in a fresh clone
         ├── taxonomies/
         └── global/
 ```
@@ -68,9 +67,6 @@ project/
 `src/content/meetups/` already exists (a `.gitkeep` keeps it in git) and the
 collection is defined in `src/content/config.ts` — it simply has no entries yet.
 Add the first meetup as an `.md` file in that directory.
-
-`src/content/nodes/` is also empty but has no `.gitkeep`, so git does not carry
-it; create the directory if your clone lacks it.
 
 ## Common Patterns
 
@@ -90,4 +86,3 @@ Use `featured: true` to surface key content on listing pages.
 - UI layout changes (coordinate with UI Specialist)
 - Schema design (coordinate with Astro Content Specialist)
 - Routing updates (coordinate with Routing Specialist)
-- Map data updates (coordinate with Map Specialist)

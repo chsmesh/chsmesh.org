@@ -366,11 +366,7 @@ a:not(.btn):not([class*="btn-"]):hover {
 .badge-neutral,
 .badge-beginner,
 .badge-intermediate,
-.badge-advanced,
-.badge-relay,
-.badge-router,
-.badge-client,
-.badge-solar {
+.badge-advanced {
   display: inline-flex;
   align-items: center;
   padding: 0.125rem 0.625rem;
@@ -428,27 +424,6 @@ a:not(.btn):not([class*="btn-"]):hover {
 .badge-advanced {
   background-color: #fee2e2;
   color: #991b1b;
-}
-
-/* Node type badges */
-.badge-relay {
-  background-color: #f3e8ff;
-  color: #6b21a8;
-}
-
-.badge-router {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.badge-client {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-.badge-solar {
-  background-color: #fef9c3;
-  color: #854d0e;
 }
 
 /* Section containers */
