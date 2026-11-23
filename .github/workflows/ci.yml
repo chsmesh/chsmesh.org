@@ -76,6 +76,11 @@ jobs:
       - name: Build site
         run: npm run build
 
+      - name: Test the built site
+        # Checks dist/ itself, e.g. that every meetup and guide page points
+        # at a share image the build emitted.
+        run: npm run test:build
+
       - name: Assert no inline executable scripts in the build
         run: |
           # nginx serves a Content-Security-Policy with script-src 'self', so

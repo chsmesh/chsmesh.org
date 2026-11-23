@@ -89,6 +89,18 @@ origin. `public/robots.txt` allows all crawlers and points at that index.
 | `src/pages/404.astro` | Builds to `dist/404.html`; nginx serves it through `error_page 404` |
 | `public/robots.txt` | Crawler policy plus the `Sitemap:` pointer |
 | `public/og-image.png` | 1200×630 default Open Graph / Twitter card, used by `Layout.astro` when a page passes no `ogImage` |
+| `src/pages/og/` | Per-page 1200×630 share cards, built to `/og/guides/<slug>.png` and `/og/meetups/<slug>.png` and used as that page's `og:image` |
+
+Each guide and meetup gets its own share card, so a link pasted into Discord,
+Signal or Facebook shows the guide's title, difficulty and category, or the
+meetup's title, date and time (Charleston time) and venue. The cards are drawn
+at build time by `src/utils/ogImage.mjs` (Satori for layout, the WebAssembly
+build of resvg for the PNG) with the Inter font from `@fontsource/inter`, all
+read from `node_modules`, so the build fetches nothing. Apps cache a share
+image by its URL, so each `og:image` URL ends in a `?v=` fingerprint of the
+card's content: an edited title or a rescheduled meetup gets a fresh image.
+Characters outside Latin and Latin Extended (emoji, arrows, other scripts)
+are left off the card, as the bundled fonts cannot draw them.
 
 ## Environment variables
 
@@ -300,9 +312,11 @@ checking inbound links.
 `release/**`, as separate jobs:
 
 - **`site`**: `npm ci`, `npm run test:site` (every `*.test.mjs` outside
-  `test/submissions/`), `npm run build`, a check that `dist/` has no inline
-  executable `<script>` tags (the CSP would block them), `npm run check`, and
-  `npm run build:pdf` with a check that every guide and the handbook got a PDF.
+  `test/submissions/`, `test/status/` and `test/build/`), `npm run build`, `npm run test:build` (checks `dist/` itself:
+  every guide and meetup page must point at a share image the build emitted),
+  a check that `dist/` has no inline executable `<script>` tags (the CSP would
+  block them), `npm run check`, and `npm run build:pdf` with a check that every
+  guide and the handbook got a PDF.
 - **`submissions`**: the service tests in `test/submissions/` on Node 22, the
   service's runtime version (`npm run test:submissions`). Locally, `npm test`
   still runs both suites.
