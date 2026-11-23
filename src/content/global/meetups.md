@@ -19,7 +19,7 @@ host:
   heading: Want to Host a Meetup?
   body: We're always looking for venues and hosts. If you have a space or an idea for an event, let us know!
   cta:
-    label: Contact Us
-    href: '@links.emailMeetups'
+    label: Tell Us on Discord
+    href: '@links.discord'
     variant: outline
 ---
