@@ -15,7 +15,7 @@ Content is organized in `src/content/` with schema validation in `src/content/co
 - **resources**: Hardware device specifications and community links. 7 entries in `src/content/resources/`.
 - **nodes**: JSON files describing community-registered mesh network nodes. `type` is one of `relay`, `router`, `client`, `solar` (default `client`). No entries yet: `src/content/nodes/` exists (kept in git by a `.gitkeep`) but holds no files — add the first `.json` there. `/map` counts zero nodes and renders its "No Nodes Registered" empty state until then; the records are owner-submitted, not live telemetry.
 - **taxonomies**: Display labels, descriptions, and icons for guide categories/difficulties, resource categories, and meetup statuses/badges. A single entry, `src/content/taxonomies/default.md`, read through `src/utils/taxonomy.ts`.
-- **global**: Site metadata and per-page copy — 11 Markdown files in `src/content/global/`: `site.md`, `navigation.md`, `footer.md`, `home.md`, `about.md`, `map.md`, `guides.md`, `guides-detail.md`, `meetups.md`, `meetups-detail.md`, `resources.md`. The schema is a discriminated union on the `type` frontmatter field, so each file must declare its `type`.
+- **global**: Site metadata and per-page copy — 13 Markdown files in `src/content/global/`: `site.md`, `navigation.md`, `footer.md`, `home.md`, `about.md`, `map.md`, `relay-sites.md`, `status.md`, `guides.md`, `guides-detail.md`, `meetups.md`, `meetups-detail.md`, `resources.md`. The schema is a discriminated union on the `type` frontmatter field, so each file must declare its `type`.
 
 ### Page Generation
 - Static routes: `src/pages/` → predictable URLs (index.astro → /, about.astro → /about)
@@ -75,7 +75,8 @@ npm run astro ...  # Pass through Astro CLI commands
 - Category/difficulty/status labels: resolve them through `getTaxonomyLabels()` in `src/utils/taxonomy.ts`, which reads `src/content/taxonomies/default.md`. Never hand-write a local lookup object — component-private maps drifted from the authored taxonomy (a card said "Device" where the taxonomy says "Devices"). Cards resolve their own labels, so pages do not drill taxonomy props through them
 - Upcoming vs. past meetups: use `isUpcomingMeetup()` / `isPastMeetup()` from `src/utils/meetups.ts`. They compare against `endDate ?? date`, so an event that has started but not ended still counts as upcoming; a bare `data.date >= now` test would drop it from the listing mid-event
 - Page copy: load it with `getGlobal(id, type)` from `src/utils/global.ts` rather than `getEntry('global', id)` plus `?? ''` fallbacks. It throws on a missing entry or a `type` mismatch, so an authoring mistake fails the build instead of rendering a blank heading
-- CTA buttons: build the class with `getCtaClass(variant, size?)` from `src/utils/cta.ts` rather than hand-writing `btn-*` classes. The about, guides, home, meetups, and resources pages do this; `map.astro` still hardcodes `btn-primary` for its two CTAs and ignores `variant` (a known gap, not a pattern to copy)
+- CTA buttons: build the class with `getCtaClass(variant, size?)` from `src/utils/cta.ts` rather than hand-writing `btn-*` classes. The about, guides, home, meetups, and resources pages do this; `map.astro` still hardcodes `btn-primary` for its two Add Your Node CTAs and ignores `variant` (a known gap, not a pattern to copy)
+- Relay host offers: the form on `/relay-sites/` uses the contact-only `host` kind, which the submissions service forwards to the moderators' Discord and never writes to the repository. Never add a street address field to it, and keep `areas.items` in `relay-sites.md` at neighborhood level
 
 ## Common Patterns & Examples
 

@@ -460,3 +460,102 @@ export const resourceFormConfig: FormConfig = {
   successMessage: '✓ Resource submitted successfully!',
   disclaimerText: 'By submitting, you agree that your resource recommendation will be publicly displayed on this website.',
 };
+
+// Relay Host Offer Configuration (the form on /relay-sites/)
+//
+// Contact only: the service forwards it to the moderators' Discord channel and
+// writes nothing to the repository. It deliberately asks for a neighborhood
+// rather than a street address; the address is exchanged privately later.
+export const hostFormConfig: FormConfig = {
+  id: 'host-form',
+  kind: 'host',
+  title: 'I can host a relay',
+  description: 'Tell us roughly where the site is and how to reach you. A volunteer will get in touch to talk it through. Nothing is installed without your say-so.',
+  fields: [
+    {
+      name: 'name',
+      maxLength: 80,
+      label: 'Your Name',
+      type: 'text',
+      required: true,
+      placeholder: 'e.g., Jordan Smith',
+    },
+    {
+      name: 'organization',
+      maxLength: 120,
+      label: 'Business or Organization',
+      type: 'text',
+      placeholder: 'Leave blank if this is your home',
+      helpText: 'Optional',
+    },
+    {
+      name: 'siteType',
+      label: 'Kind of Site',
+      type: 'select',
+      required: true,
+      placeholder: 'Select one...',
+      options: [
+        { value: 'business', label: 'Business or commercial building' },
+        { value: 'church', label: 'Church or place of worship' },
+        { value: 'school', label: 'School or campus' },
+        { value: 'home', label: 'Home' },
+        { value: 'tower', label: 'Tower, mast or water tank' },
+        { value: 'other', label: 'Something else' },
+      ],
+    },
+    {
+      name: 'area',
+      maxLength: 120,
+      label: 'Neighborhood or Area',
+      type: 'text',
+      required: true,
+      placeholder: 'e.g., James Island near Folly Road',
+      helpText: 'Please do not enter a street address. A neighborhood or nearby cross streets is enough for now.',
+    },
+    {
+      name: 'height',
+      maxLength: 120,
+      label: 'How High Is It?',
+      type: 'text',
+      placeholder: 'e.g., 3-story roof, about 40 feet',
+      helpText: 'A rough guess is fine (optional)',
+    },
+    {
+      name: 'power',
+      label: 'Power at the Site',
+      type: 'select',
+      placeholder: 'Select one (optional)...',
+      options: [
+        { value: 'outlet', label: 'An outlet is available nearby' },
+        { value: 'none', label: 'No power, it would need to be solar' },
+        { value: 'unsure', label: 'Not sure' },
+      ],
+    },
+    {
+      name: 'notes',
+      maxLength: 1000,
+      label: 'Anything Else',
+      type: 'textarea',
+      rows: 4,
+      placeholder: 'Roof access, who would need to approve it, good times to reach you, questions for us',
+      helpText: 'Optional',
+    },
+    {
+      name: 'submitterEmail',
+      label: 'Email',
+      type: 'email',
+      required: true,
+      placeholder: 'your.email@example.com',
+    },
+    {
+      name: 'phone',
+      maxLength: 40,
+      label: 'Phone',
+      type: 'text',
+      placeholder: 'e.g., 843-555-0100',
+      helpText: 'Optional, if you would rather get a call or text',
+    },
+  ],
+  successMessage: '✓ Thank you! A CHS Mesh volunteer will be in touch.',
+  disclaimerText: 'This goes privately to the CHS Mesh moderators. Nothing you enter here is published on this site.',
+};

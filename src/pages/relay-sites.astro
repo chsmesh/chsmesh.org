@@ -1,0 +1,151 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import SubmissionForm from '../components/SubmissionForm.astro';
+import { hostFormConfig } from '../components/formConfigs';
+import { resolveLink } from '../utils/siteLinks';
+import { getGlobal } from '../utils/global';
+import { getCtaClass } from '../utils/cta';
+
+const page = await getGlobal('relay-sites', 'relay-sites');
+const site = await getGlobal('site', 'site');
+const resolveHref = (href: string) => resolveLink(href, site.links);
+const resolveCtas = (ctas: { label: string; href: string; variant?: string }[]) =>
+  ctas.map((cta) => ({ ...cta, href: resolveHref(cta.href) }));
+
+const heroCtas = resolveCtas(page.hero.ctas);
+const contactCtas = resolveCtas(page.contactCta.ctas);
+const isExternal = (href: string) => href.startsWith('http');
+// Authored as a plain date, so format it in UTC to keep the day it was written as.
+const areasUpdated = page.areas.updated?.toLocaleDateString('en-US', {
+  timeZone: 'UTC',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<Layout title={page.pageTitle} description={page.pageDescription}>
+  <Hero title={page.hero.title} subtitle={page.hero.subtitle} size={page.hero.size ?? 'small'}>
+    {heroCtas.length > 0 && (
+      <div class="flex flex-wrap gap-4 mt-6">
+        {heroCtas.map((cta) => (
+          <a href={cta.href} class={getCtaClass(cta.variant)}>{cta.label}</a>
+        ))}
+      </div>
+    )}
+  </Hero>
+
+  <section class="section">
+    <div class="container-narrow">
+      <!-- Why -->
+      <div class="mb-16">
+        <h2 class="text-2xl font-semibold mb-4">{page.intro.heading}</h2>
+        <p class="text-lg text-neutral-700">{page.intro.body}</p>
+      </div>
+
+      <!-- What hosting involves -->
+      <div class="mb-16">
+        <h2 class="text-2xl font-semibold mb-2">{page.hosting.heading}</h2>
+        <p class="text-neutral-600 mb-6">{page.hosting.body}</p>
+        <ul class="grid md:grid-cols-2 gap-4">
+          {page.hosting.points.map((point) => (
+            <li class="card card-body">
+              <h3 class="item-title font-semibold mb-1">{point.title}</h3>
+              <p class="text-sm text-neutral-600">{point.description}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Who -->
+      <div class="mb-16">
+        <h2 class="text-2xl font-semibold mb-2">{page.hosts.heading}</h2>
+        <p class="text-neutral-600 mb-6">{page.hosts.body}</p>
+        <ul class="grid md:grid-cols-2 gap-4">
+          {page.hosts.items.map((item) => (
+            <li class="card card-body">
+              <h3 class="item-title font-semibold mb-1">{item.title}</h3>
+              <p class="text-sm text-neutral-600">{item.description}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Areas that need coverage -->
+      <div id="areas" class="anchor-target mb-16">
+        <h2 class="text-2xl font-semibold mb-2">{page.areas.heading}</h2>
+        <p class="text-neutral-600 mb-6">{page.areas.body}</p>
+        {page.areas.items.length > 0 ? (
+          <ul class="card divide-y divide-neutral-100">
+            {page.areas.items.map((area) => (
+              <li class="card-body">
+                <h3 class="item-title font-semibold mb-1">{area.name}</h3>
+                <p class="text-sm text-neutral-600">{area.need}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="card card-body text-neutral-600">{page.areas.empty}</p>
+        )}
+        {areasUpdated && (
+          <p class="text-sm text-neutral-500 mt-3">{page.areas.updatedLabel} {areasUpdated}</p>
+        )}
+      </div>
+
+      <!-- Offer a site -->
+      <div id="host-offer" class="anchor-target mb-16">
+        <h2 class="text-2xl font-semibold mb-2">{page.offer.heading}</h2>
+        <p class="text-neutral-600 mb-6">{page.offer.body}</p>
+        <SubmissionForm config={hostFormConfig} />
+      </div>
+
+      <!-- FAQ -->
+      <div>
+        <h2 class="text-2xl font-semibold mb-6">{page.faq.heading}</h2>
+        <div class="space-y-4">
+          {page.faq.items.map((faq) => (
+            <details class="card group">
+              <summary class="card-body cursor-pointer flex items-center justify-between font-medium hover:text-primary-600 transition-colors">
+                {faq.question}
+                <svg class="w-5 h-5 shrink-0 text-neutral-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
+              <div class="px-6 pb-6 text-neutral-600">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact CTA -->
+  <section class="section-sm bg-primary-50 border-t border-primary-100">
+    <div class="container-narrow text-center">
+      <h3 class="text-xl font-semibold mb-2">{page.contactCta.heading}</h3>
+      <p class="text-neutral-600 mb-4">{page.contactCta.body}</p>
+      <div class="flex flex-wrap justify-center gap-4">
+        {contactCtas.map((cta) => (
+          <a href={cta.href} target={isExternal(cta.href) ? '_blank' : undefined} rel={isExternal(cta.href) ? 'noopener noreferrer' : undefined} class={getCtaClass(cta.variant)}>
+            {cta.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  /* Keep in-page jump targets clear of the 4rem sticky header. */
+  .anchor-target {
+    scroll-margin-top: 5rem;
+  }
+  /* The global h3 size is unlayered, so a text-* utility cannot shrink it. */
+  .item-title {
+    font-size: 1.125rem;
+    line-height: 1.5;
+  }
+</style>

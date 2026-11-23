@@ -15,6 +15,8 @@ quickLinks:
       href: /resources/
     - label: Network Map
       href: /map/
+    - label: Host a Relay
+      href: /relay-sites/
 community:
   heading: Community
   links:

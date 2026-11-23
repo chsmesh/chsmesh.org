@@ -64,6 +64,10 @@ coverage:
       status: planned
     - label: "North Charleston (planned)"
       status: planned
+  cta:
+    label: See a gap? Help fill it
+    href: /relay-sites/
+    variant: outline
 externalMaps:
   heading: External Maps
   links:

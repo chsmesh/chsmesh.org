@@ -698,6 +698,14 @@ collections:
                       - { label: Complete, value: complete }
                       - { label: In progress, value: progress }
                       - { label: Planned, value: planned }
+              - name: cta
+                label: Button under the list
+                widget: object
+                required: false
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
           - name: externalMaps
             label: External maps
             widget: object
@@ -725,6 +733,115 @@ collections:
                   - { name: type, label: Type, widget: string }
                   - { name: elevation, label: Elevation, widget: string }
                   - { name: lastSeen, label: Last seen, widget: string }
+      - name: relay-sites
+        label: Relay sites page
+        file: src/content/global/relay-sites.md
+        fields:
+          - { name: type, widget: hidden, default: relay-sites }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+              - name: ctas
+                label: Buttons
+                widget: list
+                required: false
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string, hint: "#host-offer jumps to the form, #areas to the list of areas" }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: intro
+            label: Introduction
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: hosting
+            label: What hosting involves
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: points
+                label: Points
+                widget: list
+                required: false
+                summary: "{{fields.title}}"
+                fields:
+                  - { name: title, label: Title, widget: string }
+                  - { name: description, label: Description, widget: text }
+          - name: hosts
+            label: Who we are looking for
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: items
+                label: Kinds of host
+                widget: list
+                required: false
+                summary: "{{fields.title}}"
+                fields:
+                  - { name: title, label: Title, widget: string }
+                  - { name: description, label: Description, widget: text }
+          - name: areas
+            label: Areas that need coverage
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - { name: updated, label: Last reviewed, widget: datetime, required: false, time_format: false, format: YYYY-MM-DD, hint: "Set this to today whenever you change the list" }
+              - { name: updatedLabel, label: Last reviewed label, widget: string }
+              - { name: empty, label: Text shown when the list is empty, widget: text }
+              - name: items
+                label: Areas
+                widget: list
+                required: false
+                summary: "{{fields.name}}"
+                hint: "Neighborhood level only. Never name an address, a building or a host. Most needed first."
+                fields:
+                  - { name: name, label: Neighborhood or area, widget: string }
+                  - { name: need, label: What is needed, widget: text }
+          - name: offer
+            label: Offer a site (above the form)
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: faq
+            label: FAQ
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: items
+                label: Questions
+                widget: list
+                required: false
+                summary: "{{fields.question}}"
+                fields:
+                  - { name: question, label: Question, widget: string }
+                  - { name: answer, label: Answer, widget: text }
+          - name: contactCta
+            label: Contact call to action
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - name: ctas
+                label: Buttons
+                widget: list
+                required: false
+                summary: "{{fields.label}} → {{fields.href}}"
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
       - name: about
         label: About page
         file: src/content/global/about.md

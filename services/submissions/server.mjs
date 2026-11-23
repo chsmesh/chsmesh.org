@@ -8,6 +8,10 @@
 //       request, and notify a private Discord channel. Anonymous users never
 //       touch GitHub directly; the fine-grained token stays here.
 //
+//   POST /api/submit/host
+//       A relay host offer from /relay-sites/. Contact only: validated and
+//       forwarded to the private Discord channel, never written to GitHub.
+//
 //   GET  /api/auth, /api/auth/callback
 //       Decap/Sveltia-compatible GitHub OAuth handshake for the CMS at
 //       /admin/, so no third-party authenticator is needed.
@@ -16,7 +20,7 @@
 
 import http from 'node:http';
 import crypto from 'node:crypto';
-import { KINDS, SPECS, validate, buildFile, slugify, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch } from './lib.mjs';
+import { KINDS, CONTACT_KINDS, SPECS, contactNotice, isPlainObject, validate, buildFile, slugify, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch } from './lib.mjs';
 
 const env = (name, fallback = '') => (process.env[name] ?? fallback).trim();
 
@@ -38,6 +42,7 @@ const RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 5 }; // per client IP per ki
 
 if (!SITE_ORIGIN) console.warn('SITE_ORIGIN is unset; cross-origin submissions will not be rejected and OAuth is disabled.');
 if (!GITHUB_TOKEN) console.warn('GITHUB_TOKEN is unset; submissions will be rejected with 503.');
+if (!DISCORD_WEBHOOK_URL) console.warn('DISCORD_WEBHOOK_URL is unset; relay host offers will be rejected with 503.');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -178,6 +183,20 @@ async function notifyDiscord({ kind, title, email, prUrl, labelled }) {
   return res.ok;
 }
 
+// Contact-only kinds have no pull request to fall back on: the Discord
+// message is the only record, so a failed delivery must fail the request.
+async function notifyContact(kind, data, { suspect = false } = {}) {
+  const res = await fetch(DISCORD_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(contactNotice(kind, data, { suspect })),
+    // Answer 502 ourselves rather than let nginx time out on a request
+    // Discord may still complete, which invites a duplicate retry.
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`Discord webhook responded ${res.status}`);
+}
+
 // ---------------------------------------------------------------------------
 // Submissions
 
@@ -256,12 +275,13 @@ async function openPullRequest(kind, data, notes = []) {
 }
 
 async function handleSubmit(req, res, kind) {
-  if (!KINDS.includes(kind)) return send(res, 404, { ok: false, error: 'unknown submission kind' });
+  const contactOnly = CONTACT_KINDS.includes(kind);
+  if (!contactOnly && !KINDS.includes(kind)) return send(res, 404, { ok: false, error: 'unknown submission kind' });
   if (req.method !== 'POST') return send(res, 405, { ok: false, error: 'method not allowed' }, { allow: 'POST' });
 
   const origin = req.headers.origin;
   if (SITE_ORIGIN && origin && origin !== SITE_ORIGIN) return send(res, 403, { ok: false, error: 'cross-origin submissions are not accepted' });
-  if (!GITHUB_TOKEN) return send(res, 503, { ok: false, error: 'submissions are temporarily unavailable' });
+  if (contactOnly ? !DISCORD_WEBHOOK_URL : !GITHUB_TOKEN) return send(res, 503, { ok: false, error: 'submissions are temporarily unavailable' });
 
   const ip = clientIp(req);
   if (rateLimited(`${kind}:${ip}`)) return send(res, 429, { ok: false, error: 'too many submissions, try again later' });
@@ -273,8 +293,13 @@ async function handleSubmit(req, res, kind) {
     return send(res, error.status ?? 400, { ok: false, error: error.message });
   }
 
+  if (!isPlainObject(payload)) return send(res, 400, { ok: false, errors: ['body must be a JSON object'] });
+
   // Honeypot: the real form never fills `website`; bots do. Pretend success.
-  if (typeof payload.website === 'string' && payload.website.trim()) {
+  // A contact-only offer has no other record and its form is all identity
+  // fields a browser may autofill, so it is delivered flagged instead.
+  const honeypot = typeof payload.website === 'string' && Boolean(payload.website.trim());
+  if (honeypot && !contactOnly) {
     console.log(`Dropped honeypot submission (${kind}) from ${ip}`);
     return send(res, 200, { ok: true });
   }
@@ -286,6 +311,18 @@ async function handleSubmit(req, res, kind) {
 
   const { ok, errors, notes, data } = validate(kind, payload);
   if (!ok) return send(res, 400, { ok: false, errors });
+
+  if (contactOnly) {
+    try {
+      await notifyContact(kind, data, { suspect: honeypot });
+      // The offer's details stay out of the logs; Discord has them.
+      console.log(`Forwarded ${kind} offer to the moderators' channel`);
+      return send(res, 200, { ok: true });
+    } catch (error) {
+      console.error(`Could not forward ${kind} offer: ${error.message}`);
+      return send(res, 502, { ok: false, error: 'could not record the submission, please try again later' });
+    }
+  }
 
   try {
     const pr = await openPullRequest(kind, data, notes);

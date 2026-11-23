@@ -12,6 +12,7 @@ CHS Mesh promotes off-grid communication resilience and community collaboration 
 - **Community Meetups**: Scheduled gatherings for testing, learning, and networking
 - **Educational Guides**: Beginner-to-advanced tutorials covering setup, hardware, and troubleshooting
 - **Hardware Resources**: Device specifications and software links for Meshtastic devices
+- **Relay Sites**: A "help wanted" page at `/relay-sites` that lists the neighborhoods needing coverage and lets building owners offer a site; offers go privately to the moderators and are never published
 - **Network Status**: Live health of the LoCoMesh network at `/status` - infrastructure, gateways, activity and channel load - from the status service (see [docs/status.md](docs/status.md))
 
 ## Tech Stack
@@ -110,7 +111,7 @@ src/
 │   ├── nodes/          # Mesh network node definitions (JSON) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 12 Markdown files
+│   └── global/         # Site configuration and page copy — 13 Markdown files
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
 ├── styles/             # Global Tailwind CSS
@@ -126,8 +127,8 @@ Two collections are defined and routed but currently hold no entries:
   file; it just has no entries. Add the first `.json` file there. Until then
   `/map` counts zero nodes and renders its "No Nodes Registered" panel.
 
-The 12 files in `src/content/global/` are `site.md`, `navigation.md`,
-`footer.md`, `home.md`, `about.md`, `map.md`, `status.md`, `guides.md`,
+The 13 files in `src/content/global/` are `site.md`, `navigation.md`,
+`footer.md`, `home.md`, `about.md`, `map.md`, `relay-sites.md`, `status.md`, `guides.md`,
 `guides-detail.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 

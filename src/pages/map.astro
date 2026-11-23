@@ -4,6 +4,7 @@ import Hero from '../components/Hero.astro';
 import { getCollection } from 'astro:content';
 import { getGlobal } from '../utils/global';
 import { resolveLink } from '../utils/siteLinks';
+import { getCtaClass } from '../utils/cta';
 
 const nodes = await getCollection('nodes');
 const activeNodes = nodes.filter((n) => n.data.active);
@@ -22,6 +23,10 @@ const nodesByType = {
 const stats = mapPage.stats as { key: string; label: string; colorClass?: string }[];
 const legendItems = mapPage.legend.items as { label: string; description: string; colorClass: string }[];
 const coverageLocations = mapPage.coverage.locations as { label: string; status: 'complete' | 'progress' | 'planned' }[];
+const coverageCta = mapPage.coverage.cta && {
+  ...mapPage.coverage.cta,
+  href: resolveHref(mapPage.coverage.cta.href),
+};
 const externalMaps = mapPage.externalMaps.links.map((link) => ({
   ...link,
   href: resolveHref(link.href),
@@ -160,6 +165,11 @@ const getStatValue = (key: string) => {
                 </li>
               ))}
             </ul>
+            {coverageCta && (
+              <a href={coverageCta.href} class={`${getCtaClass(coverageCta.variant, 'sm')} w-full mt-4`}>
+                {coverageCta.label}
+              </a>
+            )}
           </div>
 
           <!-- External Links -->
