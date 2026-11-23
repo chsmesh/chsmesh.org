@@ -834,6 +834,228 @@ a.glossary-entry-term:not(.btn) {
   color: var(--color-neutral-600);
 }
 
+/* Troubleshooter (/troubleshooting/). Unenhanced, every step of every problem
+   is listed and the answers are links between them; the script marks the root
+   [data-enhanced] and shows one step at a time. */
+.ts-problem-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .ts-problem-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+a.ts-problem:not(.btn) {
+  display: block;
+  height: 100%;
+  padding: 1rem 1.25rem;
+  background-color: white;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.75rem;
+  color: var(--color-neutral-600);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+a.ts-problem:not(.btn):hover,
+a.ts-problem:not(.btn):focus-visible {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  color: var(--color-neutral-600);
+}
+
+.ts-problem-title {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+.ts-problem-summary {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+}
+
+.ts-flow {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.troubleshooter[data-enhanced] .ts-flow {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.ts-steps {
+  display: grid;
+  gap: 1rem;
+}
+
+.ts-step {
+  padding: 1.25rem;
+  background-color: white;
+  border: 1px solid var(--color-neutral-200);
+  border-left-width: 4px;
+  border-radius: 0.75rem;
+}
+
+.ts-step-question {
+  border-left-color: var(--color-primary-500);
+}
+
+.ts-step-fix {
+  border-left-color: #22c55e;
+}
+
+.ts-step-ask {
+  border-left-color: var(--color-secondary-500);
+}
+
+/* The step a link just jumped to, when the whole list is on screen. */
+.ts-step:target {
+  background-color: var(--color-accent-50);
+}
+
+.troubleshooter[data-enhanced] .ts-step:target {
+  background-color: white;
+}
+
+.ts-step-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-neutral-500);
+}
+
+/* Step numbers and "go to step 4" only mean something in the full list. */
+.troubleshooter[data-enhanced] .ts-step-number,
+.troubleshooter[data-enhanced] .ts-go-to,
+.troubleshooter[data-enhanced] .ts-step-question .ts-step-label {
+  display: none;
+}
+
+.ts-step-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-neutral-900);
+}
+
+/* Focused by the script after each answer; it is not a control. */
+.ts-step-title:focus,
+.ts-problems h2:focus {
+  outline: none;
+}
+
+.ts-step-body {
+  margin-top: 0.5rem;
+  line-height: 1.65;
+  color: var(--color-neutral-700);
+}
+
+.ts-instructions,
+.ts-include,
+.ts-links {
+  margin-top: 0.75rem;
+  padding-left: 1.5rem;
+  line-height: 1.65;
+  color: var(--color-neutral-700);
+}
+
+.ts-instructions {
+  list-style: decimal;
+}
+
+.ts-include,
+.ts-links {
+  list-style: disc;
+}
+
+.ts-instructions li + li,
+.ts-include li + li {
+  margin-top: 0.25rem;
+}
+
+.ts-links a {
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.ts-include-heading {
+  margin-top: 1rem;
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+.ts-answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+/* Wide enough to hit with a thumb. */
+.ts-answers .btn-primary,
+.ts-answers .btn-outline {
+  min-width: 6rem;
+}
+
+.ts-trail {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.ts-trail h3 {
+  margin-bottom: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-neutral-500);
+}
+
+.ts-trail ol {
+  padding-left: 1.25rem;
+  list-style: decimal;
+  color: var(--color-neutral-500);
+}
+
+.ts-trail li + li {
+  margin-top: 0.125rem;
+}
+
+.ts-trail-answer {
+  font-weight: 600;
+  color: var(--color-neutral-900);
+}
+
+.ts-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin-top: 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.ts-controls a {
+  text-decoration: underline;
+}
+
 /* A button on the hero gradient: .btn-outline is teal on teal there. */
 .hero-btn {
   background-color: rgba(255, 255, 255, 0.14);
@@ -1136,5 +1358,22 @@ a.glossary-entry-term:not(.btn) {
 
   .handbook-chapter-header h1 {
     font-size: 20pt;
+  }
+
+  /* /troubleshooting/: the full list of steps, one after another. */
+  .ts-flow {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+  }
+
+  .ts-step {
+    padding: 0.5rem 0 0.5rem 0.75rem;
+    border-width: 0 0 0 2px;
+    border-radius: 0;
+    break-inside: avoid;
+  }
+
+  .ts-step:target {
+    background: none;
   }
 }

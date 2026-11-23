@@ -1,4 +1,5 @@
 import { defineCollection, reference, z } from 'astro:content';
+import { validateFlow } from '../utils/troubleshooting.mjs';
 
 // Meetups collection - community events and gatherings
 const meetups = defineCollection({
@@ -171,6 +172,71 @@ const linkSchema = z.object({
   label: z.string(),
   href: z.string(),
   external: z.boolean().optional(),
+});
+
+// Troubleshooting collection - the decision trees behind /troubleshooting/.
+// One JSON file per starting problem; the file name is the flow's anchor on
+// the page. Steps point at each other by id. The shape is checked here field
+// by field, and validateFlow (src/utils/troubleshooting.mjs) checks that the
+// steps join up, so a broken tree fails `npm run check` and the build.
+const stepId = z
+  .string()
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Use lower-case letters, numbers and single hyphens, e.g. "antenna-attached"');
+
+const troubleshooting = defineCollection({
+  type: 'data',
+  schema: z
+    .object({
+      // The problem in the visitor's words, e.g. "I can't see any other nodes".
+      title: z.string().min(1),
+      summary: z.string().min(1),
+      order: z.number().default(0),
+      // The id of the first question.
+      start: stepId,
+      steps: z
+        .array(
+          z.discriminatedUnion('type', [
+            // A yes/no check. Each answer names the step it leads to.
+            z.object({
+              type: z.literal('question'),
+              id: stepId,
+              question: z.string().min(1),
+              // How to find the answer, e.g. where the setting is in the app.
+              help: z.string().optional(),
+              yes: stepId,
+              no: stepId,
+            }),
+            // Something to try. `next` is the check to go on to if it did not
+            // help; without it the fix ends the path.
+            z.object({
+              type: z.literal('fix'),
+              id: stepId,
+              title: z.string().min(1),
+              body: z.string().min(1),
+              steps: z.array(z.string()).default([]),
+              // `#<flow file name>` links to another problem on the page.
+              links: z.array(linkSchema).default([]),
+              // The CMS saves a cleared field as an empty string.
+              next: z.preprocess((value) => (value === '' || value === null ? undefined : value), stepId.optional()),
+            }),
+            // The end of a path with nothing left to check: ask in Discord,
+            // with a list of what to put in the post.
+            z.object({
+              type: z.literal('ask'),
+              id: stepId,
+              title: z.string().min(1),
+              body: z.string().min(1),
+              include: z.array(z.string()).min(1),
+            }),
+          ])
+        )
+        .min(1),
+    })
+    .superRefine((flow, ctx) => {
+      for (const message of validateFlow(flow)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: ['steps'] });
+      }
+    }),
 });
 
 const ctaSchema = z.object({
@@ -490,6 +556,42 @@ const global = defineCollection({
       }),
     }),
     z.object({
+      // The troubleshooter at /troubleshooting/. The trees themselves are the
+      // `troubleshooting` collection; this is the copy around them.
+      type: z.literal('troubleshooting'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      intro: z.string(),
+      problemsHeading: z.string(),
+      yesLabel: z.string(),
+      noLabel: z.string(),
+      // Followed by a step number, e.g. "go to step 4". Only shown where the
+      // page lists every step: without JavaScript, and in print.
+      goToLabel: z.string(),
+      stepLabel: z.string(),
+      fixLabel: z.string(),
+      // The link from a fix to the next check.
+      stillStuckLabel: z.string(),
+      askLabel: z.string(),
+      includeHeading: z.string(),
+      discordLabel: z.string(),
+      // Heading over the answers given so far.
+      trailHeading: z.string(),
+      // Trail entry for a fix, followed by its title, e.g. "Tried: ...".
+      triedLabel: z.string(),
+      startOverLabel: z.string(),
+      otherProblemLabel: z.string(),
+      empty: z.object({
+        heading: z.string(),
+        body: z.string(),
+      }),
+    }),
+    z.object({
       type: z.literal('guides-detail'),
       backLabel: z.string(),
       prerequisitesHeading: z.string(),
@@ -635,6 +737,7 @@ export const collections = {
   resources,
   builds,
   glossary,
+  troubleshooting,
   taxonomies,
   global,
 };

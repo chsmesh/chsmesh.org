@@ -1,0 +1,121 @@
+{
+  "title": "My battery dies too quickly",
+  "summary": "The radio runs flat in hours rather than days.",
+  "order": 4,
+  "start": "wifi",
+  "steps": [
+    {
+      "type": "question",
+      "id": "wifi",
+      "question": "Is WiFi turned off on the radio?",
+      "help": "Settings, then Network, shows whether WiFi is enabled. It is off unless you turned it on.",
+      "yes": "gps",
+      "no": "wifi-off"
+    },
+    {
+      "type": "fix",
+      "id": "wifi-off",
+      "title": "Turn WiFi off",
+      "body": "WiFi uses more power than everything else on the board combined. Keep it for radios that stay plugged in.",
+      "steps": [
+        "Open Settings, then Network.",
+        "Turn WiFi off and save. The radio restarts and goes back to Bluetooth."
+      ],
+      "next": "gps"
+    },
+    {
+      "type": "question",
+      "id": "gps",
+      "question": "Is the radio's GPS off, or set to update only every few minutes?",
+      "help": "Settings, then Position, shows the GPS mode and the update interval. A radio without a GPS module counts as off.",
+      "yes": "screen",
+      "no": "gps-less"
+    },
+    {
+      "type": "fix",
+      "id": "gps-less",
+      "title": "Make the GPS work less",
+      "body": "A GPS that is always searching, especially indoors where it cannot get a fix, is a steady drain.",
+      "steps": [
+        "If the radio does not move, set the GPS mode to disabled. You can set a fixed position instead, or let the app share your phone's location.",
+        "If you do need it, lengthen the GPS update interval to a few minutes or more.",
+        "Keep Smart Position on, so the radio only reports when it has moved."
+      ],
+      "links": [{ "label": "Position sharing in the setup guide", "href": "/guides/initial-setup/#position-sharing-optional" }],
+      "next": "screen"
+    },
+    {
+      "type": "question",
+      "id": "screen",
+      "question": "Does the screen switch itself off within a minute?",
+      "help": "Answer yes if the radio has no screen.",
+      "yes": "board",
+      "no": "screen-timeout"
+    },
+    {
+      "type": "fix",
+      "id": "screen-timeout",
+      "title": "Shorten the screen timeout",
+      "body": "A screen left on drains a small battery noticeably.",
+      "steps": [
+        "Open Settings, then Display.",
+        "Set the screen-on time to 30 or 60 seconds.",
+        "Turn off the automatic carousel, which keeps waking the screen."
+      ],
+      "next": "board"
+    },
+    {
+      "type": "question",
+      "id": "board",
+      "question": "Is your radio built on an nRF52 chip, rather than an ESP32?",
+      "help": "RAK WisBlock, LilyGo T-Echo and Seeed T1000-E radios are nRF52. Heltec V3 and LilyGo T-Beam radios are ESP32. If you are not sure, answer no.",
+      "yes": "battery-size",
+      "no": "esp32"
+    },
+    {
+      "type": "fix",
+      "id": "esp32",
+      "title": "Expect about a day from an ESP32 radio",
+      "body": "ESP32 boards use several times the power of nRF52 boards even when idle. A day or less on a small battery is normal for them, not a fault.",
+      "steps": [
+        "In Settings, then Power, turn on power saving. The radio sleeps when idle, and the app may take a little longer to reconnect.",
+        "Fit a larger battery if the case allows it, or carry a USB power bank.",
+        "For a radio that has to run for days, or on solar, choose an nRF52 board."
+      ],
+      "links": [{ "label": "Choosing your first device", "href": "/guides/choosing-first-device/" }],
+      "next": "battery-size"
+    },
+    {
+      "type": "question",
+      "id": "battery-size",
+      "question": "Is the battery 1000 mAh or larger, and less than a few years old?",
+      "help": "The capacity is printed on the battery. Cells that have been run completely flat many times hold far less than the label says.",
+      "yes": "ask",
+      "no": "bigger-battery"
+    },
+    {
+      "type": "fix",
+      "id": "bigger-battery",
+      "title": "Fit a larger or newer battery",
+      "body": "The small cells sold with some radios only last a few hours however the radio is set up.",
+      "steps": [
+        "Replace the battery with the largest one that fits your case and uses the same connector.",
+        "Check the polarity of the connector before plugging it in. It is not standardized, and a reversed battery can destroy the board."
+      ],
+      "next": "ask"
+    },
+    {
+      "type": "ask",
+      "id": "ask",
+      "title": "Ask in Discord",
+      "body": "If the battery still drains fast, a setting or a hardware fault may be keeping the radio awake. Others with the same board can compare numbers.",
+      "include": [
+        "Your radio model",
+        "The battery's capacity and roughly how old it is",
+        "How many hours it runs on a full charge",
+        "The device role, and your GPS, WiFi and power saving settings",
+        "The firmware version"
+      ]
+    }
+  ]
+}

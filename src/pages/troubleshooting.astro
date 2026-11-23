@@ -1,0 +1,204 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import { getCollection } from 'astro:content';
+import { getGlobal } from '../utils/global';
+import { getCtaClass } from '../utils/cta';
+import { resolveLink } from '../utils/siteLinks';
+import { parseAnchor, stepAnchor } from '../utils/troubleshooting.mjs';
+
+const page = await getGlobal('troubleshooting', 'troubleshooting');
+const site = await getGlobal('site', 'site');
+const discordHref = resolveLink('@links.discord', site.links);
+
+const flows = (await getCollection('troubleshooting')).sort(
+  (a, b) => a.data.order - b.data.order || a.data.title.localeCompare(b.data.title)
+);
+const flowIds = new Set(flows.map((flow) => flow.id));
+
+// A flow's file name is its anchor on the page. Hold it to the same shape as a
+// step id, so it cannot contain the "--" that separates the two or match one
+// of the page's own ids, which all contain an underscore.
+for (const flow of flows) {
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(flow.id)) {
+    throw new Error(
+      `src/content/troubleshooting/${flow.id}.json: rename the file using lower-case letters, numbers and single hyphens, e.g. "no-nodes.json".`
+    );
+  }
+}
+
+// A link such as "#no-nodes" sends the visitor to another problem on this
+// page. The schema cannot see the other files, so check those here.
+for (const flow of flows) {
+  for (const step of flow.data.steps) {
+    if (step.type !== 'fix') continue;
+    for (const link of step.links) {
+      if (!link.href.startsWith('#')) continue;
+      const target = parseAnchor(link.href);
+      if (!target || target.stepId || !flowIds.has(target.flowId)) {
+        throw new Error(
+          `src/content/troubleshooting/${flow.id}.json: step "${step.id}" links to "${link.href}", ` +
+            `which is not a problem on the page. Use "#" and a file name from that folder, e.g. "#${flows[0].id}".`
+        );
+      }
+    }
+  }
+}
+
+const isExternal = (href: string) => /^https?:/.test(href);
+---
+
+<Layout title={page.pageTitle} description={page.pageDescription}>
+  <Hero title={page.hero.title} subtitle={page.hero.subtitle} size={page.hero.size ?? 'small'} />
+
+  <section class="section">
+    <!-- Without JavaScript this is every step of every problem, joined by
+         links. The script at the bottom narrows it to one step at a time. -->
+    <div class="container-narrow troubleshooter" data-troubleshooter>
+      {flows.length === 0 ? (
+        <div class="card card-body text-center py-12">
+          <h2 class="text-xl font-semibold mb-2">{page.empty.heading}</h2>
+          <p class="text-neutral-600">{page.empty.body}</p>
+        </div>
+      ) : (
+        <>
+          <div id="ts_problems" class="ts-problems scroll-mt-24" data-ts-problems>
+            <p class="text-lg text-neutral-700 mb-6">{page.intro}</p>
+            <h2 class="text-2xl font-semibold mb-4" tabindex="-1">{page.problemsHeading}</h2>
+            <ul class="ts-problem-list">
+              {flows.map((flow) => (
+                <li>
+                  <a href={`#${flow.id}`} class="ts-problem">
+                    <span class="ts-problem-title">{flow.data.title}</span>
+                    <span class="ts-problem-summary">{flow.data.summary}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {flows.map((flow) => {
+            const steps = flow.data.steps;
+            const anchor = (id: string) => `#${stepAnchor(flow.id, id)}`;
+            // "go to step 4", for readers who see the whole list.
+            const goTo = (id: string) => `${page.goToLabel} ${steps.findIndex((step) => step.id === id) + 1}`;
+            return (
+              <section
+                id={flow.id}
+                class="ts-flow scroll-mt-24"
+                aria-labelledby={`${flow.id}_title`}
+                data-ts-flow
+                data-start={flow.data.start}
+              >
+                <h2 id={`${flow.id}_title`} class="text-2xl font-semibold mb-2">{flow.data.title}</h2>
+                <p class="text-neutral-600 mb-6">{flow.data.summary}</p>
+
+                <ol class="ts-steps">
+                  {steps.map((step, index) => (
+                    <li
+                      id={stepAnchor(flow.id, step.id)}
+                      class:list={['ts-step', `ts-step-${step.type}`, 'scroll-mt-24']}
+                      data-ts-step={step.id}
+                    >
+                      <p class="ts-step-label">
+                        <span class="ts-step-number">{page.stepLabel} {index + 1}</span>
+                        {step.type === 'fix' && <span class="badge-success">{page.fixLabel}</span>}
+                        {step.type === 'ask' && <span class="badge-secondary">{page.askLabel}</span>}
+                      </p>
+
+                      {step.type === 'question' && (
+                        <>
+                          <h3 class="ts-step-title" tabindex="-1" data-ts-title>{step.question}</h3>
+                          {step.help && <p class="ts-step-body">{step.help}</p>}
+                          <p class="ts-answers">
+                            <a href={anchor(step.yes)} class={getCtaClass('primary')} data-ts-answer={page.yesLabel}>
+                              {page.yesLabel}<span class="ts-go-to">, {goTo(step.yes)}</span>
+                            </a>
+                            <a href={anchor(step.no)} class={getCtaClass('outline')} data-ts-answer={page.noLabel}>
+                              {page.noLabel}<span class="ts-go-to">, {goTo(step.no)}</span>
+                            </a>
+                          </p>
+                        </>
+                      )}
+
+                      {step.type === 'fix' && (
+                        <>
+                          <h3 class="ts-step-title" tabindex="-1" data-ts-title>{step.title}</h3>
+                          <p class="ts-step-body">{step.body}</p>
+                          {step.steps.length > 0 && (
+                            <ol class="ts-instructions">
+                              {step.steps.map((instruction) => <li>{instruction}</li>)}
+                            </ol>
+                          )}
+                          {step.links.length > 0 && (
+                            <ul class="ts-links">
+                              {step.links.map((link) => {
+                                const href = resolveLink(link.href, site.links);
+                                return (
+                                  <li>
+                                    <a
+                                      href={href}
+                                      target={isExternal(href) ? '_blank' : undefined}
+                                      rel={isExternal(href) ? 'noopener noreferrer' : undefined}
+                                    >
+                                      {link.label}
+                                    </a>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                          {step.next && (
+                            <p class="ts-answers">
+                              <a href={anchor(step.next)} class={getCtaClass('outline')}>
+                                {page.stillStuckLabel}<span class="ts-go-to">, {goTo(step.next)}</span>
+                              </a>
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {step.type === 'ask' && (
+                        <>
+                          <h3 class="ts-step-title" tabindex="-1" data-ts-title>{step.title}</h3>
+                          <p class="ts-step-body">{step.body}</p>
+                          <p class="ts-include-heading">{page.includeHeading}</p>
+                          <ul class="ts-include">
+                            {step.include.map((item) => <li>{item}</li>)}
+                          </ul>
+                          <p class="ts-answers">
+                            <a href={discordHref} class={getCtaClass('primary')} target="_blank" rel="noopener noreferrer">
+                              {page.discordLabel}
+                            </a>
+                          </p>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+
+                {/* Below the step, so a long list never pushes the question off a phone's screen. */}
+                <div class="ts-trail" data-ts-trail data-tried-label={page.triedLabel} hidden>
+                  <h3>{page.trailHeading}</h3>
+                  <ol></ol>
+                </div>
+
+                <p class="ts-controls no-print">
+                  <a href={`#${flow.id}`}>{page.startOverLabel}</a>
+                  <a href="#ts_problems">{page.otherProblemLabel}</a>
+                </p>
+              </section>
+            );
+          })}
+        </>
+      )}
+    </div>
+  </section>
+</Layout>
+
+<script>
+  import { enhanceTroubleshooter } from '../utils/troubleshooterClient.mjs';
+
+  const root = document.querySelector<HTMLElement>('[data-troubleshooter]');
+  if (root) enhanceTroubleshooter(root);
+</script>

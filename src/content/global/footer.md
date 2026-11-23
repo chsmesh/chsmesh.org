@@ -11,6 +11,8 @@ quickLinks:
       href: /meetups/
     - label: Guides
       href: /guides/
+    - label: Troubleshooting
+      href: /troubleshooting/
     - label: Glossary
       href: /glossary/
     - label: Field Handbook

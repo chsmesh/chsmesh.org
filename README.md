@@ -182,12 +182,13 @@ src/
 ├── content/
 │   ├── config.ts       # Zod schemas for every collection
 │   ├── glossary/       # Glossary terms (JSON, one per term) — auto-linked from guides
+│   ├── troubleshooting/ # Troubleshooter decision trees (JSON, one per problem)
 │   ├── guides/         # Tutorial content (Markdown) — 4 entries
 │   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
 │   ├── builds/         # Member build gallery (Markdown) — no entries yet (.gitkeep); photos in src/assets/builds/
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 16 Markdown files
+│   └── global/         # Site configuration and page copy — 17 Markdown files
 ├── integrations/       # Build hooks (writes the offline service worker)
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
@@ -210,9 +211,9 @@ There is no node directory to maintain: `/status` maps the nodes gateways
 actually hear, and `/map` redirects there. Fixed infrastructure is listed in
 `services/status/infrastructure.json` (see [docs/status.md](docs/status.md)).
 
-The 16 files in `src/content/global/` are `site.md`, `navigation.md`,
+The 17 files in `src/content/global/` are `site.md`, `navigation.md`,
 `footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `builds.md`, `guides.md`,
-`guides-detail.md`, `handbook.md`, `offline.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
+`guides-detail.md`, `handbook.md`, `offline.md`, `glossary.md`, `troubleshooting.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 
 ### Adding Content
@@ -259,6 +260,38 @@ as a hover tooltip. Matching ignores case (except for an alias written in all ca
 must match exactly) and accepts a plural "s"; headings, code and existing links
 are skipped. A file name starting with `_` is treated as a draft. Restart `npm run dev` after editing the
 glossary to see the links change in guides.
+
+**Troubleshooting flows**: The troubleshooter at `/troubleshooting/` is built
+from `src/content/troubleshooting/`, one `.json` file per starting problem. The
+file name becomes the problem's anchor (`/troubleshooting/#no-nodes`). A flow is
+a list of steps that point at each other by `id`:
+```json
+{
+  "title": "I can't see any other nodes",
+  "summary": "One sentence that helps someone recognise their problem.",
+  "order": 1,
+  "start": "antenna",
+  "steps": [
+    { "type": "question", "id": "antenna", "question": "Is the antenna attached?",
+      "help": "Optional: how to check.", "yes": "ask", "no": "attach-antenna" },
+    { "type": "fix", "id": "attach-antenna", "title": "Attach the antenna",
+      "body": "Why this is the likely cause.", "steps": ["Turn the radio off.", "Screw the antenna on."],
+      "links": [{ "label": "Setup guide", "href": "/guides/initial-setup/" }], "next": "ask" },
+    { "type": "ask", "id": "ask", "title": "Ask in Discord",
+      "body": "Nothing is left to check.", "include": ["Your radio model"] }
+  ]
+}
+```
+A `question` leads to one step for yes and another for no. A `fix` is something
+to try; `next` is the check to go on to if it did not help, and a fix without it
+ends the path. An `ask` ends the path with what to put in a Discord post. A link
+of the form `#<file name>` sends the visitor to another problem. The schema runs
+`validateFlow` (`src/utils/troubleshooting.mjs`), so `npm run check` and the
+build fail when a step leads to an id that does not exist, a path loops, or a
+step cannot be reached. Without JavaScript the page lists every step in file
+order with the answers as links between them; the script in
+`src/utils/troubleshooterClient.mjs` narrows that to one step at a time. The
+labels around the steps are in `src/content/global/troubleshooting.md`.
 
 ## Deployment
 

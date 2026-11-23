@@ -1,0 +1,144 @@
+{
+  "title": "I can't see any other nodes",
+  "summary": "The node list shows only your own radio, or nothing new has appeared for a long time.",
+  "order": 1,
+  "start": "antenna",
+  "steps": [
+    {
+      "type": "question",
+      "id": "antenna",
+      "question": "Is the antenna attached and screwed on firmly?",
+      "help": "Look at the LoRa antenna, the one the radio shipped with. On boards with a small snap-on lead inside the case, check that the lead is pressed all the way onto its socket.",
+      "yes": "region",
+      "no": "attach-antenna"
+    },
+    {
+      "type": "fix",
+      "id": "attach-antenna",
+      "title": "Attach the antenna",
+      "body": "Without an antenna the radio hears almost nothing, and transmitting without one can damage it.",
+      "steps": [
+        "Turn the radio off or unplug it.",
+        "Screw the antenna on finger-tight, or press the snap-on lead onto its socket until it clicks.",
+        "Turn the radio back on and give it 15 minutes to hear other nodes."
+      ],
+      "next": "region"
+    },
+    {
+      "type": "question",
+      "id": "region",
+      "question": "Is the region set to US?",
+      "help": "In the Meshtastic app, open Settings, then LoRa, and look at Region. A new radio starts with the region unset and does not transmit at all until you choose one.",
+      "yes": "preset",
+      "no": "set-region"
+    },
+    {
+      "type": "fix",
+      "id": "set-region",
+      "title": "Set the region to US",
+      "body": "The region decides which frequencies the radio uses. With the wrong one, or none, it is not on the same frequencies as the rest of the Charleston mesh.",
+      "steps": [
+        "Open Settings, then LoRa.",
+        "Set Region to US and save.",
+        "Wait for the radio to restart, then reconnect the app."
+      ],
+      "links": [{ "label": "Region settings in the setup guide", "href": "/guides/initial-setup/#region-critical" }],
+      "next": "preset"
+    },
+    {
+      "type": "question",
+      "id": "preset",
+      "question": "Is the modem preset LongFast, with the default primary channel?",
+      "help": "Settings, then LoRa, shows the modem preset: it should read Long Range - Fast (LongFast). Under Channels, the first channel should be the default one, usually listed as LongFast. If you have never changed these, they are already right.",
+      "yes": "waited",
+      "no": "reset-preset"
+    },
+    {
+      "type": "fix",
+      "id": "reset-preset",
+      "title": "Go back to LongFast and the default channel",
+      "body": "Radios only hear each other when they use the same modem preset and channel. The Charleston mesh uses the Meshtastic defaults.",
+      "steps": [
+        "In Settings, then LoRa, set the modem preset to Long Range - Fast.",
+        "Leave the frequency slot at 0, which means the default.",
+        "Under Channels, make the first channel the default: no custom name and the default key. Keep any private channels as secondary channels."
+      ],
+      "links": [{ "label": "Charleston network settings", "href": "/guides/initial-setup/#step-4-charleston-network-settings" }],
+      "next": "waited"
+    },
+    {
+      "type": "question",
+      "id": "waited",
+      "question": "Has the radio been on, with these settings, for at least 15 minutes?",
+      "help": "Nodes appear in the list as your radio hears them, and a quiet node may only announce itself every few hours. An empty list in the first minutes is normal.",
+      "yes": "placement",
+      "no": "wait"
+    },
+    {
+      "type": "fix",
+      "id": "wait",
+      "title": "Give it time",
+      "body": "Your radio has to hear a node before it can list it. Leave it on and let the list fill in.",
+      "steps": [
+        "Leave the radio on for 15 to 30 minutes.",
+        "Send a short message on the primary channel. Nearby nodes that repeat it show that you are being heard.",
+        "Check the node list again."
+      ],
+      "next": "placement"
+    },
+    {
+      "type": "question",
+      "id": "placement",
+      "question": "Is the radio outdoors or at a window, as high up as you can get it?",
+      "help": "LoRa needs a mostly clear path between antennas. The Lowcountry is flat, so buildings and trees block the signal quickly. A radio on a desk in the middle of a house often hears nothing.",
+      "yes": "firmware",
+      "no": "move-radio"
+    },
+    {
+      "type": "fix",
+      "id": "move-radio",
+      "title": "Move the radio higher and into the open",
+      "body": "Height and a clear view do more for range than any setting.",
+      "steps": [
+        "Put the radio at an upstairs window, on a porch or outside, with the antenna pointing straight up.",
+        "Keep it away from metal: window screens, gutters, a car roof.",
+        "Look at the network status page to see where nodes are active, and test from somewhere closer to them."
+      ],
+      "links": [{ "label": "Network status and map", "href": "/status/" }],
+      "next": "firmware"
+    },
+    {
+      "type": "question",
+      "id": "firmware",
+      "question": "Is the radio running a recent stable firmware release?",
+      "help": "The app shows the firmware version on the screen where you connect to the radio, and tells you when an update is available. A version that is years old may not talk to current radios.",
+      "yes": "ask",
+      "no": "update-firmware"
+    },
+    {
+      "type": "fix",
+      "id": "update-firmware",
+      "title": "Update the firmware",
+      "body": "Flash the current stable release. Avoid alpha builds unless someone in the community suggested one.",
+      "steps": [
+        "Follow the flashing guide for your board.",
+        "Afterwards, check that the region is still US. A full erase resets it."
+      ],
+      "links": [{ "label": "Flashing firmware guide", "href": "/guides/flashing-firmware/" }],
+      "next": "ask"
+    },
+    {
+      "type": "ask",
+      "id": "ask",
+      "title": "Ask in Discord",
+      "body": "Your settings look right, so the cause is likely range or something particular to your radio. Someone local can usually tell which.",
+      "include": [
+        "Your radio model and antenna",
+        "The firmware version",
+        "Your region, modem preset and primary channel name",
+        "Your neighborhood, and whether the radio is indoors or outdoors and how high up",
+        "How long the radio has been on"
+      ]
+    }
+  ]
+}

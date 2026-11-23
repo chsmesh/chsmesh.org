@@ -1,0 +1,132 @@
+{
+  "title": "My messages aren't being delivered",
+  "summary": "Messages show as failed or unacknowledged, or the person you are writing to never gets them.",
+  "order": 2,
+  "start": "see-nodes",
+  "steps": [
+    {
+      "type": "question",
+      "id": "see-nodes",
+      "question": "Can you see other nodes in your node list, heard in the last few hours?",
+      "help": "Open the Nodes tab. Each node shows when it was last heard.",
+      "yes": "acknowledged",
+      "no": "no-nodes"
+    },
+    {
+      "type": "fix",
+      "id": "no-nodes",
+      "title": "Start with the node list",
+      "body": "If your radio hears nobody, nobody hears your messages either. Work through the checks for an empty node list first.",
+      "links": [{ "label": "Troubleshoot: I can't see any other nodes", "href": "#no-nodes" }]
+    },
+    {
+      "type": "question",
+      "id": "acknowledged",
+      "question": "Does the app mark the message as delivered or acknowledged?",
+      "help": "On a channel, an acknowledgment means at least one other node repeated your message. It does not mean someone read it.",
+      "yes": "delivered",
+      "no": "same-channel"
+    },
+    {
+      "type": "fix",
+      "id": "delivered",
+      "title": "Your message is getting out",
+      "body": "The mesh carried your message. No reply usually means nobody was looking at their radio, which is common outside busy hours.",
+      "steps": [
+        "Try again in the evening, when more people are on.",
+        "Ask for a radio check in Discord, so someone knows to watch for your message."
+      ]
+    },
+    {
+      "type": "question",
+      "id": "same-channel",
+      "question": "Are you and the other person on the same channel, with the same name and key?",
+      "help": "On the default primary channel, everyone with default settings matches. A private channel only works between radios that imported the same channel link or QR code.",
+      "yes": "hop-limit",
+      "no": "share-channel"
+    },
+    {
+      "type": "fix",
+      "id": "share-channel",
+      "title": "Use a channel you both have",
+      "body": "A message sent on a channel the other radio does not have cannot be read there.",
+      "steps": [
+        "To reach the wider mesh, send on the default primary channel.",
+        "For a private channel, open Channels, share its QR code or link, and have the other person import it. Typing the name by hand is not enough, because the key must match too."
+      ],
+      "links": [{ "label": "Charleston network settings", "href": "/guides/initial-setup/#step-4-charleston-network-settings" }],
+      "next": "hop-limit"
+    },
+    {
+      "type": "question",
+      "id": "hop-limit",
+      "question": "Is your hop limit set to 3?",
+      "help": "Settings, then LoRa, shows the number of hops. 3 is the default. A lower number can stop a message before it arrives.",
+      "yes": "direct-message",
+      "no": "set-hop-limit"
+    },
+    {
+      "type": "fix",
+      "id": "set-hop-limit",
+      "title": "Set the hop limit to 3",
+      "body": "The hop limit is how many times other nodes may pass your message along. 3 covers the Charleston mesh.",
+      "steps": [
+        "Open Settings, then LoRa.",
+        "Set the number of hops to 3 and save.",
+        "Do not raise it further to force a message through. Extra hops fill the airwaves for everyone and rarely help."
+      ],
+      "next": "direct-message"
+    },
+    {
+      "type": "question",
+      "id": "direct-message",
+      "question": "Is it a direct message to one node, rather than a message on a channel?",
+      "yes": "refresh-keys",
+      "no": "placement"
+    },
+    {
+      "type": "fix",
+      "id": "refresh-keys",
+      "title": "Refresh the two radios' details",
+      "body": "Direct messages are encrypted for the receiving radio. If either radio was reset or reflashed, the other may still hold its old key, and the message fails, often with a key error.",
+      "steps": [
+        "Open the other node in your node list and choose to exchange user info, or have both of you send a message on the primary channel.",
+        "If the app still reports a key error, remove that node from your node list and wait for it to be heard again.",
+        "Make sure both radios run current firmware."
+      ],
+      "next": "placement"
+    },
+    {
+      "type": "question",
+      "id": "placement",
+      "question": "Is the radio outdoors or at a window, as high up as you can get it?",
+      "help": "Hearing other nodes does not mean they hear you. A well-placed relay can reach a radio that cannot reach it back.",
+      "yes": "ask",
+      "no": "move-radio"
+    },
+    {
+      "type": "fix",
+      "id": "move-radio",
+      "title": "Move the radio higher and into the open",
+      "body": "Your radio transmits with far less reach from indoors or low down.",
+      "steps": [
+        "Put the radio at an upstairs window, on a porch or outside, with the antenna pointing straight up.",
+        "Send the message again and watch for the acknowledgment."
+      ],
+      "next": "ask"
+    },
+    {
+      "type": "ask",
+      "id": "ask",
+      "title": "Ask in Discord",
+      "body": "The usual causes are ruled out. Someone on the mesh can watch for your message while you send it.",
+      "include": [
+        "Whether it is a channel message or a direct message, and to which node",
+        "What the app shows for the message, including any error text",
+        "How many nodes you can see, and your hop limit",
+        "The firmware version on your radio",
+        "Roughly where you are and what time you tried"
+      ]
+    }
+  ]
+}

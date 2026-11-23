@@ -1,7 +1,7 @@
 ---
 type: offline
 pageTitle: Offline
-pageDescription: This page is not saved on this device. The guides, the field handbook and the glossary are.
+pageDescription: This page is not saved on this device. The guides, the field handbook, the troubleshooter and the glossary are.
 hero:
   title: You are offline
   subtitle: This page was not saved on this device, so it needs a connection.

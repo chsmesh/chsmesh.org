@@ -140,24 +140,29 @@ For portable use:
 
 ## Common Issues
 
+For a problem that the quick checks below do not solve, the [step-by-step troubleshooter](/troubleshooting/) asks one question at a time until it finds the cause.
+
 ### "No nodes visible"
 
 - Normal if you're the only one nearby
 - Check that region is set correctly
 - Verify antenna is connected properly
 - Try repositioning (near window, higher location)
+- Still nothing? [Work through every check in order](/troubleshooting/#no-nodes)
 
 ### "Messages not sending"
 
 - Check channel settings
 - Verify region configuration
 - Ensure device isn't in airplane mode
+- Still failing? [Troubleshoot message delivery step by step](/troubleshooting/#messages-not-delivered)
 
 ### "Device disconnects frequently"
 
 - Check Bluetooth stability
 - Update app to latest version
 - Try "forgetting" and re-pairing the device
+- Can't connect at all? [Troubleshoot the app connection step by step](/troubleshooting/#app-wont-connect)
 
 ### "Position not updating"
 
