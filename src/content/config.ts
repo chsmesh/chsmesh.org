@@ -334,7 +334,13 @@ const global = defineCollection({
       infrastructure: z.object({ heading: z.string(), body: z.string() }),
       activity: z.object({ heading: z.string(), body: z.string() }),
       hops: z.object({ heading: z.string(), body: z.string() }),
-      map: z.object({ heading: z.string(), body: z.string() }),
+      map: z.object({
+        heading: z.string(),
+        body: z.string(),
+        // Link under the map, to the relay host recruiting page.
+        // nullish: the CMS may save a removed object as null.
+        cta: ctaSchema.nullish(),
+      }),
       gateways: z.object({ heading: z.string(), body: z.string() }),
       nodes: z.object({ heading: z.string() }),
       // Other projects' maps, for a wider view than our own gateways give.
