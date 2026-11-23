@@ -19,7 +19,7 @@ intro:
     CHS Mesh is a volunteer-built radio network that lets people send text messages across the Charleston area without cell service or internet, which matters most when a storm takes those down. The radios are small and low power, so they need a clear view to reach each other. One relay on a tall roof, steeple or tower can link up neighborhoods that cannot hear each other today. We are looking for businesses, churches, schools and homeowners willing to give one a home.
 hosting:
   heading: What hosting involves
-  body: Not much. A volunteer does the work, and you can change your mind at any time.
+  body: Not much, and you can change your mind at any time.
   points:
     - title: A small weatherproof box and antenna
       description: The box is about the size of a paperback book, with an antenna roughly a foot or two long. It mounts to a railing, pole or parapet, usually with clamps rather than holes.
@@ -27,10 +27,10 @@ hosting:
       description: Most relays run on their own small solar panel and battery. If an outlet is handy, a relay draws a few watts, less than a night light.
     - title: No internet needed
       description: The relay talks only to other mesh radios. It does not connect to your Wi-Fi or network and needs no account or password from you.
-    - title: No cost to you
-      description: Volunteers supply the equipment, install it and keep it running. There is nothing to buy and no fee.
+    - title: Equipment from us or from you
+      description: A volunteer can supply the relay and may be able to assist with the installation. If you would like to donate or sponsor the equipment for your site, we would gladly welcome it.
     - title: Removable on request
-      description: If you want it gone for any reason, tell us and a volunteer will take it down.
+      description: If you want it gone for any reason, tell us and we will work with you to get it taken down.
 hosts:
   heading: Who we are looking for
   body: Height and a clear view matter more than anything else. If your site stands above the rooftops and trees around it, we would like to hear from you.
@@ -70,16 +70,16 @@ faq:
   items:
     - question: Who is responsible if something goes wrong?
       answer: >-
-        The equipment belongs to the volunteer who installs it, and they are responsible for it. It is low voltage and light, and it is mounted so it cannot fall or let water in. CHS Mesh is a volunteer group, not a company, so we do not offer insurance or a formal contract, but we are glad to put the arrangement in writing, to work to your building's rules, and to have your facilities staff or roofer look over the plan first. If your organization needs something more before saying yes, tell us and we will work it out with you.
+        Equipment that a volunteer supplies belongs to that volunteer, and they look after it. It is low voltage and light, and any installation we help with is planned so it cannot fall or let water in. CHS Mesh is a volunteer group, not a company, so we do not offer insurance or a formal contract, but we are glad to put the arrangement in writing, to work to your building's rules, and to have your facilities staff or roofer look over the plan first. If your organization needs something more before saying yes, tell us and we will work it out with you.
     - question: Is the radio safe to be around?
       answer: >-
         Yes. A relay transmits at one watt or less, in short bursts, on the license-free 915 MHz band that devices such as utility smart meters also use. That is less power than many handheld walkie-talkies, and the antenna sits outside, above the roof. The equipment is FCC-certified and needs no license to operate.
     - question: Will you need access to our roof?
       answer: >-
-        Once to install it, which usually takes under an hour, and then only rarely: a relay is built to run unattended, so a visit might be needed once or twice a year. Every visit is arranged with you ahead of time, at a time that suits you, and we follow your rules for access and escorts. Nobody shows up unannounced.
+        If a volunteer helps with the installation, once for that, which usually takes under an hour. After that, only rarely: a relay is built to run unattended, so a visit might be needed once or twice a year. Every visit is arranged with you ahead of time, at a time that suits you, and we follow your rules for access and escorts. Nobody shows up unannounced.
     - question: Who maintains it?
       answer: >-
-        We do. The volunteer who installed the relay watches it remotely over the mesh and handles repairs, updates and battery changes. You do not need to do or know anything, and you will have a named person to call if you ever have a question.
+        Volunteers help where they can. A relay can be watched remotely over the mesh, and a volunteer may be able to assist with repairs, updates and battery changes. You do not need to be a radio expert.
     - question: Will it interfere with our Wi-Fi, phones or other equipment?
       answer: >-
         No. It operates on a different band from Wi-Fi and cell phones, at very low power. If you ever suspect a problem, tell us and we will switch it off while we look into it.
@@ -88,15 +88,12 @@ faq:
         No. We never publish host addresses, and this page only ever names neighborhoods. What you send through the form goes privately to the group's moderators. A relay may appear on the network map with an approximate location, and only if you agree.
     - question: What if we change our mind?
       answer: >-
-        Tell us and we will remove it. There is no commitment and no hard feelings.
+        Tell us and we will work with you to get it taken down. There is no commitment and no hard feelings.
 contactCta:
   heading: Not sure your site would work?
   body: Ask us. We can usually tell from a rough description, and there is no obligation.
   ctas:
-    - label: Email Us
-      href: '@links.emailInfo'
-      variant: primary
     - label: Ask on Discord
       href: '@links.discord'
-      variant: outline
+      variant: primary
 ---
