@@ -236,6 +236,20 @@ Two related behaviours worth knowing:
   `/admin/` is the self-hosted Umami analytics instance, which also appears in
   `script-src` so its tracker can load.
 
+### Analytics
+
+`src/utils/analytics.mjs` loads the cookieless Umami tracker from the layout,
+and skips it entirely for visitors who send Do Not Track or Global Privacy
+Control. Besides page views it records three events:
+
+| Event | When | Data |
+| --- | --- | --- |
+| `form-open` | A submission modal is opened | `form` (modal id) |
+| `form-submit` | A submission succeeds | `form` (form id) |
+| `resource-click` | A link on a resource card is clicked | `resource`, `link` (link type) |
+
+The About page FAQ describes this to visitors; update it if the events change.
+
 ### Legacy `.md` URL redirects
 
 The live site previously served guide and meetup URLs carrying the `.md`

@@ -15,7 +15,7 @@ mission:
     - title: Emergency resilience
       description: When cell towers fail during hurricanes or disasters, our network keeps working
     - title: Privacy
-      description: No tracking, no data collection, no corporate surveillance
+      description: No accounts, no carrier, no corporate surveillance
     - title: Accessibility
       description: Free to use with affordable hardware (about $30-75 to get started)
     - title: Education
@@ -78,6 +78,9 @@ faqs:
   - question: Is the network private?
     answer: >-
       By default, the primary channel uses a shared encryption key for basic network traffic. For private conversations, you can create encrypted secondary channels with custom keys. Location and telemetry sharing is optional and configurable.
+  - question: Does this website track me?
+    answer: >-
+      We count visits with Umami, an open-source analytics tool we host ourselves. It sets no cookies, does not store IP addresses, and does not follow you to other sites. It records page views and a few actions: opening a submission form, submitting one, and clicking a link on the Resources page. If your browser sends Do Not Track or Global Privacy Control, the analytics script is not loaded at all. Separately, the Network Status page shows nodes heard on the public LongFast channel; message text is never stored.
 contactCta:
   heading: Have Questions?
   body: We're happy to help! Reach out on Discord or email us directly.

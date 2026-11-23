@@ -130,6 +130,8 @@ const sizeClasses = {
 </style>
 
 <script>
+  import { track } from '../utils/analytics.mjs';
+
   // Modal management
   const FOCUSABLE_SELECTOR = [
     'a[href]',
@@ -221,6 +223,7 @@ const sizeClasses = {
         const modal = modalId ? document.getElementById(modalId) : null;
         if (modal) {
           openModal(modal);
+          if (modal.querySelector('form')) track('form-open', { form: modal.id });
         }
       });
     });
