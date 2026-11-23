@@ -20,6 +20,12 @@ COPY package*.json ./
 RUN NODE_OPTIONS="--max-old-space-size=512" npm install --prefer-offline && \
     test -f node_modules/.bin/astro || (echo "ERROR: astro not installed" && exit 1)
 
+# Headless Chromium for the offline PDFs (scripts/build-pdfs.mjs), plus the
+# system libraries and fonts it needs. The version is whatever the pinned
+# playwright-core in package.json asks for. It stays in this stage: the runtime
+# image only receives dist/.
+RUN npx playwright-core install --with-deps chromium-headless-shell
+
 # Ensure installed binaries are in PATH
 ENV PATH="/app/node_modules/.bin:$PATH"
 
@@ -35,8 +41,10 @@ ARG PUBLIC_TURNSTILE_SITE_KEY
 ENV PUBLIC_SUBMIT_BASE=$PUBLIC_SUBMIT_BASE
 ENV PUBLIC_TURNSTILE_SITE_KEY=$PUBLIC_TURNSTILE_SITE_KEY
 
-# Build the static site
-RUN npm run build
+# Build the static site, then print each guide and the field handbook to
+# dist/downloads/*.pdf. The pages link to those files, so a failure here must
+# fail the image build rather than ship dead download links.
+RUN npm run build && npm run build:pdf
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine@sha256:72ba65eb42c10344912a84ff42408db7d34f2feb642204570ab8fc5ffd29f1d3 AS runtime

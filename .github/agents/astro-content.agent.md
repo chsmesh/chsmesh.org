@@ -72,11 +72,12 @@ project/
 ├── src/
 │   ├── content/
 │   │   ├── config.ts     # schemas for every collection
+│   │   ├── builds/       # member builds; photos in src/assets/builds/
 │   │   ├── guides/
 │   │   ├── meetups/     # empty, kept by .gitkeep
 │   │   ├── resources/
 │   │   ├── taxonomies/   # default.md — labels and icons
-│   │   └── global/       # 13 files of site metadata and page copy
+│   │   └── global/       # 16 files of site metadata and page copy
 │   └── pages/
 │       ├── guides/
 │       └── meetups/

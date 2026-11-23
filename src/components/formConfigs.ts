@@ -358,6 +358,108 @@ export const resourceFormConfig: FormConfig = {
   disclaimerText: 'By submitting, you agree that your resource recommendation will be publicly displayed on this website.',
 };
 
+// Build Gallery Form Configuration (the form on /builds/)
+//
+// The one form that uploads files. Photos are re-encoded in the browser
+// (src/components/photoField.ts) and stripped of metadata again by the
+// service, so a photo's embedded GPS position is never published.
+export const buildFormConfig: FormConfig = {
+  id: 'build-form',
+  kind: 'build',
+  title: 'Share Your Build',
+  description: 'Show the community what you put together: a node, an enclosure, a solar setup, a rooftop or pole install.',
+  fields: [
+    {
+      name: 'title',
+      maxLength: 120,
+      label: 'Build Title',
+      type: 'text',
+      required: true,
+      placeholder: 'e.g., Solar Relay in an Ammo Can',
+    },
+    {
+      name: 'builder',
+      maxLength: 80,
+      label: 'Your Name or Handle',
+      type: 'text',
+      required: true,
+      placeholder: 'e.g., Jordan, KO4ABC, or your Discord name',
+      helpText: 'Shown publicly as the builder credit',
+    },
+    {
+      name: 'description',
+      maxLength: 500,
+      label: 'Short Description',
+      type: 'textarea',
+      required: true,
+      rows: 2,
+      placeholder: 'One or two sentences about what it is and what it is for',
+    },
+    {
+      name: 'photos',
+      label: 'Photos',
+      type: 'photos',
+      required: true,
+      max: 6,
+      helpText: 'Up to 6 photos (JPEG, PNG or WebP). The first is the cover. Photos are resized and their location data is removed before they leave your device. Please leave out house numbers, street signs and anyone who has not agreed to be pictured.',
+    },
+    {
+      name: 'hardware',
+      label: 'Hardware Used',
+      type: 'textarea',
+      rows: 4,
+      placeholder: 'One item per line:\nHeltec V3\n6W solar panel\n3000mAh 18650 cell',
+      helpText: 'One item per line (optional). Items named like an entry on the Resources page are linked to it.',
+    },
+    {
+      name: 'content',
+      maxLength: 20000,
+      label: 'Build Notes',
+      type: 'textarea',
+      rows: 6,
+      placeholder: 'Optional: how you built it, what you would do differently, range you are seeing, etc. (Markdown supported)',
+      helpText: 'Use Markdown formatting for rich content (optional)',
+      className: 'font-mono text-sm',
+    },
+    {
+      name: 'area',
+      maxLength: 120,
+      label: 'Neighborhood or Area',
+      type: 'text',
+      placeholder: 'e.g., West Ashley',
+      helpText: 'Optional and shown publicly. Please do not enter a street address.',
+    },
+    {
+      name: 'nodeName',
+      maxLength: 80,
+      label: 'Node Name',
+      type: 'text',
+      placeholder: 'e.g., WASH Relay 1',
+      helpText: "The node's name on the mesh, if it is on the air (optional)",
+    },
+    {
+      name: 'mapLink',
+      label: 'Map Link',
+      type: 'url',
+      placeholder: 'https://...',
+      helpText: "Link to the node's entry on a mesh map (optional). It shows where the node is, so leave it blank for a build at your home unless you are happy to share that.",
+    },
+    {
+      name: 'submitterEmail',
+      label: 'Email',
+      type: 'email',
+      required: true,
+      placeholder: 'your.email@example.com',
+      helpText: 'For chsmesh.org contact only (not published on site)',
+    },
+  ],
+  transformRules: [
+    { field: 'hardware', type: 'splitLines', optional: true },
+  ],
+  successMessage: '✓ Build submitted! It will appear in the gallery once a moderator has reviewed it.',
+  disclaimerText: 'By submitting, you confirm the photos are yours to share and agree that they and your description will be publicly available under the site\'s license.',
+};
+
 // Relay Host Offer Configuration (the form on /relay-sites/)
 //
 // Contact only: the service forwards it to the moderators' Discord channel and

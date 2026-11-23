@@ -1,4 +1,4 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection, reference, z } from 'astro:content';
 
 // Meetups collection - community events and gatherings
 const meetups = defineCollection({
@@ -47,6 +47,9 @@ const guides = defineCollection({
     prerequisites: z.array(z.string()).default([]),
     lastUpdated: z.coerce.date().optional(),
     author: z.string().optional(),
+    // Include this guide in the field handbook (/handbook/ and its PDF). Keep
+    // it to what someone needs in hand when the internet is down.
+    handbook: z.boolean().default(false),
   }),
 });
 
@@ -79,6 +82,51 @@ const resources = defineCollection({
     cons: z.array(z.string()).default([]),
     image: z.string().optional(),
   }),
+});
+
+// Builds collection - the member build gallery at /builds/. Photos live in
+// src/assets/builds/ and are referenced relative to the entry file, so they go
+// through Astro's asset pipeline (hashed file names under /_astro/, intrinsic
+// width and height on every <img>). Entries arrive through the public form
+// (services/submissions, which strips photo metadata) or the CMS.
+const builds = defineCollection({
+  type: 'content',
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      // Name, handle or callsign to credit. Whatever the builder chose to give.
+      builder: z.string(),
+      description: z.string(),
+      // When the build was added; the gallery lists newest first.
+      date: z.coerce.date(),
+      featured: z.boolean().default(false),
+      // The first photo is the cover.
+      photos: z
+        .array(
+          z.object({
+            image: image(),
+            alt: z.string(),
+          })
+        )
+        .min(1)
+        .max(6),
+      hardware: z
+        .array(
+          z.object({
+            name: z.string(),
+            // Links the item to its entry on /resources/. Without it, an item
+            // whose name is exactly a resource's title is linked anyway.
+            resource: reference('resources').optional(),
+          })
+        )
+        .default([]),
+      // Neighborhood level only, never an address.
+      area: z.string().optional(),
+      // The node's name on the mesh, as listed on /status/.
+      nodeName: z.string().optional(),
+      // The node's entry on a mesh map, if the builder wants it linked.
+      mapLink: z.string().url().optional(),
+    }),
 });
 
 // Glossary collection - plain-language definitions of mesh jargon. One JSON
@@ -182,6 +230,11 @@ const global = defineCollection({
         cta: ctaSchema,
       }),
       guidesSection: z.object({
+        heading: z.string(),
+        cta: ctaSchema,
+      }),
+      // Featured builds from the gallery; hidden while none is featured.
+      buildsSection: z.object({
         heading: z.string(),
         cta: ctaSchema,
       }),
@@ -392,6 +445,35 @@ const global = defineCollection({
       }),
     }),
     z.object({
+      type: z.literal('builds'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      submitLabel: z.string(),
+      empty: z.object({
+        heading: z.string(),
+        body: z.string(),
+      }),
+      contribute: z.object({
+        heading: z.string(),
+        body: z.string(),
+      }),
+      // Labels on /builds/<slug>/.
+      detail: z.object({
+        backLabel: z.string(),
+        builderLabel: z.string(),
+        hardwareHeading: z.string(),
+        areaLabel: z.string(),
+        nodeLabel: z.string(),
+        mapLinkLabel: z.string(),
+        moreHeading: z.string(),
+      }),
+    }),
+    z.object({
       type: z.literal('glossary'),
       pageTitle: z.string(),
       pageDescription: z.string(),
@@ -412,6 +494,11 @@ const global = defineCollection({
       backLabel: z.string(),
       prerequisitesHeading: z.string(),
       relatedHeading: z.string(),
+      // The "Download PDF" button in the guide header.
+      download: z.object({
+        label: z.string(),
+        hint: z.string(),
+      }),
       feedback: z.object({
         question: z.string(),
         reportLabel: z.string(),
@@ -419,6 +506,48 @@ const global = defineCollection({
         improveLabel: z.string(),
         improveUrl: z.string(),
       }),
+    }),
+    z.object({
+      type: z.literal('handbook'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      intro: z.string(),
+      downloadLabel: z.string(),
+      // Followed by the build date, e.g. "Generated November 22, 2026".
+      generatedLabel: z.string(),
+      contentsHeading: z.string(),
+      glossaryHeading: z.string(),
+      // The callout on the guides index.
+      promo: z.object({
+        heading: z.string(),
+        body: z.string(),
+        downloadLabel: z.string(),
+        viewLabel: z.string(),
+      }),
+    }),
+    z.object({
+      // Offline reading: the /offline/ fallback page and the labels the
+      // service worker's UI uses on every page.
+      type: z.literal('offline'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      savedHeading: z.string(),
+      savedBody: z.string(),
+      guidesLabel: z.string(),
+      // Badge shown on a page once it is saved on the visitor's device.
+      indicatorLabel: z.string(),
+      // Strip under the header while the browser has no connection.
+      bannerText: z.string(),
     }),
     z.object({
       type: z.literal('meetups'),
@@ -504,6 +633,7 @@ export const collections = {
   meetups,
   guides,
   resources,
+  builds,
   glossary,
   taxonomies,
   global,

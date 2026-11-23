@@ -1,0 +1,229 @@
+name: External links
+
+# Checks the site's outbound links (vendors, app stores, Discord invites, the
+# Meshtastic docs) once a week. It is deliberately separate from CI and from
+# the `ci-ok` required check: a third-party site being down or rate-limiting
+# must not block a merge. Broken links are reported in a single issue, which
+# is updated on later runs and closed once every link works again.
+#
+# Some sites (AliExpress, Amazon, Silicon Labs) answer a bot the same way for
+# a live page and a dead one, so no automated check can vouch for them. They
+# are allowlisted in lychee.toml, and once a month this workflow opens a
+# checklist issue asking a person to open each of those links.
+#
+# Internal links are checked on every pull request by the `site` job in
+# ci.yml.
+on:
+  schedule:
+    # Weekly check: Mondays, 12:17 UTC. Off the hour, when scheduled runs are
+    # less delayed.
+    - cron: '17 12 * * 1'
+    # Monthly manual-review checklist: the 1st, 12:43 UTC. The jobs' conditions
+    # below compare against this exact string.
+    - cron: '43 12 1 * *'
+  workflow_dispatch:
+    inputs:
+      manual_review:
+        description: Open the manual link review checklist instead of running the weekly check
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: external-links
+  cancel-in-progress: false
+
+env:
+  # Same test key as ci.yml; the build needs one set.
+  PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+  # Keep in step with ci.yml.
+  LYCHEE_VERSION: 0.24.2
+  LYCHEE_SHA256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
+  ISSUE_TITLE: Broken external links
+  ISSUE_LABEL: broken-links
+  REVIEW_LABEL: link-review
+
+jobs:
+  external-links:
+    name: Check external links
+    if: github.event.schedule != '43 12 1 * *' && inputs.manual_review != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+
+      - name: Install lychee
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/lychee.tar.gz" \
+            "https://github.com/lycheeverse/lychee/releases/download/lychee-v$LYCHEE_VERSION/lychee-x86_64-unknown-linux-gnu.tar.gz"
+          echo "$LYCHEE_SHA256  $RUNNER_TEMP/lychee.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/lychee"
+          tar -xzf "$RUNNER_TEMP/lychee.tar.gz" -C "$RUNNER_TEMP/lychee" --strip-components=1
+          echo "$RUNNER_TEMP/lychee" >> "$GITHUB_PATH"
+
+      - name: Check external links
+        id: lychee
+        env:
+          # Lifts the anonymous rate limit on github.com links.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # lychee exits 0 when every link works and 2 when some are broken.
+          # Anything else means the check itself failed (bad config, no
+          # network), which must fail this job rather than be reported as, or
+          # mistaken for, the state of the links.
+          status=0
+          scripts/check-links.sh external \
+            --format markdown --output "$RUNNER_TEMP/links.md" || status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          if [ -f "$RUNNER_TEMP/links.md" ]; then
+            cat "$RUNNER_TEMP/links.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          case "$status" in
+            0|2) ;;
+            *) echo "::error::lychee could not run the check (exit $status)."; exit "$status" ;;
+          esac
+
+      - name: Open, update or close the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          STATUS: ${{ steps.lychee.outputs.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create "$ISSUE_LABEL" --color d93f0b \
+            --description 'Opened by the weekly external link check' 2>/dev/null || true
+
+          # The one open tracking issue, if any: found by label and limited to
+          # issues this workflow opened, so a hand-labelled issue is left alone.
+          issue=$(gh issue list --state open --label "$ISSUE_LABEL" \
+            --author 'app/github-actions' --json number --jq '.[0].number // empty')
+
+          if [ "$STATUS" = '0' ]; then
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" \
+                --comment "Every external link passed in [this run]($RUN_URL)."
+            fi
+            echo 'All external links are working.'
+            exit 0
+          fi
+
+          {
+            echo "The weekly external link check found broken links in the built site. Latest run: $RUN_URL"
+            echo
+            echo 'Fix or replace each link in `src/content/` (or wherever it is written). If the link works in a browser and the site is only refusing automated requests, add it to the allowlist in `lychee.toml` instead. This issue is updated on each run and closes itself once every link passes.'
+            echo
+            cat "$RUNNER_TEMP/links.md"
+          } > "$RUNNER_TEMP/issue.md"
+
+          if [ -n "$issue" ]; then
+            gh issue edit "$issue" --body-file "$RUNNER_TEMP/issue.md"
+            echo "Updated issue #$issue."
+          else
+            gh issue create --title "$ISSUE_TITLE" --label "$ISSUE_LABEL" \
+              --body-file "$RUNNER_TEMP/issue.md"
+          fi
+
+      - name: Fail the run when links are broken
+        if: steps.lychee.outputs.status != '0'
+        run: |
+          echo '::error::Broken external links found; see the tracking issue and the job summary.'
+          exit 1
+
+  manual-review:
+    name: Open the manual link review checklist
+    if: github.event.schedule == '43 12 1 * *' || inputs.manual_review == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+
+      - name: Install lychee
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/lychee.tar.gz" \
+            "https://github.com/lycheeverse/lychee/releases/download/lychee-v$LYCHEE_VERSION/lychee-x86_64-unknown-linux-gnu.tar.gz"
+          echo "$LYCHEE_SHA256  $RUNNER_TEMP/lychee.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/lychee"
+          tar -xzf "$RUNNER_TEMP/lychee.tar.gz" -C "$RUNNER_TEMP/lychee" --strip-components=1
+          echo "$RUNNER_TEMP/lychee" >> "$GITHUB_PATH"
+
+      - name: List the links that need a manual check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          scripts/check-links.sh manual > "$RUNNER_TEMP/checklist.md"
+          cat "$RUNNER_TEMP/checklist.md" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Open the checklist issue, or nudge the open one
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ ! -s "$RUNNER_TEMP/checklist.md" ]; then
+            echo 'No allowlisted links in the build; nothing to review.'
+            exit 0
+          fi
+
+          gh label create "$REVIEW_LABEL" --color fbca04 \
+            --description 'Monthly manual check of links no bot can verify' 2>/dev/null || true
+
+          # One review at a time: if last month's is still open, remind there
+          # rather than stacking a second issue on top of it.
+          issue=$(gh issue list --state open --label "$REVIEW_LABEL" \
+            --author 'app/github-actions' --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            {
+              echo 'Monthly reminder: this review is still open. The current list of links to check, in case the content has changed since:'
+              echo
+              cat "$RUNNER_TEMP/checklist.md"
+            } > "$RUNNER_TEMP/comment.md"
+            gh issue comment "$issue" --body-file "$RUNNER_TEMP/comment.md"
+            exit 0
+          fi
+
+          {
+            echo 'The weekly link check skips these links, almost always because the site answers automated requests the same way whether or not the page exists (see the allowlist in `lychee.toml`). Please open each one in a browser and tick it off if the page loads and the product or download is still there.'
+            echo
+            cat "$RUNNER_TEMP/checklist.md"
+            echo
+            echo "For a dead link, fix or replace it in \`src/content/\`. Close this issue when every box is ticked; a new one opens next month. Generated by $RUN_URL"
+          } > "$RUNNER_TEMP/issue.md"
+
+          gh issue create --title "Manual link review: $(date -u +'%B %Y')" \
+            --label "$REVIEW_LABEL" --body-file "$RUNNER_TEMP/issue.md"

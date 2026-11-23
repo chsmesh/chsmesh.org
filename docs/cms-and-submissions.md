@@ -41,11 +41,20 @@ exactly `https://chsmesh.org/admin/` and not another hostname.
 | Guides | `src/content/guides/*.md` | Markdown body, category, difficulty, prerequisites |
 | Glossary | `src/content/glossary/*.json` | Term, short definition (also the tooltip in guides), aliases, related terms. Terms and aliases are linked automatically at their first mention in each guide |
 | Resources | `src/content/resources/*.md` | Links to devices, software, firmware, communities |
+| Builds | `src/content/builds/*.md`, photos in `src/assets/builds/` | The member build gallery at `/builds/`. One to six photos; the first is the cover. Tick **Featured** to show a build on the home page |
 | Taxonomies | `src/content/taxonomies/*` | The allowed categories and difficulties |
 | Site settings | `src/content/global/*` | Site links, navigation, footer, and each page's copy, including the areas that need coverage on the relay sites page |
 
 Images uploaded through the CMS go to `public/images/` and are referenced as
-`/images/<file>`.
+`/images/<file>`. Build photos are the exception: they go to
+`src/assets/builds/` and the entry refers to them by a path relative to
+itself (`../../assets/builds/<file>`).
+
+**The CMS does not strip photo metadata.** A photo straight off a phone
+carries the GPS position it was taken at, and a file uploaded here is
+committed as it is. Photos that arrive through the public form have already
+had this removed (see [Build photos](#build-photos)); for one you upload
+yourself, remove the location data first, or re-export or screenshot it.
 
 ### Publishing a change
 
@@ -81,7 +90,7 @@ show the same branch.
 ## Reviewing public submissions
 
 The submission forms on the site (submit a guide, suggest a meetup,
-share a resource) do not require an account. Each submission becomes
+share a resource, share a build) do not require an account. Each submission becomes
 a pull request opened by the submissions service, in the same shape the CMS
 uses for its own drafts, so you can review it either in the CMS Workflow view
 or on GitHub.
@@ -93,13 +102,44 @@ or on GitHub.
   workflow branch, a short random suffix is added.
 - **Title** `<Kind> submission: <entry title>`.
 - **Labels** `cms/pending_review`, `submission` and the kind (`guide`,
-  `meetup` or `resource`). The `cms/` label is what puts the entry in
+  `meetup`, `resource` or `build`). The `cms/` label is what puts the entry in
   the CMS Workflow view. Filter the GitHub queue with `label:submission`.
 - **Body** shows the file path, a table of the submitted fields, and a review
   checklist.
 - **Contact details** are never in the pull request. The submitter's email
   goes only to the private moderators' Discord channel, in a message that
   links to the pull request.
+
+### Build photos
+
+A build submission is the one kind that carries files. Its pull request adds
+the entry and one to six photos, named `src/assets/builds/<slug>-<n>.<ext>`,
+in a single commit.
+
+Photos of an install at someone's home are the sensitive part, so they are
+cleaned twice before they reach this public repository:
+
+1. **In the browser.** The form redraws each photo on a canvas, scales it to
+   at most 1600 pixels on its longest side and re-encodes it as a JPEG. Only
+   pixels survive that, so the EXIF block, GPS position included, never leaves
+   the submitter's device.
+2. **In the service.** The endpoint is public, so the service does not rely
+   on step 1. It accepts only JPEG, PNG and WebP, identified from the file's
+   own structure, and rebuilds each file from the parts a decoder needs.
+   EXIF, XMP, IPTC, comments, embedded thumbnails and anything after the end
+   of the image are dropped. A JPEG keeps one EXIF tag, its orientation, so
+   it is not published on its side. Photos over 1.5 MB or 4096 pixels on a
+   side, and animated images, are refused.
+
+The pull request's table lists each photo's type, size and dimensions. None
+of this can see what is *in* a photo, which is what the extra items on the
+review checklist are for: look for house numbers, street signs, licence
+plates, a recognisable view of a home, and people. If a photo should not be
+published, delete it from the entry (and its file from the branch) before
+merging; closing the pull request and deleting the branch removes everything.
+
+The form asks for a neighborhood, never an address, and warns that a map link
+shows where the node is.
 
 ### Relay host offers
 
@@ -206,7 +246,7 @@ Runtime values are read by the submissions service when it starts.
    and secret in the two `GITHUB_OAUTH_*` variables. GitHub accepts one
    callback URL per app, so local testing needs a second app (see
    [Local development](#local-development)).
-3. **Labels.** Create `submission`, `guide`, `meetup` and `resource`.
+3. **Labels.** Create `submission`, `guide`, `meetup`, `resource` and `build`.
    GitHub creates any missing label the first time the service applies it, so
    this is only for colours and descriptions. The service also applies
    `cms/pending_review`; the CMS manages the `cms/` labels from then on. If
@@ -263,6 +303,12 @@ ever on a public address, add it with `set_real_ip_from` in `nginx.conf`.
   protocol forwarded, limits request bodies to 64 KB, and applies the
   submission rate limit to `/api/submit/` only. Sign-in requests are not
   throttled.
+- `location ^~ /api/submit/build` is the same proxy with a 13 MB body limit
+  and a 60 second timeout, because build submissions carry their photos
+  base64-encoded in the JSON body. The service enforces the same limit
+  (`maxBodyBytes` on the `build` kind in `services/submissions/lib.mjs`);
+  change the two together. Uploads are buffered in the nginx container's
+  `/tmp` tmpfs.
 - `location ^~ /admin/` serves the CMS with `Cache-Control: no-store` and
   `X-Robots-Tag: noindex`. `robots.txt` and the sitemap also exclude it.
 - The Content Security Policy is widened for `/admin/` only, through `map`
@@ -300,6 +346,7 @@ the CMS sign-in do not work there.
 | Method and path | Purpose |
 | --- | --- |
 | `POST /api/submit/{guide,meetup,resource}` | Public submission. Body is the JSON the site's forms send. |
+| `POST /api/submit/build` | Build gallery submission. The same, plus `photos`: a list of one to six `{ "data": "<base64 JPEG, PNG or WebP>", "alt": "<optional description>" }`. |
 | `POST /api/submit/host` | Relay host offer from `/relay-sites/`. Forwarded to Discord only; no pull request. |
 | `GET /api/auth?provider=github&site_id=<host>` | Starts CMS sign-in. Redirects to GitHub. |
 | `GET /api/auth/callback` | GitHub returns here. Posts the token to the CMS window and closes. |
@@ -313,6 +360,7 @@ Submission responses:
 | `400 { ok: false, errors }` | Validation failed. `errors` lists the fields. |
 | `400 { ok: false, error }` | Turnstile verification failed. |
 | `403` | The request's `Origin` is not `SITE_ORIGIN`. |
+| `413` | The body is over the limit: 64 KB, or 13 MB for a build. |
 | `429` | Rate limited. |
 | `503` | The service has no `GITHUB_TOKEN` (for a host offer: no `DISCORD_WEBHOOK_URL`). |
 | `502` | GitHub or the network failed while opening the pull request (for a host offer: the Discord webhook failed). |
@@ -328,6 +376,7 @@ Submission responses:
 | Form says verification failed | Turnstile rejected the token. The service log names the reason. A hostname mismatch means the widget's hostnames do not include this site. |
 | The CI check on a CMS pull request is red | Usually a draft with empty required fields. Finish the entry; it will go green. |
 | A submission pull request exists but is not in the CMS Workflow view | It is missing the `cms/pending_review` label (the Discord notice flags this and the service log says why), or its branch was renamed. Add the label on GitHub; the branch must stay `cms/<collection>/<slug>`. |
+| A build photo is refused as "not a complete JPEG" (or PNG, WebP) | The file is truncated or is not really that type. The form re-encodes photos before sending, so this normally means something posted to the API directly. |
 | The CMS page is blank or a request is blocked | Check the browser console for a Content Security Policy message and adjust the `$csp_admin_*` maps. |
 
 ### Why it is built this way
@@ -342,6 +391,12 @@ Submission responses:
 - **CMS bundled from npm.** `src/pages/admin/index.astro` imports
   `@sveltia/cms` so the bundle ships as a hashed file under `/_astro/` and the
   `script-src 'self'` policy holds on the CMS page too.
+- **Photos travel in the JSON body and are cleaned without an image
+  library.** Keeping one request format means the same validation, honeypot
+  and Turnstile path covers every form, and stripping metadata by rebuilding
+  the file's container keeps the service free of dependencies. The price is
+  that the service cannot resize: the browser does that, and the size and
+  dimension limits hold for anything that skips the browser.
 - **Contact details stay out of the repository.** The submitter's email is
   required by the forms but is sent only to Discord, never written to a file
   or a pull request.

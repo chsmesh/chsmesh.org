@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { slugify, validate, buildFile, yamlLines, renderMarkdown, pullRequestBody, pullRequestLabels, turnstileVerdict, workflowBranch, zonedDateTime, zoneOffsetMinutes, CMS_LABEL_PREFIX, SUBMISSION_STATUS, KINDS, CONTACT_KINDS, SPECS, contactNotice } from '../../services/submissions/lib.mjs';
+import { SECRETS, jpeg, png } from './fixtures.mjs';
 
 test('turnstile verdict requires success, matching hostname and action', () => {
   const expected = { hostname: 'chsmesh.org', action: 'submit-meetup' };
@@ -336,4 +337,136 @@ test('host notice carries the contact details, fits Discord limits and cannot pi
   }
   // A honeypot hit is still delivered, flagged.
   assert.match(contactNotice('host', { name: 'N', area: 'A' }, { suspect: true }).embeds[0].title, /^Possible spam - /);
+});
+
+// ---------------------------------------------------------------------------
+// Build gallery submissions (photos)
+
+const photo = (bytes, alt) => ({ data: bytes.toString('base64'), ...(alt ? { alt } : {}) });
+const buildPayload = (overrides = {}) => ({
+  title: 'Solar Relay in an Ammo Can',
+  builder: 'KO4ABC',
+  description: 'A weatherproof relay for the back fence.',
+  photos: [photo(jpeg({ orientation: 6 }), '  The node\non a fence post '), photo(png())],
+  hardware: ['Heltec V3', ' 6W solar panel ', ''],
+  area: 'West Ashley',
+  submitterEmail: 'jordan@example.com',
+  ...overrides,
+});
+
+test('build is a pull-request kind with its own, larger body limit', () => {
+  assert.ok(KINDS.includes('build'));
+  assert.equal(SPECS.build.collection, 'builds');
+  const { maxItems, maxBytes } = SPECS.build.fields.photos;
+  // Every photo at its limit, base64-encoded, still fits the request body.
+  assert.ok(SPECS.build.maxBodyBytes >= maxItems * Math.ceil(maxBytes / 3) * 4 + 64 * 1024);
+  // nginx must let through what the service accepts, and no more.
+  const nginx = fs.readFileSync(new URL('../../nginx.conf', import.meta.url), 'utf8');
+  const at = nginx.indexOf('location ^~ /api/submit/build {');
+  assert.ok(at !== -1, 'nginx needs a location for /api/submit/build');
+  const block = nginx.slice(at, nginx.indexOf('\n        }\n', at));
+  assert.equal(Number(block.match(/client_max_body_size (\d+)m;/)?.[1]) * 1024 * 1024, SPECS.build.maxBodyBytes);
+  assert.match(block, /limit_req zone=submissions/);
+  assert.doesNotMatch(block, /add_header/, 'must inherit the server-level security headers');
+});
+
+test('validate strips metadata from build photos and normalises their descriptions', () => {
+  const result = validate('build', buildPayload());
+  assert.equal(result.ok, true, result.errors.join('; '));
+  const [first, second] = result.data.photos;
+  assert.deepEqual({ type: first.type, ext: first.ext, width: first.width, height: first.height, alt: first.alt }, { type: 'jpeg', ext: 'jpg', width: 1200, height: 1600, alt: 'The node on a fence post' });
+  assert.deepEqual({ type: second.type, ext: second.ext, alt: second.alt }, { type: 'png', ext: 'png', alt: undefined });
+  for (const { bytes } of result.data.photos) {
+    for (const secret of SECRETS) assert.ok(!bytes.includes(secret), `photo still contains ${secret}`);
+  }
+  assert.deepEqual(result.data.hardware, ['Heltec V3', '6W solar panel']);
+});
+
+test('validate rejects missing, oversized, mislabelled and too many build photos', () => {
+  const errorsFor = (photos) => validate('build', buildPayload({ photos })).errors.join('; ');
+  assert.match(errorsFor(undefined), /photos is required/);
+  assert.match(errorsFor([]), /photos needs at least 1/);
+  assert.match(errorsFor(Array(7).fill(photo(png()))), /photos may have at most 6/);
+  assert.match(errorsFor('nope'), /photos must be a list/);
+  assert.match(errorsFor([{ alt: 'no data' }, 'x']), /photo 1 is missing its image data; photo 2 is missing its image data/);
+  assert.match(errorsFor([{ data: 'not base64!' }]), /photo 1 is not valid base64/);
+  assert.match(errorsFor([{ data: `data:image/jpeg;base64,${jpeg().toString('base64')}` }]), /photo 1 is not valid base64/);
+  assert.match(errorsFor([photo(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'))]), /photo 1 must be a JPEG, PNG or WebP image/);
+  assert.match(errorsFor([photo(png()), photo(jpeg().subarray(0, 200))]), /photo 2 is not a complete JPEG/);
+  assert.match(errorsFor([photo(jpeg({ width: 5000, height: 3000 }))]), /photo 1 is larger than 4096 pixels/);
+  assert.match(errorsFor([photo(png(), 'x'.repeat(161))]), /photo 1 description is longer than 160/);
+  // Refused on the encoded length, before anything is decoded.
+  const tooBig = 'A'.repeat(Math.ceil(SPECS.build.fields.photos.maxBytes / 3) * 4 + 4);
+  assert.match(errorsFor([{ data: tooBig }]), /photo 1 is larger than 1.5 MB/);
+  // One bad photo fails the submission; nothing is half accepted.
+  assert.equal(validate('build', buildPayload({ photos: [photo(png()), { data: '!' }] })).data, null);
+});
+
+test('build files reference their photos the way the builds collection and the CMS expect', () => {
+  const { data } = validate('build', buildPayload({ content: '## Notes\n\nIt works.', nodeName: 'WASH Relay 1', mapLink: 'https://example.com/map/abc' }));
+  const file = buildFile('build', data, { slug: 'solar-relay', today: '2026-11-22' });
+  assert.equal(file.path, 'src/content/builds/solar-relay.md');
+  assert.equal(
+    file.content,
+    [
+      '---',
+      'title: "Solar Relay in an Ammo Can"',
+      'builder: "KO4ABC"',
+      'description: "A weatherproof relay for the back fence."',
+      'date: "2026-11-22"',
+      'featured: false',
+      'photos:',
+      '  - image: "../../assets/builds/solar-relay-1.jpg"',
+      '    alt: "The node on a fence post"',
+      '  - image: "../../assets/builds/solar-relay-2.png"',
+      '    alt: "Solar Relay in an Ammo Can, photo 2"',
+      'hardware:',
+      '  - name: "Heltec V3"',
+      '  - name: "6W solar panel"',
+      'area: "West Ashley"',
+      'nodeName: "WASH Relay 1"',
+      'mapLink: "https://example.com/map/abc"',
+      '---',
+      '',
+      '## Notes',
+      '',
+      'It works.',
+      '',
+    ].join('\n')
+  );
+  assert.deepEqual(file.attachments.map((a) => a.path), ['src/assets/builds/solar-relay-1.jpg', 'src/assets/builds/solar-relay-2.png']);
+  assert.deepEqual(file.attachments.map((a) => a.bytes), data.photos.map((p) => p.bytes));
+
+  // The front matter paths resolve, from the entry, to the attachment paths,
+  // and that folder is the collection's media folder in the CMS.
+  const entryDir = new URL('https://x/src/content/builds/');
+  assert.equal(new URL('../../assets/builds/solar-relay-1.jpg', entryDir).pathname, '/src/assets/builds/solar-relay-1.jpg');
+  const config = fs.readFileSync(new URL('../../public/admin/config.yml', import.meta.url), 'utf8');
+  const builds = config.split(/^ {2}- name: /m).find((block) => block.startsWith('builds\n'));
+  assert.match(builds, /^ {4}media_folder: \.\.\/\.\.\/assets\/builds$/m);
+  assert.match(builds, /^ {4}public_folder: \.\.\/\.\.\/assets\/builds$/m);
+
+  // No notes: no body, and the entry is still valid front matter only.
+  const bare = buildFile('build', validate('build', buildPayload()).data, { slug: 's', today: '2026-11-22' });
+  assert.ok(bare.content.endsWith('area: "West Ashley"\n---\n'));
+});
+
+test('build pull requests summarise the photos and ask for a privacy review', () => {
+  const { data } = validate('build', buildPayload());
+  const body = pullRequestBody('build', data, { path: 'src/content/builds/solar-relay.md', hasContact: true });
+  assert.match(body, /\| photos \| 2 \(jpeg 1200x1600, \d+ kB; png 800x600, \d+ kB\), metadata stripped \|/);
+  assert.match(body, /\| hardware \| Heltec V3, 6W solar panel \|/);
+  assert.match(body, /No photo gives away a private address/);
+  assert.ok(!body.includes('jordan@example.com'));
+  assert.ok(!pullRequestBody('guide', { title: 'T' }, { path: 'p', hasContact: true }).includes('private address'));
+  assert.deepEqual(pullRequestLabels('build'), ['cms/pending_review', 'submission', 'build']);
+});
+
+test('should date an entry by the day in Charleston, not in UTC', async () => {
+  const { zonedDate } = await import('../../services/submissions/lib.mjs');
+  // 7:30 PM EST on Nov 22 is already Nov 23 in UTC.
+  assert.equal(zonedDate(Date.parse('2026-11-23T00:30:00Z')), '2026-11-22');
+  assert.equal(zonedDate(Date.parse('2026-11-23T05:00:00Z')), '2026-11-23');
+  // EDT: midnight is 04:00 UTC.
+  assert.equal(zonedDate(Date.parse('2026-07-01T03:59:59Z')), '2026-06-30');
 });

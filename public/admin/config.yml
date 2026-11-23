@@ -118,6 +118,7 @@ collections:
       - { name: prerequisites, label: Prerequisites, widget: list, required: false, field: { name: item, label: Prerequisite, widget: string } }
       - { name: lastUpdated, label: Last updated, widget: datetime, type: date, required: false }
       - { name: author, label: Author, widget: string, required: false }
+      - { name: handbook, label: Include in the field handbook, widget: boolean, default: false, required: false, hint: "Adds this guide to /handbook/ and its PDF. Keep it to what someone needs when the internet is down." }
       - { name: body, label: Guide content, widget: markdown }
 
   - name: resources
@@ -158,6 +159,63 @@ collections:
       - { name: cons, label: Cons, widget: list, required: false, field: { name: item, label: Con, widget: string } }
       - { name: image, label: Image, widget: image, required: false }
       - { name: body, label: Detailed information, widget: markdown }
+
+  - name: builds
+    label: Builds
+    label_singular: Build
+    description: >-
+      The member build gallery at /builds/. Most entries arrive from the public
+      form with their photos already stripped of location data. A photo you
+      upload here is committed exactly as it is, metadata included, so remove
+      location data from it first.
+    folder: src/content/builds
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{slug}}"
+    summary: "{{title}} — {{builder}}"
+    sortable_fields: [date, title]
+    # Relative to the entry file, i.e. src/assets/builds/. Astro resolves the
+    # photo paths in the front matter from the entry, so the stored value has
+    # to be the same relative path.
+    media_folder: ../../assets/builds
+    public_folder: ../../assets/builds
+    fields:
+      - { name: title, label: Title, widget: string }
+      - { name: builder, label: Builder, widget: string, hint: "Name, handle or callsign to credit" }
+      - { name: description, label: Short description, widget: text }
+      - { name: date, label: Date added, widget: datetime, type: date, hint: "The gallery lists newest first" }
+      - { name: featured, label: Featured on the home page, widget: boolean, default: false }
+      - name: photos
+        label: Photos
+        widget: list
+        min: 1
+        max: 6
+        summary: "{{fields.alt}}"
+        hint: "One to six. The first is the cover."
+        fields:
+          - { name: image, label: Photo, widget: image }
+          - { name: alt, label: Description, widget: string, hint: "What the photo shows, for people who cannot see it" }
+      - name: hardware
+        label: Hardware used
+        widget: list
+        required: false
+        summary: "{{fields.name}}"
+        fields:
+          - { name: name, label: Name, widget: string }
+          - name: resource
+            label: Resource entry
+            widget: relation
+            collection: resources
+            value_field: "{{slug}}"
+            display_fields: [title]
+            search_fields: [title]
+            required: false
+            hint: "Links the item to /resources/. An item named exactly like a resource is linked even without this."
+      - { name: area, label: Area, widget: string, required: false, hint: "Neighborhood level only. Never an address." }
+      - { name: nodeName, label: Node name, widget: string, required: false, hint: "The node's name on the mesh" }
+      - { name: mapLink, label: Map link, widget: string, type: url, required: false }
+      - { name: body, label: Build notes, widget: markdown, required: false }
 
   - name: glossary
     label: Glossary
@@ -382,6 +440,19 @@ collections:
                   - { name: label, label: Label, widget: string }
                   - { name: href, label: Href, widget: string }
                   - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+          - name: buildsSection
+            label: Featured builds section
+            widget: object
+            hint: "Shown only while at least one build is marked as featured"
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - name: cta
+                label: Button
+                widget: object
+                fields:
+                  - { name: label, label: Label, widget: string }
+                  - { name: href, label: Href, widget: string }
+                  - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
           - name: cta
             label: Call to action
             widget: object
@@ -494,6 +565,44 @@ collections:
                   - { name: label, label: Label, widget: string }
                   - { name: href, label: Href, widget: string }
                   - { name: variant, label: Variant, widget: select, required: false, options: [primary, secondary, outline, ghost] }
+      - name: builds
+        label: Builds pages
+        file: src/content/global/builds.md
+        fields:
+          - { name: type, widget: hidden, default: builds }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: submitLabel, label: Submit button label, widget: string }
+          - name: empty
+            label: Empty state
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: contribute
+            label: Contribute
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+          - name: detail
+            label: Build page labels
+            widget: object
+            fields:
+              - { name: backLabel, label: Back link, widget: string }
+              - { name: builderLabel, label: Builder prefix, widget: string }
+              - { name: hardwareHeading, label: Hardware heading, widget: string }
+              - { name: areaLabel, label: Area label, widget: string }
+              - { name: nodeLabel, label: Node name label, widget: string }
+              - { name: mapLinkLabel, label: Map link button, widget: string }
+              - { name: moreHeading, label: More builds heading, widget: string }
       - name: glossary
         label: Glossary page
         file: src/content/global/glossary.md
@@ -516,6 +625,53 @@ collections:
             fields:
               - { name: heading, label: Heading, widget: string }
               - { name: body, label: Body, widget: text }
+      - name: handbook
+        label: Field handbook page
+        file: src/content/global/handbook.md
+        fields:
+          - { name: type, widget: hidden, default: handbook }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: intro, label: Introduction, widget: text }
+          - { name: downloadLabel, label: Download button label, widget: string }
+          - { name: generatedLabel, label: Generated label, widget: string, hint: "Followed by the date the site was built" }
+          - { name: contentsHeading, label: Contents heading, widget: string }
+          - { name: glossaryHeading, label: Glossary heading, widget: string }
+          - name: promo
+            label: Callout on the guides page
+            widget: object
+            fields:
+              - { name: heading, label: Heading, widget: string }
+              - { name: body, label: Body, widget: text }
+              - { name: downloadLabel, label: Download button label, widget: string }
+              - { name: viewLabel, label: View online label, widget: string }
+      - name: offline
+        label: Offline mode
+        file: src/content/global/offline.md
+        fields:
+          - { name: type, widget: hidden, default: offline }
+          - { name: pageTitle, label: Page title, widget: string }
+          - { name: pageDescription, label: Page description, widget: text }
+          - name: hero
+            label: Hero
+            widget: object
+            hint: "Shown when someone offline opens a page that was not saved on their device"
+            fields:
+              - { name: title, label: Title, widget: string }
+              - { name: subtitle, label: Subtitle, widget: string }
+              - { name: size, label: Size, widget: select, required: false, options: [small, large] }
+          - { name: savedHeading, label: Saved pages heading, widget: string }
+          - { name: savedBody, label: Saved pages text, widget: text }
+          - { name: guidesLabel, label: All guides link label, widget: string }
+          - { name: indicatorLabel, label: Saved badge, widget: string, hint: "Shown on a page once it is saved on the visitor's device" }
+          - { name: bannerText, label: Offline banner, widget: string, hint: "Shown under the header while the visitor has no connection" }
       - name: guides-detail
         label: Guide detail page
         file: src/content/global/guides-detail.md
@@ -524,6 +680,12 @@ collections:
           - { name: backLabel, label: Back link label, widget: string }
           - { name: prerequisitesHeading, label: Prerequisites heading, widget: string }
           - { name: relatedHeading, label: Related guides heading, widget: string }
+          - name: download
+            label: PDF download
+            widget: object
+            fields:
+              - { name: label, label: Button label, widget: string }
+              - { name: hint, label: Hint, widget: string, hint: "Shown next to the button" }
           - name: feedback
             label: Feedback
             widget: object

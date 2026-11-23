@@ -1,19 +1,35 @@
 ---
 import { getEntry } from 'astro:content';
 import Modal from '../components/Modal.astro';
+import OfflineIndicator from '../components/OfflineIndicator.astro';
 import SubmissionForm from '../components/SubmissionForm.astro';
 import { guideFormConfig, meetupFormConfig, resourceFormConfig } from '../components/formConfigs';
 import '../styles/global.css';
+import { appIconHref } from '../utils/appIconPaths.mjs';
+import { getGlobal } from '../utils/global';
 import { resolveLink } from '../utils/siteLinks';
+
+// The default public/og-image.png and the per-page cards from
+// src/utils/ogImage.mjs are this size. A page that shares something else (a
+// build shares its cover photo) passes that image's own type and size. Declared here rather than
+// imported from that module, which would pull the renderer into every page.
+const OG_IMAGE_WIDTH = 1200;
+const OG_IMAGE_HEIGHT = 630;
 
 interface Props {
   title: string;
   description?: string;
+  /** Share image path. 1200x630 PNG, like the default, unless the next three say otherwise. */
   ogImage?: string;
+  ogImageAlt?: string;
+  ogImageType?: string;
+  ogImageWidth?: number;
+  ogImageHeight?: number;
+  ogType?: 'website' | 'article';
   noIndex?: boolean;
 }
 
-const { title, description = 'Charleston Meshtastic Community - Connect with local mesh network enthusiasts', ogImage = '/og-image.png', noIndex = false } = Astro.props;
+const { title, description = 'Charleston Meshtastic Community - Connect with local mesh network enthusiasts', ogImage = '/og-image.png', ogImageAlt = 'CHS Mesh - Charleston Meshtastic Community', ogImageType = 'image/png', ogImageWidth = OG_IMAGE_WIDTH, ogImageHeight = OG_IMAGE_HEIGHT, ogType = 'website', noIndex = false } = Astro.props;
 
 const navigationEntry = await getEntry('global', 'navigation');
 const navigation = navigationEntry?.data?.type === 'navigation' ? navigationEntry.data : undefined;
@@ -21,6 +37,7 @@ const siteEntry = await getEntry('global', 'site');
 const site = siteEntry?.data?.type === 'site' ? siteEntry.data : undefined;
 const footerEntry = await getEntry('global', 'footer');
 const footer = footerEntry?.data?.type === 'footer' ? footerEntry.data : undefined;
+const offline = await getGlobal('offline', 'offline');
 const resolveHref = (href: string) => resolveLink(href, site?.links);
 // The nav previously rendered `link.href` raw, so it was the one link list on
 // the site that could neither resolve an `@links.*` token nor pick up the
@@ -66,10 +83,14 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     {noIndex && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={new URL(ogImage, Astro.site)} />
+    <meta property="og:image:type" content={ogImageType} />
+    <meta property="og:image:width" content={String(ogImageWidth)} />
+    <meta property="og:image:height" content={String(ogImageHeight)} />
+    <meta property="og:image:alt" content={ogImageAlt} />
     <meta property="og:url" content={Astro.url} />
     <meta property="og:site_name" content="CHS Mesh" />
 
@@ -78,9 +99,15 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     <meta name="twitter:title" content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={new URL(ogImage, Astro.site)} />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Installable app and offline reading: see "Offline mode" in the README. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href={appIconHref('apple-touch-icon')} />
+    <meta name="theme-color" content="#0d9488" />
 
     <!-- Canonical URL -->
     {!noIndex && <link rel="canonical" href={canonicalUrl} />}
@@ -96,6 +123,13 @@ const canonicalUrl = new URL(currentPath, Astro.site);
     <script>
       import { loadAnalytics } from '../utils/analytics.mjs';
       loadAnalytics();
+    </script>
+
+    <!-- Offline reading: registers the service worker and shows the offline
+         banner and the "available offline" badges. `astro dev` has no sw.js. -->
+    <script>
+      import { setUpOffline } from '../utils/offlineClient.mjs';
+      setUpOffline({ enabled: import.meta.env.PROD });
     </script>
   </head>
   <body class="min-h-screen flex flex-col">
@@ -113,7 +147,7 @@ const canonicalUrl = new URL(currentPath, Astro.site);
           </a>
 
           <!-- Desktop Navigation -->
-          <div class="hidden md:flex items-center gap-1">
+          <div class="hidden lg:flex items-center gap-1">
             {navigationLinks.map((link: (typeof navigationLinks)[number]) => (
               <a
                 href={link.href}
@@ -135,7 +169,7 @@ const canonicalUrl = new URL(currentPath, Astro.site);
           </div>
 
           <!-- Mobile menu button -->
-          <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg text-neutral-600 hover:bg-neutral-100" aria-label="Toggle menu">
+          <button id="mobile-menu-btn" class="lg:hidden p-2 rounded-lg text-neutral-600 hover:bg-neutral-100" aria-label="Toggle menu">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
@@ -143,7 +177,7 @@ const canonicalUrl = new URL(currentPath, Astro.site);
         </div>
 
         <!-- Mobile Navigation -->
-        <div id="mobile-menu" class="hidden md:hidden pb-4">
+        <div id="mobile-menu" class="hidden lg:hidden pb-4">
           <div class="flex flex-col gap-1">
             {navigationLinks.map((link: (typeof navigationLinks)[number]) => (
               <a
@@ -162,6 +196,10 @@ const canonicalUrl = new URL(currentPath, Astro.site);
         </div>
       </nav>
     </header>
+
+    <div data-offline-banner hidden role="status" class="bg-accent-50 border-b border-accent-200 text-neutral-800 text-sm text-center py-2 px-4 no-print">
+      {offline.bannerText}
+    </div>
 
     <!-- Main Content -->
     <main class="flex-grow">
@@ -218,6 +256,7 @@ const canonicalUrl = new URL(currentPath, Astro.site);
         <div class="border-t border-neutral-700 mt-8 pt-8 text-sm text-center">
           <p>{footerCopyright}</p>
           <p class="mt-2 text-neutral-400">{footer?.legal.trademark}</p>
+          <p class="mt-2"><OfflineIndicator class="text-neutral-400" /></p>
         </div>
       </div>
     </footer>

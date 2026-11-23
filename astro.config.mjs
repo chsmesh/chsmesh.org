@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 import { rehypeCanonicalLinks } from './src/utils/rehypeCanonicalLinks.mjs';
 import { rehypeGlossaryLinks } from './src/utils/rehypeGlossaryLinks.mjs';
 import { loadGlossaryTerms } from './src/utils/glossary.mjs';
+import { HANDBOOK_PATH } from './src/utils/downloads.mjs';
+import offline, { OFFLINE_PATH } from './src/integrations/offline.mjs';
 
 const glossaryTerms = loadGlossaryTerms(new URL('./src/content/glossary/', import.meta.url));
 
@@ -18,9 +20,13 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [
     sitemap({
-      // The CMS shell is not content.
-      filter: (page) => !page.includes('/admin'),
+      // The CMS shell is not content, and the handbook repeats the guides and
+      // the glossary (its page is noindex), so neither belongs in the sitemap.
+      // Nor does the page shown to an offline visitor.
+      filter: (page) => !page.includes('/admin') && ![HANDBOOK_PATH, OFFLINE_PATH].includes(new URL(page).pathname),
     }),
+    // Writes dist/sw.js once the pages exist - see src/integrations/offline.mjs.
+    offline(),
   ],
   markdown: {
     rehypePlugins: [

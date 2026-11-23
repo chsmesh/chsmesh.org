@@ -54,6 +54,69 @@ npm run preview   # serve dist/ locally
 
 `npm run check` is a separate gate, not part of `npm run build`; CI runs both.
 
+### Offline PDFs
+
+Every guide has a "Download PDF" link, and `/handbook/` bundles the guides
+marked `handbook: true` with the whole glossary into one field handbook. The
+PDFs are **not in git and not produced by `npm run build`**: a second step
+prints the built pages with headless Chromium into `dist/downloads/`.
+
+```bash
+npx playwright-core install chromium-headless-shell   # once
+npm run build && npm run build:pdf
+```
+
+The `Dockerfile` runs both, so the production image always has the PDFs; under
+`npm run dev` and after a plain `npm run build` the download links 404. Set
+`PDF_CHROMIUM_PATH` to print with an already-installed Chromium or Chrome
+instead of the downloaded one.
+
+The PDFs use the site's print stylesheet (the `@media print` block at the end
+of `src/styles/global.css`), which also makes the browser's own "Print / Save
+as PDF" clean on every page. Add the `no-print` class to anything that should
+stay off paper. File names and URLs live in `src/utils/downloads.mjs`.
+
+### Offline mode
+
+After one visit, the guides, the field handbook, the glossary and the other
+core pages open without a connection, and the site can be installed to a
+phone's home screen. Nothing is committed for this; `npm run build` writes it:
+
+| Piece | Where |
+| --- | --- |
+| Service worker, `/sw.js` | Written into `dist/` when the build finishes by `src/integrations/offline.mjs`, from the worker in `src/sw/service-worker.js` |
+| Web app manifest | `public/manifest.webmanifest` |
+| App icons, `/icons/*.png` | Drawn at build time from the favicon mark (`src/utils/appIcons.mjs`) |
+| "Available offline" badge and offline banner | `src/components/OfflineIndicator.astro` and `Layout.astro`, driven by `src/utils/offlineClient.mjs` |
+| Page for a URL that was never saved | `src/pages/offline.astro`, copy in `src/content/global/offline.md` |
+
+How it behaves:
+
+- **At install** the worker saves every built page except `/admin/` and
+  `/status/`, with the CSS, scripts and images those pages use (about 0.9 MB
+  today; `npm run test:build` fails if any one file is over 500 kB). The PDFs
+  and the build gallery's photos are not included.
+- **Anything else a visitor opens** - a meetup page, a downloaded PDF - is
+  saved as they go, in a second cache that deploys do not clear. After each
+  deploy the worker drops the hashed `/_astro/` files in it that no saved page
+  uses any more.
+- **Pages are network first**, so an edit shows as soon as it is deployed. The
+  saved copy is used when the request fails, the server answers 5xx, or there
+  is no answer within three seconds (a phone with signal but no connection).
+  A page that was never saved gets ten seconds, then the offline page.
+- **Updates**: `sw.js` carries a fingerprint of everything it saves. A deploy
+  that changes any of it changes `sw.js`, and each visitor's browser then
+  saves the new copies in the background on their next visit. nginx serves
+  `sw.js` with `Cache-Control: no-cache` for this reason.
+- **Never cached**: `/api/` (forms, live status data) and `/admin/`.
+
+A new page is saved automatically. To keep one out of the install download,
+add it to `NOT_PRECACHED` in `src/integrations/offline.mjs`.
+
+`npm run dev` has no service worker (and removes one left on that port by a
+preview). To try offline mode locally, serve a build: `npm run build && npm run
+preview`, load a page, then switch DevTools to offline.
+
 The build also emits a sitemap:
 [`@astrojs/sitemap`](https://docs.astro.build/en/guides/integrations-guide/sitemap/)
 is registered in `astro.config.mjs`, so `dist/` gets `sitemap-index.xml` and
@@ -67,6 +130,19 @@ origin. `public/robots.txt` allows all crawlers and points at that index.
 | `src/pages/404.astro` | Builds to `dist/404.html`; nginx serves it through `error_page 404` |
 | `public/robots.txt` | Crawler policy plus the `Sitemap:` pointer |
 | `public/og-image.png` | 1200×630 default Open Graph / Twitter card, used by `Layout.astro` when a page passes no `ogImage` |
+| `public/manifest.webmanifest`, `src/pages/icons/` | Web app manifest and its generated icons; see [Offline mode](#offline-mode) |
+| `src/pages/og/` | Per-page 1200×630 share cards, built to `/og/guides/<slug>.png` and `/og/meetups/<slug>.png` and used as that page's `og:image` |
+
+Each guide and meetup gets its own share card, so a link pasted into Discord,
+Signal or Facebook shows the guide's title, difficulty and category, or the
+meetup's title, date and time (Charleston time) and venue. The cards are drawn
+at build time by `src/utils/ogImage.mjs` (Satori for layout, the WebAssembly
+build of resvg for the PNG) with the Inter font from `@fontsource/inter`, all
+read from `node_modules`, so the build fetches nothing. Apps cache a share
+image by its URL, so each `og:image` URL ends in a `?v=` fingerprint of the
+card's content: an edited title or a rescheduled meetup gets a fresh image.
+Characters outside Latin and Latin Extended (emoji, arrows, other scripts)
+are left off the card, as the bundled fonts cannot draw them.
 
 ## Environment variables
 
@@ -109,27 +185,34 @@ src/
 │   ├── guides/         # Tutorial content (Markdown) — 4 entries
 │   ├── meetups/        # Community events (Markdown) — no entries yet (.gitkeep)
 │   ├── resources/      # Hardware and software resources (Markdown) — 7 entries
+│   ├── builds/         # Member build gallery (Markdown) — no entries yet (.gitkeep); photos in src/assets/builds/
 │   ├── taxonomies/     # Category/difficulty/status labels and icons (default.md)
-│   └── global/         # Site configuration and page copy — 13 Markdown files
+│   └── global/         # Site configuration and page copy — 16 Markdown files
+├── integrations/       # Build hooks (writes the offline service worker)
 ├── layouts/            # Page templates
 ├── pages/              # Static and dynamic routes
 ├── styles/             # Global Tailwind CSS
+├── sw/                 # Service worker source (see Offline mode)
 └── utils/              # Helper functions
 ```
 
-One collection is defined and routed but currently holds no entries:
+Two collections are defined and routed but currently hold no entries:
 
 - **meetups** — `src/content/meetups/` exists and is kept in git by a `.gitkeep`
   file; it just has no entries. Add the first `.md` file there. The `/meetups`
   and `/meetups/<slug>` routes are already wired up.
+- **builds** — the member build gallery at `/builds` and `/builds/<slug>`.
+  Entries normally arrive through the "Share Your Build" form on `/builds`,
+  which uploads photos and opens a pull request; see
+  [docs/cms-and-submissions.md](docs/cms-and-submissions.md#build-photos).
 
 There is no node directory to maintain: `/status` maps the nodes gateways
 actually hear, and `/map` redirects there. Fixed infrastructure is listed in
 `services/status/infrastructure.json` (see [docs/status.md](docs/status.md)).
 
-The 13 files in `src/content/global/` are `site.md`, `navigation.md`,
-`footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `guides.md`,
-`guides-detail.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
+The 16 files in `src/content/global/` are `site.md`, `navigation.md`,
+`footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `builds.md`, `guides.md`,
+`guides-detail.md`, `handbook.md`, `offline.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, and `resources.md`. Each one carries a `type`
 field that selects its branch of the discriminated-union schema.
 
 ### Adding Content
@@ -278,8 +361,13 @@ checking inbound links.
 `release/**`, as separate jobs:
 
 - **`site`**: `npm ci`, `npm run test:site` (every `*.test.mjs` outside
-  `test/submissions/`), `npm run build`, a check that `dist/` has no inline
-  executable `<script>` tags (the CSP would block them), and `npm run check`.
+  `test/submissions/`, `test/status/` and `test/build/`), `npm run build`, `npm run test:build` (checks `dist/` itself:
+  every guide and meetup page must point at a share image the build emitted,
+  and the service worker must list the guides and only files that exist),
+  a check that `dist/` has no inline executable `<script>` tags (the CSP would
+  block them), `npm run check`, `npm run build:pdf` with a check that every
+  guide and the handbook got a PDF, and an internal link check of `dist/`
+  (`npm run check:links`, see [Link checking](#link-checking)).
 - **`submissions`**: the service tests in `test/submissions/` on Node 22, the
   service's runtime version (`npm run test:submissions`). Locally, `npm test`
   still runs both suites.
@@ -295,6 +383,8 @@ checking inbound links.
     `Strict-Transport-Security` headers (the request is sent with
     `X-Forwarded-Proto: https` so HSTS applies)
   - `/guides/what-is-meshtastic/` returns 200
+  - a guide PDF and the handbook PDF under `/downloads/` return 200 as
+    `application/pdf`
   - `/guides/what-is-meshtastic.md/` returns **301** to
     `/guides/what-is-meshtastic/`, covering the legacy redirects above
   - an unknown URL returns a real 404, and a hashed `/_astro/` asset is
@@ -314,6 +404,43 @@ always run every job.
 
 CI does **not** build, push, or deploy images. There is no release workflow in
 this repository.
+
+### Link checking
+
+[lychee](https://lychee.cli.rs/) checks the links in the built site, in two
+modes run by `scripts/check-links.sh`, plus a checklist for the links neither
+can cover:
+
+- **Internal** (`npm run check:links`): offline, against `dist/`. Covers links
+  between pages, assets, `#fragment` anchors, canonical URLs and the sitemap.
+  It runs in the CI `site` job, so a broken internal link fails the pull
+  request.
+- **External** (`npm run check:links:external`): requests every outbound link.
+  `.github/workflows/links.yml` runs it every Monday (and on demand from the
+  Actions tab), outside CI and the `ci-ok` check, so a third-party outage
+  never blocks a merge. When links are broken it opens an issue labelled
+  `broken-links`, or updates the open one, and closes it once every link
+  passes again.
+- **Manual review** (`npm run check:links:manual`): AliExpress, Amazon and
+  Silicon Labs answer automated requests the same way whether or not the page
+  exists, so they are on the allowlist (`exclude`) in `lychee.toml` and the
+  external check **does not check them at all**. Instead, on the 1st of each
+  month `links.yml` opens a "Manual link review" issue labelled `link-review`:
+  a checklist of those links and the pages they are on, for a person to open
+  in a browser. If the previous month's issue is still open it gets a
+  reminder comment rather than a second issue.
+
+GitHub disables scheduled workflows in a public repository after 60 days
+without a commit. If the repository goes quiet for that long, re-enable
+`links.yml` from the Actions tab, or both the weekly check and the monthly
+review stop silently.
+
+All three need `npm run build` first and
+[lychee installed](https://lychee.cli.rs/guides/getting-started/) locally. The internal check
+also needs `npm run build:pdf`, because pages link to the PDFs in
+`dist/downloads/`. Settings live
+in `lychee.toml`. Discord invites are checked through Discord's invite API, because the
+`discord.gg` page answers 200 even for an expired invite.
 
 ### Release and deploy (Komodo)
 

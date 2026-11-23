@@ -3,11 +3,13 @@ import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import MeetupCard from '../components/MeetupCard.astro';
 import GuideCard from '../components/GuideCard.astro';
+import BuildCard from '../components/BuildCard.astro';
 import { getCollection } from 'astro:content';
 import { getGlobal } from '../utils/global';
 import { resolveLink } from '../utils/siteLinks';
 import { getCtaClass } from '../utils/cta';
 import { isUpcomingMeetup } from '../utils/meetups';
+import { getBuilds } from '../utils/builds';
 
 // Get content collections
 const allMeetups = await getCollection('meetups');
@@ -28,12 +30,16 @@ const featuredGuides = allGuides
   .sort((a, b) => a.data.order - b.data.order)
   .slice(0, 3);
 
+// Builds a moderator marked as featured, newest first.
+const featuredBuilds = (await getBuilds()).filter((b) => b.data.featured).slice(0, 3);
+
 const stats = home.stats ?? [];
 const features = home.features;
 const heroCtas = home.hero.ctas.map((cta) => ({ ...cta, href: resolveHref(cta.href) }));
 const ctaSectionCtas = home.cta.ctas.map((cta) => ({ ...cta, href: resolveHref(cta.href) }));
 const meetupsSectionCta = { ...home.meetupsSection.cta, href: resolveHref(home.meetupsSection.cta.href) };
 const guidesSectionCta = { ...home.guidesSection.cta, href: resolveHref(home.guidesSection.cta.href) };
+const buildsSectionCta = { ...home.buildsSection.cta, href: resolveHref(home.buildsSection.cta.href) };
 ---
 
 <Layout title={home.pageTitle} description={home.pageDescription}>
@@ -148,6 +154,28 @@ const guidesSectionCta = { ...home.guidesSection.cta, href: resolveHref(home.gui
         <div class="card-grid">
           {featuredGuides.map((guide) => (
             <GuideCard guide={guide} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Featured Builds Section -->
+  {featuredBuilds.length > 0 && (
+    <section class="section">
+      <div class="container-wide">
+        <div class="flex items-center justify-between mb-8">
+          <h2>{home.buildsSection.heading}</h2>
+          <a href={buildsSectionCta.href} class={getCtaClass(buildsSectionCta.variant, 'sm')}>
+            {buildsSectionCta.label}
+            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+        <div class="card-grid">
+          {featuredBuilds.map((build) => (
+            <BuildCard build={build} />
           ))}
         </div>
       </div>

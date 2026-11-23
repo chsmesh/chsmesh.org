@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import { getCollection } from 'astro:content';
 import { getGlobal } from '../utils/global';
-import { glossaryLetter } from '../utils/glossary.mjs';
+import { glossaryLetter, glossaryParagraphs } from '../utils/glossary.mjs';
 
 const glossaryPage = await getGlobal('glossary', 'glossary');
 const entries = (await getCollection('glossary')).sort((a, b) =>
@@ -22,12 +22,6 @@ for (const entry of entries) {
 // added; letters with no entries render as plain, unlinked text.
 const alphabet = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ...(groups.has('#') ? ['#'] : [])];
 const letterId = (letter: string) => (letter === '#' ? 'letter-other' : `letter-${letter.toLowerCase()}`);
-
-const paragraphs = (text: string) =>
-  text
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
 ---
 
 <Layout title={glossaryPage.pageTitle} description={glossaryPage.pageDescription}>
@@ -74,7 +68,7 @@ const paragraphs = (text: string) =>
                     <dd>
                       <p class="glossary-entry-definition">{entry.data.definition}</p>
                       {entry.data.explanation &&
-                        paragraphs(entry.data.explanation).map((p) => (
+                        glossaryParagraphs(entry.data.explanation).map((p) => (
                           <p class="glossary-entry-explanation">{p}</p>
                         ))}
                       {entry.data.related.some((slug) => termBySlug.has(slug)) && (

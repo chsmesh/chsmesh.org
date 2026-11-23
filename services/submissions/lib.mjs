@@ -3,8 +3,9 @@
 // collections expect. No I/O here so it can be unit tested directly.
 
 import { SITE_TIME_ZONE, zonedDateTime, inTimeZone } from './time-zone.mjs';
+import { sanitizeImage } from './images.mjs';
 
-export { SITE_TIME_ZONE, zonedDateTime, inTimeZone, zoneOffsetMinutes } from './time-zone.mjs';
+export { SITE_TIME_ZONE, zonedDate, zonedDateTime, inTimeZone, zoneOffsetMinutes } from './time-zone.mjs';
 
 const SLUG_MAX = 60;
 
@@ -30,7 +31,10 @@ export function isPlainObject(value) {
 const URL_RE = /^https?:\/\/[^\s]+$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 const DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/;
+
+const formatBytes = (bytes) => (bytes >= 1024 * 1024 ? `${+(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.round(bytes / 1024)} kB`);
 
 const string = (max = 200, extra = {}) => ({ type: 'string', max, ...extra });
 const text = (max = 20000, extra = {}) => ({ type: 'string', max, ...extra });
@@ -83,6 +87,28 @@ export const SPECS = {
       pros: stringList(15, 200),
       cons: stringList(15, 200),
       image: { type: 'url' },
+      submitterEmail: { type: 'email', required: true },
+    },
+  },
+  // A member's build for the gallery at /builds/. The only kind that carries
+  // files: photos arrive base64-encoded in the JSON body and are committed
+  // next to the entry, stripped of metadata (see images.mjs).
+  build: {
+    label: 'Build',
+    collection: 'builds',
+    // 6 photos x 1.5 MB, base64-encoded (x 4/3), plus the text fields. Keep in
+    // step with client_max_body_size for /api/submit/build in nginx.conf.
+    maxBodyBytes: 13 * 1024 * 1024,
+    fields: {
+      title: string(120, { required: true }),
+      builder: string(80, { required: true }),
+      description: text(500, { required: true }),
+      content: text(20000),
+      photos: { type: 'photos', minItems: 1, maxItems: 6, maxBytes: 1.5 * 1024 * 1024, maxDimension: 4096, maxAlt: 160, required: true },
+      hardware: stringList(20, 120),
+      area: string(120),
+      nodeName: string(80),
+      mapLink: { type: 'url' },
       submitterEmail: { type: 'email', required: true },
     },
   },
@@ -231,6 +257,47 @@ function checkField(name, spec, raw, errors, notes) {
       }
       return links;
     }
+    case 'photos': {
+      if (!Array.isArray(raw)) return void errors.push(`${name} must be a list`);
+      if (raw.length < spec.minItems) return void errors.push(`${name} needs at least ${spec.minItems}`);
+      if (raw.length > spec.maxItems) return void errors.push(`${name} may have at most ${spec.maxItems}`);
+      const photos = [];
+      for (const [index, item] of raw.entries()) {
+        const label = `photo ${index + 1}`;
+        const encoded = isPlainObject(item) ? item.data : undefined;
+        if (typeof encoded !== 'string' || !encoded) {
+          errors.push(`${label} is missing its image data`);
+          continue;
+        }
+        // Checked on the encoded length so an oversized photo is never decoded.
+        if (encoded.length > Math.ceil(spec.maxBytes / 3) * 4) {
+          errors.push(`${label} is larger than ${formatBytes(spec.maxBytes)}`);
+          continue;
+        }
+        if (!BASE64_RE.test(encoded)) {
+          errors.push(`${label} is not valid base64`);
+          continue;
+        }
+        const alt = typeof item.alt === 'string' ? item.alt.replace(/\s+/g, ' ').trim() : '';
+        if (alt.length > spec.maxAlt) {
+          errors.push(`${label} description is longer than ${spec.maxAlt} characters`);
+          continue;
+        }
+        let image;
+        try {
+          image = sanitizeImage(Buffer.from(encoded, 'base64'));
+        } catch (error) {
+          errors.push(`${label} ${error.message}`);
+          continue;
+        }
+        if (image.width > spec.maxDimension || image.height > spec.maxDimension) {
+          errors.push(`${label} is larger than ${spec.maxDimension} pixels on a side`);
+          continue;
+        }
+        photos.push({ ...image, ...(alt ? { alt } : {}) });
+      }
+      return photos;
+    }
     default:
       throw new Error(`Unknown field type ${spec.type}`);
   }
@@ -366,6 +433,37 @@ export function buildFile(kind, data, { slug, today }) {
           data.content ?? data.description
         ),
       };
+    case 'build': {
+      // Photos sit flat in the collection's media folder, named after the
+      // entry, and are referenced relative to the entry file: the shape the
+      // CMS writes for its own uploads (see `builds` in public/admin/config.yml)
+      // and the one Astro's image() schema helper resolves.
+      const photos = (data.photos ?? []).map((photo, index) => ({
+        name: `${slug}-${index + 1}.${photo.ext}`,
+        alt: photo.alt ?? `${data.title}, photo ${index + 1}`,
+        bytes: photo.bytes,
+      }));
+      return {
+        path: `src/content/builds/${slug}.md`,
+        title: data.title,
+        content: renderMarkdown(
+          {
+            title: data.title,
+            builder: data.builder,
+            description: data.description,
+            date: today,
+            featured: false,
+            photos: photos.map((photo) => ({ image: `../../assets/builds/${photo.name}`, alt: photo.alt })),
+            hardware: (data.hardware ?? []).map((name) => ({ name })),
+            area: data.area,
+            nodeName: data.nodeName,
+            mapLink: data.mapLink,
+          },
+          data.content
+        ),
+        attachments: photos.map((photo) => ({ path: `src/assets/builds/${photo.name}`, bytes: photo.bytes })),
+      };
+    }
     default:
       throw new Error(`Unknown submission kind ${kind}`);
   }
@@ -429,6 +527,11 @@ export function summarise(kind, data) {
   const rows = [];
   for (const [key, value] of Object.entries(data)) {
     if (key === 'submitterEmail' || key === 'content') continue;
+    if (key === 'photos') {
+      const list = value.map((photo) => `${photo.type} ${photo.width}x${photo.height}, ${formatBytes(photo.bytes.length)}`).join('; ');
+      rows.push([key, `${value.length} (${list}), metadata stripped`]);
+      continue;
+    }
     const text = Array.isArray(value)
       ? value.map((v) => (isPlainObject(v) ? `${v.label} <${v.url}>` : String(v))).join(', ')
       : isPlainObject(value)
@@ -462,6 +565,14 @@ export function pullRequestBody(kind, data, { path, hasContact, notes = [] }) {
     kind === 'meetup'
       ? `- [ ] Date and time are right. The form asks for Charleston time; the service stored it as ${SITE_TIME_ZONE} time with that date's UTC offset`
       : null,
+    ...(kind === 'build'
+      ? [
+          "- [ ] Photos are the submitter's own and show the build",
+          '- [ ] No photo gives away a private address: house numbers, street signs, licence plates, a recognisable view of a home',
+          '- [ ] Nobody identifiable appears who has not plainly agreed to',
+          '- [ ] The area, if given, is a neighborhood and not an address',
+        ]
+      : []),
     '- [ ] `npm run check` passes on this branch (CI runs it)',
     '',
     hasContact

@@ -80,3 +80,16 @@ export function glossaryLetter(term) {
   const first = term.trim().charAt(0).toUpperCase();
   return /^[A-Z]$/.test(first) ? first : '#';
 }
+
+/**
+ * Split an entry's `explanation` into paragraphs on blank lines.
+ *
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function glossaryParagraphs(text) {
+  return text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}

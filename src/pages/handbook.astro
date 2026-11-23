@@ -1,0 +1,185 @@
+---
+// The field handbook: the guides marked `handbook: true` plus the whole
+// glossary on one page. scripts/build-pdfs.mjs prints this page to
+// /downloads/chsmesh-field-handbook.pdf after the build, and the print
+// stylesheet in global.css starts each chapter on a new page.
+import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
+import OfflineIndicator from '../components/OfflineIndicator.astro';
+import { getCollection, render } from 'astro:content';
+import { getGlobal } from '../utils/global';
+import { getTaxonomyData } from '../utils/taxonomy';
+import { glossaryParagraphs } from '../utils/glossary.mjs';
+import { handbookGlossaryId, handbookGuideId, handbookPdfHref } from '../utils/downloads.mjs';
+
+const handbook = await getGlobal('handbook', 'handbook');
+const guidesDetail = await getGlobal('guides-detail', 'guides-detail');
+const glossaryPage = await getGlobal('glossary', 'glossary');
+
+// Same order as the guides index: by category as the taxonomy lists them, then
+// by each guide's `order`.
+const categoryOrder = ((await getTaxonomyData())?.guideCategories ?? []).map((category) => category.key);
+const categoryRank = (key: string) => {
+  const index = categoryOrder.indexOf(key);
+  return index === -1 ? categoryOrder.length : index;
+};
+const guides = (await getCollection('guides', ({ data }) => data.handbook)).sort(
+  (a, b) => categoryRank(a.data.category) - categoryRank(b.data.category) || a.data.order - b.data.order
+);
+const chapters = await Promise.all(
+  guides.map(async (guide) => ({ guide, Content: (await render(guide)).Content }))
+);
+
+const terms = (await getCollection('glossary')).sort((a, b) =>
+  a.data.term.localeCompare(b.data.term, 'en', { sensitivity: 'base' })
+);
+const termBySlug = new Map(terms.map((entry) => [entry.id, entry.data.term]));
+
+const GLOSSARY_ID = 'handbook-glossary';
+const generated = new Date().toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'America/New_York',
+});
+---
+
+<Layout title={handbook.pageTitle} description={handbook.pageDescription} noIndex>
+  <article class="handbook">
+    <Hero title={handbook.hero.title} subtitle={handbook.hero.subtitle} size={handbook.hero.size ?? 'small'}>
+      <p class="mt-4 text-sm text-primary-100">{handbook.generatedLabel} {generated}</p>
+      <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 no-print">
+        <a href={handbookPdfHref} download class="btn hero-btn">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+          </svg>
+          {handbook.downloadLabel}
+        </a>
+        <OfflineIndicator class="text-primary-100" />
+      </div>
+    </Hero>
+
+    <section class="section-sm">
+      <div class="container-narrow">
+        <p class="text-lg text-neutral-700 mb-8">{handbook.intro}</p>
+
+        <nav aria-labelledby="handbook-contents">
+          <h2 id="handbook-contents" class="text-2xl mb-4">{handbook.contentsHeading}</h2>
+          <ol class="handbook-contents">
+            {guides.map((guide) => (
+              <li>
+                <a href={`#${handbookGuideId(guide.slug)}`}>{guide.data.title}</a>
+                <span>{guide.data.description}</span>
+              </li>
+            ))}
+            {terms.length > 0 && (
+              <li>
+                <a href={`#${GLOSSARY_ID}`}>{handbook.glossaryHeading}</a>
+                <span>{glossaryPage.pageDescription}</span>
+              </li>
+            )}
+          </ol>
+        </nav>
+      </div>
+    </section>
+
+    {chapters.map(({ guide, Content }) => (
+      <section id={handbookGuideId(guide.slug)} class="handbook-chapter scroll-mt-24">
+        <div class="container-narrow">
+          <header class="handbook-chapter-header">
+            {/* h1, one level above the guide's own `##` sections, so the PDF's
+                bookmarks nest each chapter's sections under its title. */}
+            <h1>{guide.data.title}</h1>
+            <p>{guide.data.description}</p>
+            {guide.data.prerequisites.length > 0 && (
+              <div class="handbook-prereqs">
+                <h3>{guidesDetail.prerequisitesHeading}</h3>
+                <ul>
+                  {guide.data.prerequisites.map((prereq) => <li>{prereq}</li>)}
+                </ul>
+              </div>
+            )}
+          </header>
+          <div class="prose max-w-none">
+            <Content />
+          </div>
+        </div>
+      </section>
+    ))}
+
+    {terms.length > 0 && (
+      <section id={GLOSSARY_ID} class="handbook-chapter scroll-mt-24">
+        <div class="container-narrow">
+          <header class="handbook-chapter-header">
+            <h1>{handbook.glossaryHeading}</h1>
+            <p>{glossaryPage.pageDescription}</p>
+          </header>
+          <dl>
+            {terms.map((entry) => (
+              <div id={handbookGlossaryId(entry.id)} class="glossary-entry scroll-mt-24">
+                <dt>
+                  <span class="glossary-entry-term">{entry.data.term}</span>
+                  {entry.data.aliases.length > 0 && (
+                    <span class="glossary-entry-aliases">
+                      {glossaryPage.alsoKnownAsLabel}: {entry.data.aliases.join(', ')}
+                    </span>
+                  )}
+                </dt>
+                <dd>
+                  <p class="glossary-entry-definition">{entry.data.definition}</p>
+                  {entry.data.explanation &&
+                    glossaryParagraphs(entry.data.explanation).map((p) => (
+                      <p class="glossary-entry-explanation">{p}</p>
+                    ))}
+                  {entry.data.related.some((slug) => termBySlug.has(slug)) && (
+                    <p class="glossary-entry-related">
+                      {glossaryPage.relatedLabel}:{' '}
+                      {entry.data.related
+                        .filter((slug) => termBySlug.has(slug))
+                        .map((slug, i, all) => (
+                          // Kept on one line: whitespace between the link and the comma would render.
+                          <><a href={`#${handbookGlossaryId(slug)}`}>{termBySlug.get(slug)}</a>{i < all.length - 1 ? ', ' : ''}</>
+                        ))}
+                    </p>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+    )}
+  </article>
+</Layout>
+
+<script>
+  // The guides' markdown links to /glossary/#term and /guides/other-guide/.
+  // Where that content is also in this handbook, point the link at the copy
+  // here, so it still works offline and inside the PDF. Links to anything the
+  // handbook does not contain are left alone.
+  import { handbookAnchor } from '../utils/downloads.mjs';
+
+  // Every guide brings its own heading ids, and several share "overview" or
+  // "next-steps". Prefix them with the chapter's id so each is unique, and
+  // keep a guide's links to its own sections pointing at them.
+  for (const chapter of document.querySelectorAll<HTMLElement>('.handbook-chapter[id]')) {
+    const prefix = `${chapter.id}--`;
+    for (const heading of chapter.querySelectorAll<HTMLElement>('.prose [id]')) {
+      heading.id = prefix + heading.id;
+    }
+    for (const link of chapter.querySelectorAll<HTMLAnchorElement>('.prose a[href^="#"]')) {
+      const target = prefix + decodeURIComponent((link.getAttribute('href') ?? '').slice(1));
+      if (document.getElementById(target)) link.setAttribute('href', `#${target}`);
+    }
+  }
+
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('.handbook .prose a[href^="/"]')) {
+    const href = link.getAttribute('href') ?? '';
+    const id = handbookAnchor(href);
+    if (!id) continue;
+    // Prefer the exact section of another guide when the link names one.
+    const section = href.includes('#') ? `${id}--${decodeURIComponent(href.slice(href.indexOf('#') + 1))}` : '';
+    if (section && document.getElementById(section)) link.setAttribute('href', `#${section}`);
+    else if (document.getElementById(id)) link.setAttribute('href', `#${id}`);
+  }
+</script>

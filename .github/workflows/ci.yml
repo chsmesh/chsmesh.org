@@ -18,6 +18,8 @@ env:
   # Cloudflare's documented "always passes" test site key, so the build
   # exercises the Turnstile path (script tag, widget slot) without a real widget.
   PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+  LYCHEE_VERSION: 0.24.2
+  LYCHEE_SHA256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
 
 jobs:
   changes:
@@ -47,6 +49,7 @@ jobs:
             container:
               - '!src/content/**'
               - '!public/images/**'
+              - '!src/assets/builds/**'
               - '!docs/**/*.md'
 
   site:
@@ -76,6 +79,12 @@ jobs:
       - name: Build site
         run: npm run build
 
+      - name: Test the built site
+        # Checks dist/ itself, e.g. that every meetup and guide page points
+        # at a share image the build emitted, and that the offline service
+        # worker lists only files that exist.
+        run: npm run test:build
+
       - name: Assert no inline executable scripts in the build
         run: |
           # nginx serves a Content-Security-Policy with script-src 'self', so
@@ -91,6 +100,44 @@ jobs:
 
       - name: Type and content schema check
         run: npm run check
+
+      - name: Install headless Chromium for the PDF build
+        run: npx playwright-core install --with-deps chromium-headless-shell
+
+      - name: Build the offline PDFs
+        # The image build runs this too, but the container job is skipped for
+        # content-only pull requests - exactly the ones that change what gets
+        # printed.
+        run: npm run build:pdf
+
+      - name: Assert every guide and the handbook have a PDF
+        run: |
+          for dir in dist/guides/*/; do
+            slug=$(basename "$dir")
+            test -s "dist/downloads/chsmesh-guide-$slug.pdf" \
+              || { echo "No PDF for the guide $slug" >&2; exit 1; }
+          done
+          test -s dist/downloads/chsmesh-field-handbook.pdf \
+            || { echo 'No field handbook PDF' >&2; exit 1; }
+          ls -l dist/downloads
+
+      - name: Install lychee
+        run: |
+          # Pinned by checksum. Keep the version and checksum in step with
+          # links.yml.
+          curl -fsSL -o "$RUNNER_TEMP/lychee.tar.gz" \
+            "https://github.com/lycheeverse/lychee/releases/download/lychee-v$LYCHEE_VERSION/lychee-x86_64-unknown-linux-gnu.tar.gz"
+          echo "$LYCHEE_SHA256  $RUNNER_TEMP/lychee.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/lychee"
+          tar -xzf "$RUNNER_TEMP/lychee.tar.gz" -C "$RUNNER_TEMP/lychee" --strip-components=1
+          echo "$RUNNER_TEMP/lychee" >> "$GITHUB_PATH"
+
+      - name: Check internal links in the build
+        # Runs after the PDF build, because pages link to the PDFs in
+        # dist/downloads/. Offline, against dist/: page links, assets,
+        # #fragments, canonical URLs and the sitemap. External links are checked weekly by
+        # links.yml instead, so a third-party outage cannot block a merge.
+        run: npm run check:links
 
   submissions:
     name: Submissions service - tests
@@ -294,6 +341,51 @@ jobs:
             echo "Expected 200 for /guides/what-is-meshtastic/, got $status" >&2
             exit 1
           fi
+
+      - name: Smoke test - guide and handbook PDFs are served
+        run: |
+          # The PDFs are generated in the image build, not committed, so this
+          # is the check that the build step ran and nginx serves its output.
+          for path in /downloads/chsmesh-guide-what-is-meshtastic.pdf \
+            /downloads/chsmesh-field-handbook.pdf; do
+            headers=$(curl -sS -D - -o /dev/null "http://127.0.0.1:8080$path")
+            printf '%s\n' "$headers"
+            printf '%s\n' "$headers" | head -n 1 | grep -q ' 200' \
+              || { echo "Expected 200 for $path" >&2; exit 1; }
+            printf '%s\n' "$headers" | grep -qi '^content-type: application/pdf' \
+              || { echo "Expected application/pdf for $path" >&2; exit 1; }
+            printf '%s\n' "$headers" | grep -qi '^content-security-policy:' \
+              || { echo "Missing Content-Security-Policy header on $path" >&2; exit 1; }
+          done
+
+      - name: Smoke test - service worker and web app manifest
+        run: |
+          # The build writes /sw.js; nginx must serve it as a script browsers
+          # revalidate on every check, or visitors keep the guides saved by
+          # an old deploy. The CSP must allow it as a worker.
+          headers=$(curl -sS -D - -o /dev/null http://127.0.0.1:8080/sw.js)
+          printf '%s\n' "$headers"
+          printf '%s\n' "$headers" | head -n 1 | grep -q ' 200' \
+            || { echo 'Expected 200 for /sw.js' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^content-type: application/javascript' \
+            || { echo 'Expected a JavaScript content type for /sw.js' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^cache-control: no-cache' \
+            || { echo 'Expected Cache-Control: no-cache on /sw.js' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -i '^content-security-policy:' \
+            | grep -q "worker-src 'self' ;" \
+            || { echo "CSP worker-src is not 'self' on /sw.js" >&2; exit 1; }
+
+          headers=$(curl -sS -D - -o /dev/null http://127.0.0.1:8080/manifest.webmanifest)
+          printf '%s\n' "$headers"
+          printf '%s\n' "$headers" | head -n 1 | grep -q ' 200' \
+            || { echo 'Expected 200 for /manifest.webmanifest' >&2; exit 1; }
+          printf '%s\n' "$headers" | grep -qi '^content-type: application/manifest+json' \
+            || { echo 'Expected application/manifest+json for /manifest.webmanifest' >&2; exit 1; }
+
+          # The CMS runs workers from blob: URLs; /admin/ must still allow them.
+          curl -sS -D - -o /dev/null http://127.0.0.1:8080/admin/ \
+            | grep -i '^content-security-policy:' | grep -q "worker-src 'self' blob:;" \
+            || { echo 'CSP worker-src does not allow blob: on /admin/' >&2; exit 1; }
 
       - name: Smoke test - legacy .md guide URL redirects to the clean URL
         run: |
