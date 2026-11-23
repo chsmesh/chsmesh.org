@@ -52,7 +52,7 @@ Install the official Meshtastic app:
 **You must set this correctly** or your device may transmit illegally. A new device does not transmit at all until a region is set.
 
 1. Go to **Settings** > **LoRa**
-2. Set **Region** to the one in the card at the top of this page
+2. Set **Region** to the one in the settings card above
 3. This configures the correct frequency and power limits
 
 ### User Info
@@ -80,7 +80,7 @@ Most users should stay on **Client**. Only use **Router** or **Router Late** for
 
 ## Step 4: Charleston Network Settings
 
-The settings the local mesh uses are in the card at the top of this page, which is kept up to date in one place. In short, the Charleston-area mesh runs on Meshtastic's public defaults. In a hurry? [Join the Charleston Mesh](/guides/join-the-charleston-mesh/) is the ten-minute version of this guide.
+The settings the local mesh uses are in the settings card above, which is kept up to date in one place. In short, the Charleston-area mesh runs on Meshtastic's public defaults. In a hurry? [Join the Charleston Mesh](/guides/join-the-charleston-mesh/) is the ten-minute version of this guide.
 
 ### Primary Channel
 
@@ -100,7 +100,7 @@ If you want to share your location:
 4. Leave **Smart Position** on to reduce unnecessary broadcasts
 5. Choose how precise the shared location is in the primary channel's settings
 
-**Privacy note**: Your position will be visible to others on the mesh and on public maps. On the public channel the firmware rounds it to roughly half a mile at the finest setting; pick a coarser one for a radio that stays at home, or leave position off.
+**Privacy note**: Your position will be visible to others on the mesh and on public maps. A new radio starts on a coarse setting, a couple of miles, but check what yours is set to. Pick a coarse one for a radio that stays at home, or leave position off.
 
 ## Step 5: Verify Connection
 

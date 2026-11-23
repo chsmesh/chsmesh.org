@@ -1034,6 +1034,16 @@ a.glossary-entry-term:not(.btn) {
   color: var(--color-neutral-600);
 }
 
+/* Task lists in guides (`- [ ]`): the checkbox replaces the bullet. */
+.prose ul.contains-task-list {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+
+.prose .task-list-item input {
+  margin-right: 0.5rem;
+}
+
 /*
  * Print
  *
@@ -1192,6 +1202,20 @@ a.glossary-entry-term:not(.btn) {
 
   .prose a {
     color: var(--color-primary-700);
+  }
+
+  /* The import button becomes its address: paper cannot be tapped. */
+  .mesh-settings-link {
+    display: block;
+    padding: 0;
+    background: none;
+    color: black;
+    font-size: 8pt;
+    overflow-wrap: anywhere;
+  }
+
+  .mesh-settings-link::after {
+    content: ' (' attr(href) ')';
   }
 
   /* Spell out where an outside link goes. */

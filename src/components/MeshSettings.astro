@@ -19,7 +19,7 @@ const reviewed = mesh.reviewed?.toLocaleDateString('en-US', {
     more than one chapter. */}
 <aside class="mesh-settings" aria-label={mesh.heading}>
   <h2>{mesh.heading}</h2>
-  <p>{mesh.body}</p>
+  <p>{mesh.intro}</p>
 
   <div class="mesh-settings-layout">
     <div>
@@ -76,7 +76,7 @@ const reviewed = mesh.reviewed?.toLocaleDateString('en-US', {
         <path d={qr.d} fill="#000" />
       </svg>
       <p>{mesh.share.body}</p>
-      <a href={mesh.share.url} class="btn-primary btn-sm no-print" rel="noopener noreferrer">
+      <a href={mesh.share.url} class="btn-primary btn-sm mesh-settings-link" rel="noopener noreferrer">
         {mesh.share.buttonLabel}
       </a>
     </div>

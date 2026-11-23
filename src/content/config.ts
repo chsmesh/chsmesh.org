@@ -434,7 +434,9 @@ const global = defineCollection({
       // repeating them.
       type: z.literal('mesh'),
       heading: z.string(),
-      body: z.string(),
+      // Not `body`: the CMS writes a top-level field of that name as the
+      // file's markdown content, not into the frontmatter.
+      intro: z.string(),
       // When someone last checked these against the live mesh.
       reviewed: z.coerce.date().optional(),
       reviewedLabel: z.string(),
@@ -469,7 +471,7 @@ const global = defineCollection({
         .min(1),
       // One-tap import. `url` is a Meshtastic channel link; the QR code is
       // drawn from it at build time. test/site/mesh-settings.test.mjs checks
-      // that it carries exactly the channels listed above.
+      // that it agrees with the settings and channels listed above.
       share: z.object({
         heading: z.string(),
         body: z.string(),

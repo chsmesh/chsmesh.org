@@ -15,7 +15,7 @@ meshSettings: true
 
 ## Overview
 
-This is the short version. The card above has every setting the local mesh uses; the steps below put them on your radio and check that it worked. If your radio does not have Meshtastic on it yet, start with [Flashing Meshtastic Firmware](/guides/flashing-firmware/). For what each setting means, see [Initial Device Setup](/guides/initial-setup/).
+This is the short version. The settings card above has every setting the local mesh uses; the steps below put them on your radio and check that it worked. If your radio does not have Meshtastic on it yet, start with [Flashing Meshtastic Firmware](/guides/flashing-firmware/). For what each setting means, see [Initial Device Setup](/guides/initial-setup/).
 
 **Attach the antenna before you power the radio on.** Transmitting without one can damage the radio chip.
 
@@ -27,12 +27,12 @@ This is the short version. The card above has every setting the local mesh uses;
 
 ## 2. Load the settings
 
-On a new radio, the quickest way is the QR code in the card at the top of this page. Scan it with your phone's camera, or tap **Open in the Meshtastic app** if you are reading this on the phone itself, then accept the import. That sets the region to US and leaves you on the public LongFast channel.
+On a new radio, the quickest way is the QR code in the settings card above. Scan it with your phone's camera, or open the card's link if you are reading this on the phone itself, then accept the import. That sets the region and preset and leaves you on the public channel.
 
 To do it by hand instead:
 
-1. Open the LoRa settings and set **Region** to **US**. The radio restarts.
-2. On the same screen, check that the preset reads **LongFast**. Radios set up on the newest firmware may start on a different preset, and a radio on another preset hears nobody here.
+1. Open the LoRa settings and set **Region** to the one in the card. The radio restarts.
+2. On the same screen, check that the preset matches the card. Radios set up on the newest firmware may start on a different preset, and a radio on another preset hears nobody here.
 3. Open **Channels** and leave the primary channel as it came: no name, default key. Do not rename it. A renamed primary channel is a different channel, and your radio drops off the public mesh.
 
 ## 3. Name your node
@@ -42,8 +42,8 @@ In the **User** settings, set a long name people will recognize and a short name
 ## 4. Keep the newcomer defaults
 
 - **Role: Client.** This is the default and the right choice for a radio you carry, keep on a desk or put in a window. Do not pick Router because it sounds helpful: a router in an ordinary spot talks over better-placed nodes and makes the mesh worse for everyone nearby. [Lowcountry Coverage and Node Placement](/guides/lowcountry-coverage/) explains when another role is right.
-- **Hop limit: 3.** Also the default. Raising it does not make your messages go further here; it adds traffic.
-- **Position: your choice.** Sharing a position puts your node on the [status map](/status/). On the public channel the firmware never sends your exact location; it rounds it to roughly half a mile at the finest setting. You can choose a coarser setting, or turn position off, in the primary channel's settings. For a radio that stays at home, a coarse setting is the sensible one.
+- **Hop limit: leave it alone.** The default is the value in the card. Raising it does not make your messages go further here; it adds traffic.
+- **Position: your choice.** Sharing a position puts your node on the [status map](/status/). How precise the shared location is depends on a setting on the primary channel. A new radio starts on a coarse one, a couple of miles, but do not assume: open the primary channel's settings and look. Choose a coarse setting for a radio that stays at home, or turn position off there.
 
 ## 5. Check that it worked
 

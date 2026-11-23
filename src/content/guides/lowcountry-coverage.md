@@ -32,7 +32,7 @@ At 915 MHz a signal goes where it has line of sight, and a little beyond. On fla
 | 60 ft (mast or small tower) | 11 miles |
 | 150 ft (tall building) | 17 miles |
 
-Two nodes can see each other when their horizons overlap, so add the two figures. A handheld at 5 ft and a relay at 150 ft can in principle reach 20 miles. Two handhelds at 5 ft manage 6 at best. The square root is the important part: going from 5 ft to 30 ft nearly triples your horizon, and you can do that with a ladder.
+Two nodes can see each other when their horizons overlap, so add the two figures. A handheld at 5 ft and a relay at 150 ft can in principle reach 20 miles. Two handhelds at 5 ft manage 6 at best. The square root is the important part: going from 5 ft to 30 ft more than doubles your horizon, and you can do that with a ladder.
 
 On hilly ground a node gets its height for free from the terrain. Here every foot has to come from a building, a mast or a tower.
 
