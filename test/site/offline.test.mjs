@@ -9,6 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { precacheList, precachePages, referencedFiles, serviceWorkerSource } from '../../src/integrations/offline.mjs';
 import { APP_ICONS, MARK, renderAppIcon } from '../../src/utils/appIcons.mjs';
+import { appIconHref } from '../../src/utils/appIconPaths.mjs';
 import { pngSize } from '../png.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -86,6 +87,18 @@ test('should save the pages with everything they need, and nothing from the skip
   ]);
 });
 
+test('should find a file whose link is percent-encoded, and list it as linked', (t) => {
+  const { 'images/radio.png': _image, ...rest } = SITE;
+  const { urls } = precacheList(
+    makeDist(t, {
+      ...rest,
+      'guides/initial-setup/index.html': page('<img src="/images/t-beam%20case.png">'),
+      'images/t-beam case.png': 'png',
+    })
+  );
+  assert.ok(urls.includes('/images/t-beam%20case.png'));
+});
+
 test('should change the version when a saved file changes, and only then', (t) => {
   const version = (files) => precacheList(makeDist(t, files)).version;
   const before = version(SITE);
@@ -122,6 +135,14 @@ test('should draw every app icon at its declared size, from the favicon mark', a
   for (const [, d] of MARK.matchAll(/ d="([^"]+)"/g)) {
     assert.ok(favicon.includes(d), `public/favicon.svg no longer has the path ${d}; update MARK in appIcons.mjs`);
   }
+});
+
+test('should not load the icon renderer into every page', () => {
+  // Layout.astro runs for every page; importing appIcons.mjs there would
+  // pull Satori and resvg into each render.
+  const layout = fs.readFileSync(path.join(root, 'src/layouts/Layout.astro'), 'utf8');
+  assert.doesNotMatch(layout, /from '[^']*(appIcons|ogImage)\.mjs'/);
+  assert.equal(appIconHref('apple-touch-icon'), '/icons/apple-touch-icon.png');
 });
 
 test('should name only icons the build draws in the manifest', () => {

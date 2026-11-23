@@ -21,7 +21,7 @@ const response = (body, init = {}) => {
  * @param {(url: string, request: Request) => Response | Promise<Response>} network
  *   The fake server. Throw to fail the request as a dead connection does.
  */
-function startWorker(network, { version = 'v1', stores = new Map() } = {}) {
+function startWorker(network, { version = 'v1', stores = new Map(), brokenStorage = false } = {}) {
   const listeners = {};
   const fetched = [];
   const messages = [];
@@ -32,14 +32,26 @@ function startWorker(network, { version = 'v1', stores = new Map() } = {}) {
     const url = new URL(typeof request === 'string' ? request : request.url, ORIGIN);
     return url.pathname + url.search;
   };
+  const storageError = () => {
+    throw new DOMException('Quota exceeded', 'QuotaExceededError');
+  };
   const caches = {
     open: async (name) => {
       if (!stores.has(name)) stores.set(name, new Map());
       const store = stores.get(name);
       return {
         match: async (request) => store.get(key(request))?.clone(),
-        put: async (request, res) => void store.set(key(request), res),
+        put: async (request, res) => {
+          if (brokenStorage) storageError();
+          // Like the real thing, done only once the whole body has arrived.
+          const body = await res.arrayBuffer();
+          store.set(key(request), response(body, { status: res.status }));
+        },
       };
+    },
+    match: async (request, { cacheName }) => {
+      if (brokenStorage) storageError();
+      return stores.get(cacheName)?.get(key(request))?.clone();
     },
     keys: async () => [...stores.keys()],
     delete: async (name) => stores.delete(name),
@@ -52,9 +64,9 @@ function startWorker(network, { version = 'v1', stores = new Map() } = {}) {
     Promise,
     setTimeout,
     caches,
-    fetch: async (request) => {
+    fetch: async (request, init = {}) => {
       const req = typeof request === 'string' ? new Request(new URL(request, ORIGIN)) : request;
-      fetched.push({ path: key(req), cache: req.cache });
+      fetched.push({ path: key(req), cache: init.cache ?? req.cache });
       return network(key(req), req);
     },
     self: {
@@ -116,7 +128,9 @@ function startWorker(network, { version = 'v1', stores = new Map() } = {}) {
     fetched,
     messages,
     stores,
-    saved: (version_ = version) => [...(stores.get(`chsmesh-offline-${version_}`)?.keys() ?? [])],
+    /** Paths saved in the cache of this version, or in the named cache. */
+    saved: (name = version) => [...(stores.get(`chsmesh-offline-${name}`)?.keys() ?? [])],
+    text: (path, name = version) => stores.get(`chsmesh-offline-${name}`).get(path).clone().text(),
     get skippedWaiting() {
       return skippedWaiting;
     },
@@ -132,7 +146,8 @@ const offline = () => {
 };
 
 async function installed(network = online, options) {
-  const worker = startWorker(online, options);
+  // Storage only breaks, where a test asks for that, once the worker is in.
+  const worker = startWorker(online, { ...options, brokenStorage: false });
   await worker.lifecycle('install');
   await worker.lifecycle('activate');
   // Swap the network only after a successful install.
@@ -155,18 +170,20 @@ test('should fail the install when a listed file is missing, so the old worker s
   const worker = startWorker((url) => (url === '/guides/' ? response('gone', { status: 404 }) : online(url)));
   await assert.rejects(worker.lifecycle('install'), /\/guides\/ answered 404/);
   assert.equal(worker.skippedWaiting, false);
+  assert.equal(worker.stores.has('chsmesh-offline-v1'), false, 'a half-filled cache must not be left behind');
 });
 
 test('should drop the caches of older versions on activate and tell open pages', async () => {
   const stores = new Map([
     ['chsmesh-offline-old', new Map()],
+    ['chsmesh-offline-runtime', new Map()],
     ['someone-elses-cache', new Map()],
   ]);
   const worker = startWorker(online, { version: 'v2', stores });
   await worker.lifecycle('install');
   await worker.lifecycle('activate');
 
-  assert.deepEqual([...stores.keys()].sort(), ['chsmesh-offline-v2', 'someone-elses-cache']);
+  assert.deepEqual([...stores.keys()].sort(), ['chsmesh-offline-runtime', 'chsmesh-offline-v2', 'someone-elses-cache']);
   assert.equal(worker.claimed, true);
   // Compared as JSON: the message object was made inside the worker's realm.
   assert.equal(JSON.stringify(worker.messages), '[{"type":"offline-ready"}]');
@@ -177,8 +194,10 @@ test('should serve a page from the network when online and refresh the saved cop
   const res = await worker.request('/guides/initial-setup/');
 
   assert.equal(await res.text(), 'updated /guides/initial-setup/');
-  const cache = await worker.stores.get('chsmesh-offline-v1').get('/guides/initial-setup/').text();
-  assert.equal(cache, 'updated /guides/initial-setup/');
+  assert.equal(await worker.text('/guides/initial-setup/'), 'updated /guides/initial-setup/');
+  // Revalidated with the server, so a copy from the one-hour HTTP cache
+  // cannot replace a newer one saved at install.
+  assert.equal(worker.fetched.at(-1).cache, 'no-cache');
 });
 
 test('should serve the saved page when the network is down', async () => {
@@ -203,20 +222,20 @@ test('should prefer the saved page over a server error', async () => {
   const worker = await installed(() => response('bad gateway', { status: 502 }));
   const res = await worker.request('/guides/');
   assert.equal(await res.text(), 'fresh /guides/');
-  assert.equal(await worker.stores.get('chsmesh-offline-v1').get('/guides/').text(), 'fresh /guides/', 'an error must not replace the saved copy');
+  assert.equal(await worker.text('/guides/'), 'fresh /guides/', 'an error must not replace the saved copy');
 });
 
 test('should pass a 404 through and not save it', async () => {
   const worker = await installed(() => response('not found', { status: 404 }));
   const res = await worker.request('/no-such-page/');
   assert.equal(res.status, 404);
-  assert.equal(worker.saved().includes('/no-such-page/'), false);
+  assert.deepEqual(worker.saved('runtime'), []);
 });
 
 test('should not save a redirect in place of a page', async () => {
   const worker = await installed(() => response('', { type: 'opaqueredirect', status: 200 }));
   await worker.request('/about');
-  assert.equal(worker.saved().includes('/about/'), false);
+  assert.deepEqual(worker.saved('runtime'), []);
 });
 
 test('should answer from the saved copy when the network hangs', async (t) => {
@@ -228,6 +247,67 @@ test('should answer from the saved copy when the network hangs', async (t) => {
   await new Promise(setImmediate);
   t.mock.timers.tick(3000);
   assert.equal(await (await answer).text(), 'fresh /guides/');
+});
+
+test('should show the offline page when the network hangs on a page that was never saved', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const worker = await installed(() => new Promise(() => {}));
+  const { answer } = worker.dispatch('/meetups/some-meetup/');
+  await new Promise(setImmediate);
+
+  // Slow is not offline: nothing is saved to show instead, so wait longer.
+  t.mock.timers.tick(3000);
+  let settled = false;
+  answer.then(() => (settled = true));
+  await new Promise(setImmediate);
+  assert.equal(settled, false);
+
+  t.mock.timers.tick(7000);
+  assert.equal(await (await answer).text(), 'fresh /offline/');
+});
+
+test('should answer before the page has finished saving', async () => {
+  let finishBody;
+  const worker = await installed(
+    () =>
+      response(new ReadableStream({ start: (controller) => (finishBody = () => controller.close()) }))
+  );
+  const { answer, pending } = worker.dispatch('/guides/');
+  const res = await answer;
+  assert.equal(res.status, 200, 'the response must not wait for its own body to be stored');
+  finishBody();
+  await Promise.all(pending);
+});
+
+test('should still answer from the network when nothing can be saved or read', async () => {
+  const worker = await installed((url) => response(`updated ${url}`), { brokenStorage: true });
+
+  assert.equal(await (await worker.request('/meetups/some-meetup/')).text(), 'updated /meetups/some-meetup/');
+  assert.equal(await (await worker.request('/guides/')).text(), 'updated /guides/');
+  assert.equal(await (await worker.request('/_astro/other.999.js', { mode: 'no-cors' })).text(), 'updated /_astro/other.999.js');
+  assert.equal(await (await worker.request('/downloads/a.pdf')).text(), 'updated /downloads/a.pdf');
+});
+
+test('should keep a visited page and a downloaded PDF when a new version takes over', async () => {
+  const stores = new Map();
+  const first = await installed(online, { stores });
+  await first.request('/meetups/some-meetup/');
+  await first.request('/downloads/chsmesh-field-handbook.pdf');
+  assert.deepEqual(first.saved('runtime').sort(), ['/downloads/chsmesh-field-handbook.pdf', '/meetups/some-meetup/']);
+
+  const second = await installed(offline, { stores, version: 'v2' });
+  assert.equal(stores.has('chsmesh-offline-v1'), false);
+  assert.equal(await (await second.request('/meetups/some-meetup/')).text(), 'fresh /meetups/some-meetup/');
+  assert.equal(await (await second.request('/downloads/chsmesh-field-handbook.pdf')).text(), 'fresh /downloads/chsmesh-field-handbook.pdf');
+});
+
+test('should treat a saved page as a page even when its address looks like a file', async () => {
+  const stores = new Map();
+  const first = await installed(online, { stores });
+  await first.request('/guides/firmware-2.5/');
+
+  const later = startWorker(offline, { stores });
+  assert.equal(await (await later.request('/guides/firmware-2.5')).text(), 'fresh /guides/firmware-2.5/');
 });
 
 test('should serve hashed files from the cache without asking the network', async () => {

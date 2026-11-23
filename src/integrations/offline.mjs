@@ -47,6 +47,15 @@ export function precachePages(files) {
     .sort();
 }
 
+/** dist-relative path of a URL: "%20" in a link is a space in the file name. */
+const toDistPath = (url) => {
+  try {
+    return decodeURI(url);
+  } catch {
+    return url;
+  }
+};
+
 /**
  * The site's own files that `html` loads: hashed /_astro/ files, and images
  * and icons from public/. Links to other pages and to PDFs are not followed.
@@ -57,7 +66,10 @@ export function precachePages(files) {
 export function referencedFiles(html) {
   const found = new Set();
   for (const [, url] of html.matchAll(/(?:src|href)="(\/[^"/][^"?#]*)[^"]*"/g)) {
-    if (url.startsWith('/_astro/') || /\.(?:png|jpe?g|gif|svg|webp|avif|ico|webmanifest)$/i.test(url)) found.add(url);
+    if (url.startsWith('/_astro/') || /\.(?:png|jpe?g|gif|svg|webp|avif|ico|webmanifest)$/i.test(url)) {
+      // As the browser will request it: HTML escapes "&" in attributes.
+      found.add(url.replace(/&amp;/g, '&'));
+    }
   }
   return [...found];
 }
@@ -71,7 +83,12 @@ export function referencedFiles(html) {
 export function precacheList(distDir) {
   const files = walk(distDir);
   const inDist = new Set(files.map((file) => `/${file}`));
-  const read = (url) => fs.readFileSync(path.join(distDir, url.endsWith('/') ? `${url}index.html` : url));
+  // URLs stay as the pages write them ("/images/t-beam%20case.png"), since
+  // that is what the browser will ask the worker for; files are found decoded.
+  const read = (url) => {
+    const file = toDistPath(url);
+    return fs.readFileSync(path.join(distDir, file.endsWith('/') ? `${file}index.html` : file));
+  };
 
   const pages = precachePages(files);
   if (!pages.includes(OFFLINE_PATH)) {
@@ -82,7 +99,7 @@ export function precacheList(distDir) {
   const queue = [];
   const add = (url, from) => {
     if (assets.has(url)) return;
-    if (!inDist.has(url)) throw new Error(`${from} uses ${url}, which is not in the build.`);
+    if (!inDist.has(toDistPath(url))) throw new Error(`${from} uses ${url}, which is not in the build.`);
     assets.add(url);
     queue.push(url);
   };

@@ -3,6 +3,7 @@
 // public/favicon.svg and served from /icons/<name>.png
 // (src/pages/icons/[name].png.ts). Generated rather than committed so the
 // sizes cannot drift from the favicon.
+import { APP_ICON_SPECS } from './appIconPaths.mjs';
 import { svgToPng } from './ogImage.mjs';
 
 const TEAL = '#0d9488';
@@ -27,15 +28,12 @@ const round = svg(`<circle cx="64" cy="64" r="60" fill="${TEAL}" />`, 1);
 // central 80% circle that every mask keeps.
 const square = svg(`<rect width="128" height="128" fill="${TEAL}" />`, 0.78);
 
-/** @type {Record<string, { size: number, svg: string }>} */
-export const APP_ICONS = {
-  'icon-192': { size: 192, svg: round },
-  'icon-512': { size: 512, svg: round },
-  'maskable-512': { size: 512, svg: square },
-  'apple-touch-icon': { size: 180, svg: square },
-};
+const SHAPES = { round, square };
 
-export const appIconHref = (/** @type {keyof typeof APP_ICONS} */ name) => `/icons/${name}.png`;
+/** @type {Record<string, { size: number, svg: string }>} */
+export const APP_ICONS = Object.fromEntries(
+  Object.entries(APP_ICON_SPECS).map(([name, { size, shape }]) => [name, { size, svg: SHAPES[shape] }])
+);
 
 /** @param {string} name */
 export const renderAppIcon = (name) => svgToPng(APP_ICONS[name].svg, APP_ICONS[name].size);

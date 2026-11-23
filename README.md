@@ -94,11 +94,14 @@ How it behaves:
 
 - **At install** the worker saves every built page except `/admin/` and
   `/status/`, with the CSS, scripts and images those pages use (about 0.9 MB
-  today; `npm run test:build` fails above 1.5 MB). The PDFs are not included,
-  but a PDF someone has downloaded is kept.
+  today; `npm run test:build` fails if any one file is over 500 kB). The PDFs
+  are not included.
+- **Anything else a visitor opens** - a meetup page, a downloaded PDF - is
+  saved as they go, in a second cache that deploys do not clear.
 - **Pages are network first**, so an edit shows as soon as it is deployed. The
   saved copy is used when the request fails, the server answers 5xx, or there
   is no answer within three seconds (a phone with signal but no connection).
+  A page that was never saved gets ten seconds, then the offline page.
 - **Updates**: `sw.js` carries a fingerprint of everything it saves. A deploy
   that changes any of it changes `sw.js`, and each visitor's browser then
   saves the new copies in the background on their next visit. nginx serves

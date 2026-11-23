@@ -16,7 +16,9 @@ export const pageKey = (pathname) => (pathname.endsWith('/') ? pathname : `${pat
 
 async function updateIndicator() {
   try {
-    const saved = await caches.match(pageKey(location.pathname));
+    // A saved copy only opens offline if a worker is there to serve it.
+    const registration = await navigator.serviceWorker.getRegistration();
+    const saved = registration?.active && (await caches.match(pageKey(location.pathname)));
     show('[data-offline-indicator]', Boolean(saved));
   } catch {
     // Storage can be blocked (private windows); the page works without it.
