@@ -6,6 +6,7 @@ category: getting-started
 order: 1
 readingTime: 5
 lastUpdated: 2026-04-21
+handbook: true
 ---
 
 ## Overview

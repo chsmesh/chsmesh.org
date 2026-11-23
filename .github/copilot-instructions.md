@@ -15,7 +15,7 @@ Content is organized in `src/content/` with schema validation in `src/content/co
 - **resources**: Hardware device specifications and community links. 7 entries in `src/content/resources/`.
 - **glossary**: JSON files, one per term (`term`, `definition` ≤ 200 chars, optional `explanation`, `aliases`, `related`). Rendered at `/glossary/`; the file name is the entry's anchor. `astro.config.mjs` reads them with `loadGlossaryTerms()` (`src/utils/glossary.mjs`) and passes them to `rehypeGlossaryLinks`, which links the first mention of each term or alias in guide markdown (never in headings, code or existing links).
 - **taxonomies**: Display labels, descriptions, and icons for guide categories/difficulties, resource categories, and meetup statuses/badges. A single entry, `src/content/taxonomies/default.md`, read through `src/utils/taxonomy.ts`.
-- **global**: Site metadata and per-page copy — 13 Markdown files in `src/content/global/`: `site.md`, `navigation.md`, `footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `guides.md`, `guides-detail.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, `resources.md`. The schema is a discriminated union on the `type` frontmatter field, so each file must declare its `type`.
+- **global**: Site metadata and per-page copy — 14 Markdown files in `src/content/global/`: `site.md`, `navigation.md`, `footer.md`, `home.md`, `about.md`, `relay-sites.md`, `status.md`, `guides.md`, `guides-detail.md`, `handbook.md`, `glossary.md`, `meetups.md`, `meetups-detail.md`, `resources.md`. The schema is a discriminated union on the `type` frontmatter field, so each file must declare its `type`.
 
 ### Page Generation
 - Static routes: `src/pages/` → predictable URLs (index.astro → /, about.astro → /about)
@@ -56,6 +56,12 @@ npm run astro ...  # Pass through Astro CLI commands
 ```
 
 `check` is not part of `build`; CI runs both.
+
+### Offline PDFs
+- `npm run build:pdf` (`scripts/build-pdfs.mjs`, run after `npm run build`) prints every guide page and `/handbook/` to `dist/downloads/*.pdf` with headless Chromium. The Dockerfile and CI run it; the PDFs are never committed.
+- `/handbook/` (`src/pages/handbook.astro`) bundles the guides with `handbook: true` in their frontmatter plus the glossary.
+- Print output comes from the `@media print` block in `src/styles/global.css`. Mark screen-only elements with the `no-print` class.
+- PDF file names and URLs come from `src/utils/downloads.mjs`; never hand-write a `/downloads/...` path.
 
 ## Project-Specific Conventions
 

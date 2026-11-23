@@ -47,6 +47,9 @@ const guides = defineCollection({
     prerequisites: z.array(z.string()).default([]),
     lastUpdated: z.coerce.date().optional(),
     author: z.string().optional(),
+    // Include this guide in the field handbook (/handbook/ and its PDF). Keep
+    // it to what someone needs in hand when the internet is down.
+    handbook: z.boolean().default(false),
   }),
 });
 
@@ -412,12 +415,40 @@ const global = defineCollection({
       backLabel: z.string(),
       prerequisitesHeading: z.string(),
       relatedHeading: z.string(),
+      // The "Download PDF" button in the guide header.
+      download: z.object({
+        label: z.string(),
+        hint: z.string(),
+      }),
       feedback: z.object({
         question: z.string(),
         reportLabel: z.string(),
         reportUrlTemplate: z.string(),
         improveLabel: z.string(),
         improveUrl: z.string(),
+      }),
+    }),
+    z.object({
+      type: z.literal('handbook'),
+      pageTitle: z.string(),
+      pageDescription: z.string(),
+      hero: z.object({
+        title: z.string(),
+        subtitle: z.string(),
+        size: z.enum(['small', 'large']).optional(),
+      }),
+      intro: z.string(),
+      downloadLabel: z.string(),
+      // Followed by the build date, e.g. "Generated November 22, 2026".
+      generatedLabel: z.string(),
+      contentsHeading: z.string(),
+      glossaryHeading: z.string(),
+      // The callout on the guides index.
+      promo: z.object({
+        heading: z.string(),
+        body: z.string(),
+        downloadLabel: z.string(),
+        viewLabel: z.string(),
       }),
     }),
     z.object({

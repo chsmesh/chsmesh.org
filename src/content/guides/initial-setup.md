@@ -9,6 +9,7 @@ prerequisites:
   - Meshtastic firmware flashed to your device
   - Meshtastic app installed on your phone
 lastUpdated: 2026-04-21
+handbook: true
 ---
 
 ## Overview

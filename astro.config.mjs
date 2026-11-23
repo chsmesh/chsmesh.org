@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { rehypeCanonicalLinks } from './src/utils/rehypeCanonicalLinks.mjs';
 import { rehypeGlossaryLinks } from './src/utils/rehypeGlossaryLinks.mjs';
 import { loadGlossaryTerms } from './src/utils/glossary.mjs';
+import { HANDBOOK_PATH } from './src/utils/downloads.mjs';
 
 const glossaryTerms = loadGlossaryTerms(new URL('./src/content/glossary/', import.meta.url));
 
@@ -18,8 +19,9 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [
     sitemap({
-      // The CMS shell is not content.
-      filter: (page) => !page.includes('/admin'),
+      // The CMS shell is not content, and the handbook repeats the guides and
+      // the glossary (its page is noindex), so neither belongs in the sitemap.
+      filter: (page) => !page.includes('/admin') && new URL(page).pathname !== HANDBOOK_PATH,
     }),
   ],
   markdown: {

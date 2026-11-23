@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import { getCollection, render } from 'astro:content';
 import { getTaxonomyLabels } from '../../utils/taxonomy';
 import { getGlobal } from '../../utils/global';
+import { guidePdfHref } from '../../utils/downloads.mjs';
 
 export async function getStaticPaths() {
   const guides = await getCollection('guides');
@@ -41,7 +42,7 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
     <!-- Header -->
     <section class="hero hero-pattern py-12">
       <div class="container-narrow">
-        <nav class="mb-6">
+        <nav class="mb-6 no-print">
           <a href="/guides/" class="transition-colors inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -76,6 +77,18 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
             )}
           </div>
         )}
+
+        {/* Generated after the build by scripts/build-pdfs.mjs, so this link
+            is dead under `astro dev` and a plain `npm run build`. */}
+        <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 no-print">
+          <a href={guidePdfHref(guide.slug)} download class="btn btn-sm hero-btn">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            {guidesDetail.download.label}
+          </a>
+          <span class="text-sm text-primary-100">{guidesDetail.download.hint}</span>
+        </div>
       </div>
     </section>
 
@@ -112,7 +125,7 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
 
     <!-- Related Guides -->
     {relatedGuides.length > 0 && (
-      <section class="section-sm bg-neutral-50 border-t border-neutral-200">
+      <section class="section-sm bg-neutral-50 border-t border-neutral-200 no-print">
         <div class="container-narrow">
           <h3 class="text-xl font-semibold mb-6">{guidesDetail.relatedHeading}</h3>
           <div class="grid gap-4">
@@ -133,7 +146,7 @@ const reportUrl = guidesDetail.feedback.reportUrlTemplate.replace('{title}', enc
     )}
 
     <!-- Feedback -->
-    <section class="section-sm border-t border-neutral-200">
+    <section class="section-sm border-t border-neutral-200 no-print">
       <div class="container-narrow text-center">
         <p class="text-neutral-600 mb-4">{guidesDetail.feedback.question}</p>
         <div class="flex justify-center gap-4">
