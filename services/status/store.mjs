@@ -117,10 +117,16 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
   };
 
   // Last byte of each infrastructure node, for crediting relays. A byte shared
-  // by two known nodes is ambiguous and credits nobody.
-  const relayOwner = (byte) => {
+  // with another site, or with a node heard in the last activeHours, is
+  // ambiguous and credits nobody. A node heard once and then gone quiet stops
+  // blocking the credit once it leaves that window (it used to block it for
+  // the whole 7-day retention).
+  const relayOwner = (byte, t) => {
+    const since = t - opt.activeHours * HOUR;
+    const candidates = new Set(infra.keys());
+    for (const [id, n] of nodes) if (n.lastHeard >= since) candidates.add(id);
     let owner = null;
-    for (const id of new Set([...infra.keys(), ...nodes.keys()])) {
+    for (const id of candidates) {
       if ((parseInt(id.slice(1), 16) & 0xff) !== byte) continue;
       if (owner) return null;
       owner = id;
@@ -204,7 +210,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
 
     // The relay byte names whoever transmitted the copy the gateway heard.
     if (p.relayNode !== undefined && hops !== null && hops > 0) {
-      const owner = relayOwner(p.relayNode & 0xff);
+      const owner = relayOwner(p.relayNode & 0xff, t);
       if (owner) markInfra(owner, t);
     }
 
