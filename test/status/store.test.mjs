@@ -120,6 +120,27 @@ test('relay bytes credit infrastructure only when unambiguous', () => {
   assert.equal(store2.snapshot().infrastructure.find((r) => r.id === '!e20c4c89').status, 'unseen');
 });
 
+test('a node heard once blocks a relay byte only while it is active', () => {
+  // 2026-11-27: !acaac41c sent two packets once and shared LoWatt 5900's last
+  // byte, which hid every relay by 5900 for the full 7-day retention.
+  const now = clockAt('2026-11-14T15:00:00Z');
+  const store = createStore({ infrastructure: INFRA, root: ROOT, now });
+  const dt1 = () => store.snapshot().infrastructure.find((r) => r.id === '!e20c4c89');
+  // Another node ending in 0x89 is heard once, directly.
+  store.ingest(topic('LongFast'), { gatewayId: '', packet: { from: 0x00000089, id: 1, hopStart: 3, hopLimit: 3, decoded: null, encrypted: null } });
+  now.advance(2 * 3600_000);
+  // The text fixture was relayed by byte 0x89: ambiguous while the other node is active.
+  store.ingest(topic('LongFast'), env('text'));
+  assert.equal(dt1().status, 'unseen');
+  now.advance(23 * 3600_000);
+  store.ingest(topic('LongFast'), env('text'));
+  assert.equal(dt1().status, 'up', 'the other node went quiet 25 h ago, so 0x89 credits !e20c4c89 again');
+  // An infrastructure site sharing the byte stays ambiguous however quiet it is.
+  const store2 = createStore({ infrastructure: [...INFRA, { id: '!00000089', name: 'Other' }], root: ROOT, now });
+  store2.ingest(topic('LongFast'), env('text'));
+  assert.equal(store2.snapshot().infrastructure.find((r) => r.id === '!e20c4c89').status, 'unseen');
+});
+
 test('a never-heard site is unseen for the grace period, then down, and stays out of the headline count', () => {
   const now = clockAt('2026-11-14T15:00:00Z');
   const store = createStore({ infrastructure: INFRA, root: ROOT, now });
