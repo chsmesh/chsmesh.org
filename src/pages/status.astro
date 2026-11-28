@@ -179,7 +179,7 @@ const mapCta = page.map.cta && {
 
   type Infra = {
     id: string; name: string; area: string | null; role: string | null; status: 'up' | 'stale' | 'down' | 'unseen';
-    lastHeard: string | null; activity: number[]; activityPct: number; channelUtilization: number | null;
+    lastHeard: string | null; lastHeardSource?: 'gateway' | 'feeder' | null; activity: number[]; activityPct: number; channelUtilization: number | null;
     pos: { lat: number; lon: number } | null;
   };
   type Node = {
@@ -245,7 +245,7 @@ const mapCta = page.map.cta && {
         // cannot break a page that is already open or cached.
         const [cls, label] = statusBadge[r.status] ?? ['bg-neutral-100 text-neutral-600', String(r.status)];
         status.append(el('span', `inline-block px-2 py-0.5 rounded-full text-xs font-medium ${cls}`, label));
-        const heard = el('td', 'px-4 py-3 text-neutral-500', ago(r.lastHeard));
+        const heard = el('td', 'px-4 py-3 text-neutral-500', ago(r.lastHeard) + (r.lastHeardSource === 'feeder' ? ' · heard by a feeder' : ''));
         const util = el('td', 'px-4 py-3 text-neutral-600', r.channelUtilization === null ? '–' : `${r.channelUtilization}%`);
         const bars = el('td', 'px-4 py-3');
         const strip = el('div', 'flex gap-px');

@@ -1,5 +1,5 @@
 // Minimal MQTT 3.1.1 subscriber: connect (TCP or TLS), authenticate, subscribe
-// to one topic filter at QoS 0, receive PUBLISH packets, keep the connection
+// to one or more topic filters at QoS 0, receive PUBLISH packets, keep the connection
 // alive and reconnect with backoff. That is all the status service needs, so
 // it carries no dependencies.
 
@@ -51,9 +51,22 @@ export function connectPacket({ clientId, username, password, keepalive }) {
   return packet(TYPE.CONNECT << 4, header, ...payload);
 }
 
-export function subscribePacket(packetId, topic) {
+export function subscribePacket(packetId, topics) {
   const id = Buffer.from([packetId >> 8, packetId & 0xff]);
-  return packet((TYPE.SUBSCRIBE << 4) | 0x02, id, encodeString(topic), Buffer.from([0]));
+  const filters = (Array.isArray(topics) ? topics : [topics]).flatMap((t) => [encodeString(t), Buffer.from([0])]);
+  return packet((TYPE.SUBSCRIBE << 4) | 0x02, id, ...filters);
+}
+
+/** MQTT topic filter match ('+' one level, '#' the rest). */
+export function topicMatches(filter, topic) {
+  const f = String(filter).split('/');
+  const t = String(topic).split('/');
+  for (let i = 0; i < f.length; i++) {
+    if (f[i] === '#') return true;
+    if (i >= t.length) return false;
+    if (f[i] !== '+' && f[i] !== t[i]) return false;
+  }
+  return f.length === t.length;
 }
 
 /**
@@ -106,12 +119,13 @@ export function parsePublish(flags, body) {
  * Errors are reported and followed by a reconnect; they never throw.
  */
 export class MqttSubscriber extends EventEmitter {
-  constructor({ url, username = '', password = '', topic, clientId, keepalive = 60, minBackoffMs = 2000, maxBackoffMs = 60000, tlsOptions = {} }) {
+  constructor({ url, username = '', password = '', topic, topics, clientId, keepalive = 60, minBackoffMs = 2000, maxBackoffMs = 60000, tlsOptions = {} }) {
     super();
     this.url = new URL(url);
     this.username = username;
     this.password = password;
-    this.topic = topic;
+    this.topics = Array.isArray(topics) && topics.length ? [...topics] : [topic];
+    this.topic = this.topics[0];
     this.clientId = clientId ?? `chsmesh-status-${Math.random().toString(16).slice(2, 10)}`;
     this.keepalive = keepalive;
     this.minBackoffMs = minBackoffMs;
@@ -205,10 +219,13 @@ export class MqttSubscriber extends EventEmitter {
       this.connected = true;
       this.backoff = this.minBackoffMs;
       this.lastConnectedAt = new Date().toISOString();
-      socket.write(subscribePacket(1, this.topic));
+      socket.write(subscribePacket(1, this.topics));
       this.emit('connect');
     } else if (type === TYPE.SUBACK) {
-      if (body[body.length - 1] === 0x80) this.emit('error', new Error(`subscription to ${this.topic} was refused`));
+      // One return code per filter, in the order they were requested.
+      body.subarray(2).forEach((code, i) => {
+        if (code === 0x80) this.emit('error', new Error(`subscription to ${this.topics[i] ?? this.topic} was refused`));
+      });
     } else if (type === TYPE.PUBLISH) {
       let msg;
       try {

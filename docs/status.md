@@ -61,6 +61,7 @@ individually, so the service never sees the submissions service's secrets.
 | `STATUS_MQTT_USERNAME` | `chsmesh-status` | Broker login (read access to `msh/US/SC/LoCo/#` only) |
 | `STATUS_MQTT_URL` | `mqtts://mqtt.locomesh.cc:8883` | `mqtts://` (TLS) or `mqtt://` |
 | `STATUS_MQTT_ROOT` | `msh/US/SC/LoCo` | Topic root to follow |
+| `STATUS_FEED_TOPICS` | *(empty = off)* | Comma-separated LoCoMesh feeder report topics, e.g. `locomesh/feed/+/rx,locomesh/feed/+/nodedb`. A feeder's over-the-air reception of an infrastructure site (not `via_mqtt`, and with an SNR/RSSI) counts as heard for its status and activity, labelled "heard by a feeder". Helps routers with "OK to MQTT" off, whose own packets gateways never upload. Nothing else from the reports is kept. The broker login needs read access: `topic read locomesh/feed/+/rx` and `topic read locomesh/feed/+/nodedb` in the ACL. |
 | `STATUS_DATA_DIR` | `/data` | Where state is saved every 5 minutes and on shutdown |
 | `PORT` | `3001` | |
 
