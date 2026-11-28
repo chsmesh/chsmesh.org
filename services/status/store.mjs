@@ -9,6 +9,8 @@
 //     other channel are counted in the totals, and channel names are neither
 //     published nor stored
 //   - broker usernames never appear; gateways are shown by node name
+//   - feeder reports (ingestFeed) only mark infrastructure sites as heard;
+//     feeder (member) names, text and positions from them are never kept
 
 import { PORTNUM, DEFAULT_KEY, decryptPacket, decodeUser, decodePosition, decodeTelemetry, decodeMapReport, nodeId, roleName } from './mesh.mjs';
 import { hardwareName } from './hardware.mjs';
@@ -27,6 +29,8 @@ export const DEFAULTS = Object.freeze({
   dedupeMinutes: 10,
   unseenGraceDays: 7, // a listed site never heard for this long after it was added counts as "down"
 });
+
+const FEED_SKEW_MS = 5 * MINUTE; // a feeder clock this far ahead is still believed
 
 const round = (x, d = POSITION_DECIMALS) => (x === null || x === undefined ? null : Math.round(x * 10 ** d) / 10 ** d);
 const round1 = (x) => (x === null || x === undefined || Number.isNaN(x) ? null : Math.round(x * 10) / 10);
@@ -79,6 +83,10 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
   const infraBlocks = new Map();
   // infra id -> last time it was heard in any way (own packet, gateway upload, relay)
   const infraLast = new Map();
+  // infra id -> last time a LoCoMesh feeder's node heard it over the air. Kept
+  // apart from infraLast so the page can say where the evidence came from.
+  const infraFeed = new Map();
+  let lastFeedAt = null;
   // packet key -> first seen ms, for counting each packet once across gateways
   const seen = new Map();
   let lastMessageAt = null;
@@ -109,12 +117,30 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     return h;
   };
 
-  const markInfra = (id, t) => {
-    if (!infra.has(id)) return;
-    infraLast.set(id, Math.max(infraLast.get(id) ?? 0, t));
+  const markBlock = (id, t) => {
     if (!infraBlocks.has(id)) infraBlocks.set(id, new Set());
     infraBlocks.get(id).add(blockStart(t));
   };
+
+  const markInfra = (id, t) => {
+    if (!infra.has(id)) return;
+    infraLast.set(id, Math.max(infraLast.get(id) ?? 0, t));
+    markBlock(id, t);
+  };
+
+  const markFeed = (id, t) => {
+    if (!infra.has(id)) return false;
+    infraFeed.set(id, Math.max(infraFeed.get(id) ?? 0, t));
+    markBlock(id, t);
+    return true;
+  };
+
+  const feedNodeId = (v) => {
+    if (typeof v === 'number') return Number.isInteger(v) && v > 0 && v < 0xffffffff ? nodeId(v) : null;
+    const s = String(v ?? '').toLowerCase();
+    return GATEWAY_ID.test(s) ? s : null;
+  };
+  const signal = (x) => typeof x === 'number' && Number.isFinite(x) && x !== 0;
 
   // Last byte of each infrastructure node, for crediting relays. A byte shared
   // by two known nodes is ambiguous and credits nobody.
@@ -228,6 +254,43 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     return { from, gateway: gw || null, channel: where.channel, first, decoded: data?.portnum ?? null };
   }
 
+  /**
+   * Ingest one LoCoMesh feeder report: JSON on <prefix>/<member>/rx or
+   * <prefix>/<member>/nodedb. Only infrastructure sites are credited, and only
+   * for reception over the air: via_mqtt copies, and rx copies with neither SNR
+   * nor RSSI (MQTT downlinks injected into the feeder's node), are ignored.
+   * Feeder reports never add nodes, gateways or packet counts; those stay
+   * "heard by gateways". Returns what was credited, for tests and logs.
+   */
+  function ingestFeed(topic, msg) {
+    const t = now();
+    const kind = String(topic).split('/').at(-1);
+    if (!msg || typeof msg !== 'object') return { ignored: true };
+    if (kind === 'rx') {
+      const from = feedNodeId(msg.from);
+      if (!from) return { ignored: true, reason: 'no sender' };
+      if (msg.via_mqtt) return { ignored: true, reason: 'via_mqtt' };
+      if (!signal(msg.snr) && !signal(msg.rssi)) return { ignored: true, reason: 'no signal report' };
+      lastFeedAt = t;
+      return { from, credited: markFeed(from, t) };
+    }
+    if (kind === 'nodedb') {
+      const credited = [];
+      for (const n of Array.isArray(msg.nodes) ? msg.nodes.slice(0, 1000) : []) {
+        if (!n || typeof n !== 'object' || n.via_mqtt) continue;
+        const id = feedNodeId(n.id);
+        if (!id || !infra.has(id)) continue;
+        const heard = Number(n.last_heard) * 1000;
+        if (!Number.isFinite(heard) || heard <= 0 || heard > t + FEED_SKEW_MS || t - heard > opt.retentionDays * DAY) continue;
+        markFeed(id, Math.min(heard, t));
+        credited.push(id);
+      }
+      lastFeedAt = t;
+      return { credited };
+    }
+    return { ignored: true, reason: 'unknown report' };
+  }
+
   /** Drop everything older than the retention window. Call periodically. */
   function prune() {
     const t = now();
@@ -280,7 +343,9 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       for (let i = 0; i < blocks; i++) activity.push(heard.has(firstBlock + i * BLOCK_HOURS * HOUR) ? 1 : 0);
       // A site heard as an ordinary node or gateway before it was listed has no
       // infraLast entry yet, so that evidence counts too.
-      const lastSeen = Math.max(infraLast.get(id) ?? 0, n?.lastHeard ?? 0, gateways.get(id)?.lastUpload ?? 0) || null;
+      const gatewaySeen = Math.max(infraLast.get(id) ?? 0, n?.lastHeard ?? 0, gateways.get(id)?.lastUpload ?? 0);
+      const feederSeen = infraFeed.get(id) ?? 0;
+      const lastSeen = Math.max(gatewaySeen, feederSeen) || null;
       const age = lastSeen ? t - lastSeen : Infinity;
       const unseen = t - (infraSince.get(id) ?? startedAt) <= opt.unseenGraceDays * DAY ? 'unseen' : 'down';
       return {
@@ -290,6 +355,7 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
         role: n?.role ?? s.role ?? null,
         status: lastSeen === null ? unseen : age <= opt.routerUpHours * HOUR ? 'up' : age <= DAY ? 'stale' : 'down',
         lastHeard: lastSeen ? new Date(lastSeen).toISOString() : null,
+        lastHeardSource: lastSeen === null ? null : feederSeen > gatewaySeen ? 'feeder' : 'gateway',
         activity,
         activityPct: Math.round((activity.reduce((a, b) => a + b, 0) / blocks) * 100),
         channelUtilization: n?.telemetry && t - n.telemetry.at < DAY ? n.telemetry.channelUtilization : null,
@@ -337,7 +403,9 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       generatedAt: new Date(t).toISOString(),
       collectorSince: new Date(startedAt).toISOString(),
       lastMessageAt: lastMessageAt ? new Date(lastMessageAt).toISOString() : null,
-      scope: 'Nodes heard by gateways uploading to the LoCoMesh MQTT server (mqtt.locomesh.cc). Nodes out of range of every gateway do not appear.',
+      scope:
+        'Nodes heard by gateways uploading to the LoCoMesh MQTT server (mqtt.locomesh.cc). Nodes out of range of every gateway do not appear.' +
+        (lastFeedAt !== null ? ' Infrastructure sites can also be marked heard by LoCoMesh feeders (member nodes that heard them over the air).' : ''),
       totals: {
         activeNodes: active.length,
         nodesWithPosition: active.filter((n) => n.pos).length,
@@ -371,6 +439,8 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
       infraBlocks: [...infraBlocks.entries()].map(([id, set]) => [id, [...set]]),
       infraLast: [...infraLast.entries()],
       infraSince: [...infraSince.entries()],
+      infraFeed: [...infraFeed.entries()],
+      lastFeedAt,
     };
   }
 
@@ -396,9 +466,11 @@ export function createStore({ infrastructure = [], root = 'msh/US/SC/LoCo', now 
     // collector started. A site missing from newer state was just added.
     if (!state.infraSince) for (const id of infra.keys()) infraSince.set(id, startedAt);
     for (const [id, ms] of state.infraSince ?? []) if (infra.has(id)) infraSince.set(id, ms);
+    for (const [id, ms] of state.infraFeed ?? []) if (infra.has(id) && Number.isFinite(ms)) infraFeed.set(id, ms);
+    lastFeedAt = state.lastFeedAt ?? null;
     prune();
     return true;
   }
 
-  return { ingest, prune, snapshot, serialize, load, get size() { return { nodes: nodes.size, gateways: gateways.size, hours: hours.size }; } };
+  return { ingest, ingestFeed, prune, snapshot, serialize, load, get size() { return { nodes: nodes.size, gateways: gateways.size, hours: hours.size }; } };
 }
